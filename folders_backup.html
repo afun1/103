@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folders - Sparky Screen Recorder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f1f5f9;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .page-subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 15px 25px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #60a5fa;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .folders-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 25px;
+            margin: 0 auto;
+        }
+
+        .folder-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 25px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .folder-card:hover {
+            background: rgba(51, 65, 85, 0.9);
+            border-color: #60a5fa;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        .folder-card.main-folder {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(29, 78, 216, 0.2) 100%);
+            border-color: #3b82f6;
+        }
+
+        .folder-card.main-folder:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(29, 78, 216, 0.3) 100%);
+            border-color: #60a5fa;
+        }
+
+        .folder-icon {
+            display: none;
+        }
+
+        .folder-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 12px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .main-folder .folder-name {
+            color: #60a5fa;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .folder-info {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+        
+        .folder-email {
+            font-size: 10px;
+            color: #64748b;
+            margin-bottom: 8px;
+            word-break: break-all;
+            line-height: 1.2;
+        }
+
+        .video-count {
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .role-admin {
+            background: rgba(220, 38, 38, 0.3);
+            color: #fecaca;
+        }
+
+        .role-manager {
+            background: rgba(234, 88, 12, 0.3);
+            color: #fed7aa;
+        }
+
+        .role-supervisor {
+            background: rgba(217, 119, 6, 0.3);
+            color: #fde68a;
+        }
+
+        .role-user {
+            background: rgba(8, 145, 178, 0.3);
+            color: #a7f3d0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            grid-column: 1 / -1;
+        }
+
+        .loading::before {
+            display: none;
+        }
+
+        .error {
+            text-align: center;
+            padding: 60px 20px;
+            color: #ef4444;
+            font-size: 1.1rem;
+            grid-column: 1 / -1;
+        }
+
+        .error::before {
+            display: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .folders-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .folders-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 18px;
+            }
+
+            .folder-card {
+                padding: 20px 15px;
+                min-height: 160px;
+            }
+
+            .folder-icon {
+                font-size: 2.5rem;
+            }
+
+            .main-folder .folder-icon {
+                font-size: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px 0;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .folders-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+
+            .stats-bar {
+                gap: 15px;
+            }
+
+            .stat-item {
+                padding: 12px 20px;
+                min-width: 100px;
+            }
+
+            .folder-card {
+                padding: 18px 12px;
+                min-height: 140px;
+            }
+
+            .folder-name {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-title {
+                font-size: 1.8rem;
+            }
+
+            .folders-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .folder-card {
+                padding: 15px 10px;
+                min-height: 120px;
+            }
+
+            .folder-icon {
+                font-size: 2rem;
+            }
+
+            .main-folder .folder-icon {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            width: 95%;
+            max-width: 1600px;
+            max-height: 90%;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+            padding: 20px 25px;
+            border-bottom: 1px solid #475569;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: color 0.2s ease;
+        }
+
+        .modal-close:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .modal-body {
+            padding: 25px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-videos-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .modal-video-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            overflow: visible;
+            transition: all 0.3s ease;
+            min-height: auto;
+            height: auto;
+        }
+
+        .modal-video-card:hover {
+            background: rgba(51, 65, 85, 0.9);
+            border-color: #60a5fa;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-video-thumbnail {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+        }
+
+        .modal-video-info {
+            padding: 15px;
+        }
+
+        .modal-video-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .modal-video-description {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+            hyphens: auto;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .modal-video-meta {
+            font-size: 0.75rem;
+            color: #64748b;
+            line-height: 1.3;
+        }
+
+        .modal-meta-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .modal-meta-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-meta-label {
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .modal-meta-value {
+            color: #cbd5e1;
+            text-align: right;
+        }
+
+        .modal-card-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+        }
+
+        .move-button {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .move-button:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+        }
+
+        .user-dropdown-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+            display: none !important;
+            justify-content: center !important;
+            align-items: center !important;
+            z-index: 9999999 !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+
+        .user-dropdown-overlay.show,
+        #user-dropdown.show {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        .user-dropdown-content {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+            z-index: 9999999 !important;
+            position: relative;
+        }
+
+        .dropdown-title {
+            color: #f1f5f9;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .user-search-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 2px solid #60a5fa;
+            border-radius: 8px;
+            color: #f1f5f9;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(96, 165, 250, 0.2);
+        }
+
+        .user-search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+            background: rgba(30, 41, 59, 1);
+        }
+
+        .user-search-input::placeholder {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .users-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .user-option {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            transition: background 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-option:hover {
+            background: rgba(51, 65, 85, 0.7);
+        }
+
+        .user-option.selected {
+            background: rgba(59, 130, 246, 0.3);
+            border: 1px solid #60a5fa;
+        }
+
+        .user-name {
+            color: #f1f5f9;
+            font-weight: 500;
+        }
+
+        .user-email {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .user-role-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .dropdown-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .dropdown-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-move {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-move:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .btn-cancel {
+            background: rgba(71, 85, 105, 0.8);
+            color: #e2e8f0;
+            border: 1px solid #475569;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(100, 116, 139, 0.8);
+        }
+
+
+
+        .modal-video-duration {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+        }
+
+        .modal-loading {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+
+        .modal-error {
+            text-align: center;
+            padding: 40px;
+            color: #ef4444;
+            font-size: 1rem;
+        }
+
+        .modal-empty {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 1200px) {
+            .modal-videos-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 18px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .modal-videos-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 98%;
+                max-height: 95%;
+            }
+
+            .modal-videos-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .modal-header {
+                padding: 15px 20px;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Folders</h1>
+            <p class="page-subtitle">Organize and browse video collections by user</p>
+        </div>
+
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number" id="total-folders">-</span>
+                <span class="stat-label">Total Folders</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="total-videos">-</span>
+                <span class="stat-label">Total Videos</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="user-folders">-</span>
+                <span class="stat-label">User Folders</span>
+            </div>
+        </div>
+
+        <div class="folders-grid" id="folders-grid">
+            <div class="loading">
+                Loading folders...
+            </div>
+        </div>
+    </div>
+
+    <!-- Folder Modal -->
+    <div class="modal-overlay" id="folder-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Folder Contents</h3>
+                <button class="modal-close" onclick="closeFolderModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <div class="modal-loading">Loading folder contents...</div>
+            </div>
+        </div>
+    </div>
+
+
+    
+
+
+    <!-- Load Global Header -->
+    <script src="./global-header.js"></script>
+
+    <script>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFolders();
+        });
+
+        async function loadFolders() {
+            try {
+                console.log('📁 Loading folders...');
+                
+                const response = await fetch('/api/folders');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('📂 Received folders data:', data);
+                
+                displayFolders(data.folders || []);
+                updateStats(data.stats || {});
+                
+            } catch (error) {
+                console.error('❌ Error loading folders:', error);
+                showError(`Failed to load folders: ${error.message}`);
+            }
+        }
+
+        function displayFolders(folders) {
+            const container = document.getElementById('folders-grid');
+            
+            if (!folders || folders.length === 0) {
+                container.innerHTML = `
+                    <div class="error">
+                        <p>No folders found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const foldersHTML = folders.map(folder => createFolderCard(folder)).join('');
+            container.innerHTML = foldersHTML;
+        }
+
+        function createFolderCard(folder) {
+            const isMainFolder = folder.type === 'main';
+            const folderClass = isMainFolder ? 'folder-card main-folder' : 'folder-card';
+            const folderIcon = ''; // No graphics
+            
+            let roleElement = '';
+            if (!isMainFolder && folder.role) {
+                const roleClass = getRoleClass(folder.role);
+                roleElement = `<div class="user-role ${roleClass}">${escapeHtml(folder.role)}</div>`;
+            }
+
+            const videoCountText = folder.videoCount === 1 ? 'video' : 'videos';
+            const emailElement = !isMainFolder && folder.email 
+                ? `<div class="folder-email">${escapeHtml(folder.email)}</div>` 
+                : '';
+                
+            const folderInfo = isMainFolder 
+                ? `<div class="video-count">${folder.videoCount} ${videoCountText}</div><div>Main Collection</div>`
+                : `${emailElement}<div class="video-count">${folder.videoCount} ${videoCountText}</div>${roleElement}`;
+
+            return `
+                <div class="${folderClass}" onclick="openFolder('${folder.id}', '${folder.type}', '${escapeHtml(folder.name)}')">
+                    <div class="folder-name">${escapeHtml(folder.name)}</div>
+                    <div class="folder-info">
+                        ${folderInfo}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getRoleClass(role) {
+            const roleMap = {
+                'admin': 'role-admin',
+                'manager': 'role-manager',
+                'supervisor': 'role-supervisor',
+                'user': 'role-user'
+            };
+            return roleMap[role?.toLowerCase()] || 'role-user';
+        }
+
+        function updateStats(stats) {
+            document.getElementById('total-folders').textContent = (stats.totalFolders || 0).toLocaleString();
+            document.getElementById('total-videos').textContent = (stats.totalVideos || 0).toLocaleString();
+            document.getElementById('user-folders').textContent = (stats.userFolders || 0).toLocaleString();
+        }
+
+        function openFolder(folderId, folderType, folderName) {
+            console.log(`📂 Opening folder: ${folderName} (${folderType})`);
+            
+            // Open modal for all folder types
+            openFolderModal(folderId, folderType, folderName);
+        }
+
+        function openFolderModal(folderId, folderType, folderName) {
+            const modal = document.getElementById('folder-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            
+            // Set modal title
+            modalTitle.textContent = folderName;
+            
+            // Show loading state
+            modalBody.innerHTML = '<div class="modal-loading">Loading folder contents...</div>';
+            
+            // Show modal
+            modal.classList.add('show');
+            
+            // Load folder contents
+            loadFolderContents(folderId, folderType);
+        }
+
+        async function loadFolderContents(folderId, folderType) {
+            const modalBody = document.getElementById('modal-body');
+            
+            try {
+                if (folderType === 'main') {
+                    // Load videos from main Vimeo folder
+                    const response = await fetch('/api/folder-videos');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    const data = await response.json();
+                    displayModalVideos(data.videos || []);
+                } else {
+                    // For user folders, show placeholder content for now
+                    modalBody.innerHTML = `
+                        <div class="modal-empty">
+                            <p>User-specific videos will be displayed here.</p>
+                            <p style="margin-top: 10px; font-size: 0.9rem; color: #64748b;">
+                                Feature coming soon - individual user video collections.
+                            </p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('❌ Error loading folder contents:', error);
+                modalBody.innerHTML = `
+                    <div class="modal-error">
+                        <p>Failed to load folder contents: ${escapeHtml(error.message)}</p>
+                        <button onclick="loadFolderContents('${folderId}', '${folderType}')" 
+                                style="margin-top: 15px; padding: 8px 16px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function displayModalVideos(videos) {
+            const modalBody = document.getElementById('modal-body');
+            
+            if (!videos || videos.length === 0) {
+                modalBody.innerHTML = `
+                    <div class="modal-empty">
+                        <p>No videos found in this folder.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const videosHTML = `
+                <div class="modal-videos-grid">
+                    ${videos.map(video => createModalVideoCard(video)).join('')}
+                </div>
+            `;
+            
+            modalBody.innerHTML = videosHTML;
+        }
+
+        function createModalVideoCard(video) {
+            const thumbnail = video.pictures?.sizes?.find(size => size.width >= 300)?.link || 
+                             video.pictures?.sizes?.[0]?.link || 
+                             'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="180" fill="%23475569"><rect width="300" height="180"/><text x="150" y="95" font-family="Arial" font-size="16" fill="white" text-anchor="middle">No Thumbnail</text></svg>';
+            
+            const title = video.name || 'Untitled Video';
+            const description = video.description || '';
+            const duration = formatDuration(video.duration || 0);
+            const createdDate = video.created_time ? new Date(video.created_time).toLocaleDateString() : 'Unknown';
+            const createdTime = video.created_time ? new Date(video.created_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown';
+            const videoId = video.uri ? video.uri.split('/').pop() : '';
+            const vimeoUrl = `https://vimeo.com/${videoId}`;
+
+            // Parse recording details from description
+            const recordingDetails = parseRecordingDetails(description);
+
+            return `
+                <div class="modal-video-card">
+                    <div style="position: relative;">
+                        <img src="${thumbnail}" alt="${escapeHtml(title)}" class="modal-video-thumbnail" loading="lazy">
+                        <div class="modal-video-duration">${duration}</div>
+                        <a href="${vimeoUrl}" target="_blank" class="modal-play-btn" style="position: absolute; top: 8px; left: 8px; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; text-decoration: none; border-radius: 50%; font-size: 16px; z-index: 10; transition: all 0.2s; backdrop-filter: blur(4px);" onmouseover="this.style.background='rgba(16,185,129,0.9)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.8)'; this.style.transform='scale(1)';">▶️</a>
+                        <div class="modal-card-actions">
+                            <button class="move-button" onclick="showUserDropdown('${video.uri}', '${escapeHtml(title)}')">Move</button>
+                        </div>
+                    </div>
+                    <div class="modal-video-info">
+                        <div class="modal-video-title">${escapeHtml(title)}</div>
+                        <div class="modal-video-description" style="max-height: none; overflow: visible;">
+                            ${recordingDetails.customerEmail ? `<strong>Customer:</strong> ${escapeHtml(recordingDetails.customerEmail)}<br>` : ''}
+                            ${recordingDetails.recordedBy ? `<strong>Recorded By:</strong> ${escapeHtml(recordingDetails.recordedBy)}<br>` : ''}
+                            ${recordingDetails.recordedByEmail ? `<strong>Email:</strong> ${escapeHtml(recordingDetails.recordedByEmail)}<br>` : ''}
+                            ${recordingDetails.recordingDate ? `<strong>Date:</strong> ${escapeHtml(recordingDetails.recordingDate)}<br>` : ''}
+                            ${recordingDetails.actualDescription ? `<div style="margin-top: 8px;">${escapeHtml(recordingDetails.actualDescription)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function parseRecordingDetails(description) {
+            const details = {
+                customerEmail: '',
+                recordedBy: '',
+                recordedByEmail: '',
+                recordingDate: '',
+                actualDescription: ''
+            };
+
+            if (!description) return details;
+
+            // Extract customer email
+            const customerEmailMatch = description.match(/Customer Email:\s*([^\s\n]+)/);
+            if (customerEmailMatch) {
+                details.customerEmail = customerEmailMatch[1];
+            }
+
+            // Extract recorded by name
+            const recordedByMatch = description.match(/Recorded By:\s*([^\n]+?)(?:\s+Recorded By Email:|$)/);
+            if (recordedByMatch) {
+                details.recordedBy = recordedByMatch[1].trim();
+            }
+
+            // Extract recorded by email
+            const recordedByEmailMatch = description.match(/Recorded By Email:\s*([^\s\n]+)/);
+            if (recordedByEmailMatch) {
+                details.recordedByEmail = recordedByEmailMatch[1];
+            }
+
+            // Extract recording date
+            const recordingDateMatch = description.match(/Recording Date:\s*([^\n]+)/);
+            if (recordingDateMatch) {
+                details.recordingDate = recordingDateMatch[1].trim();
+            }
+
+            // Extract any additional description content (after the structured data)
+            // Look for content that's not part of the structured fields
+            let cleanDescription = description;
+            
+            // Remove the structured data to get remaining description
+            cleanDescription = cleanDescription.replace(/--- RECORDING DETAILS ---[\s\S]*?(?=\n\n|$)/, '');
+            cleanDescription = cleanDescription.replace(/Customer Email:\s*[^\s\n]+\s*/, '');
+            cleanDescription = cleanDescription.replace(/Recorded By:\s*[^\n]+\s*/, '');
+            cleanDescription = cleanDescription.replace(/Recorded By Email:\s*[^\s\n]+\s*/, '');
+            cleanDescription = cleanDescription.replace(/Recording Date:\s*[^\n]+\s*/, '');
+            cleanDescription = cleanDescription.replace(/Screen recording session\s*/, '');
+            
+            // Clean up extra whitespace and newlines
+            cleanDescription = cleanDescription.trim().replace(/\n\s*\n/g, '\n');
+            
+            if (cleanDescription && cleanDescription.length > 0) {
+                details.actualDescription = cleanDescription;
+            }
+
+            return details;
+        }
+
+        function closeFolderModal() {
+            const modal = document.getElementById('folder-modal');
+            modal.classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('folder-modal');
+            if (event.target === modal) {
+                closeFolderModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeFolderModal();
+                closeUserDropdown();
+            }
+        });
+
+        // User dropdown functionality
+        let allUsers = [];
+        let selectedUser = null;
+        let currentVideoId = null;
+        let currentVideoTitle = '';
+
+        async function showUserDropdown(videoId, videoTitle) {
+            console.log('🎬 Showing user dropdown for video:', videoTitle);
+            console.log('📹 Video ID:', videoId);
+            
+            // Clean up any old dropdown remnants first
+            const oldDropdowns = document.querySelectorAll('[id*="dropdown"]:not([id="simple-user-dropdown"]), .user-dropdown:not([id="simple-user-dropdown"]), .dropdown-toggle');
+            oldDropdowns.forEach(element => {
+                console.log('🧹 Removing old dropdown element:', element.id || element.className);
+                element.remove();
+            });
+            
+            // Store current video for move operation
+            currentVideoForMove = { uri: videoId, title: videoTitle };
+            
+            // Create the simple dropdown
+            const simpleDropdown = document.createElement('div');
+            simpleDropdown.id = 'simple-user-dropdown';
+            simpleDropdown.innerHTML = `
+                <div style="background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-height: 400px; overflow: auto; min-width: 300px;">
+                    <div style="padding: 15px; border-bottom: 1px solid #ddd; background: #f8f9fa; border-radius: 8px 8px 0 0;">
+                        <h3 style="margin: 0 0 10px 0; color: #333;">👥 Select User to Move Video</h3>
+                        <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">Moving: ${videoTitle}</p>
+                        <input type="text" placeholder="🔍 Search users..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;" id="simple-search-input">
+                        <button onclick="closeSimpleDropdown()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer; color: #666;">×</button>
+                    </div>
+                    <div id="simple-users-list" style="padding: 10px;">
+                        <div style="text-align: center; padding: 20px; color: #666;">Loading users...</div>
+                    </div>
+                </div>
+            `;
+            simpleDropdown.style.cssText = `
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                z-index: 99999999 !important;
+                background: rgba(0,0,0,0.8) !important;
+                padding: 20px !important;
+                border-radius: 12px !important;
+            `;
+            simpleDropdown.onclick = (e) => {
+                if (e.target === simpleDropdown) closeSimpleDropdown();
+            };
+            document.body.appendChild(simpleDropdown);
+            
+            // Load and display users in the simple dropdown
+            await loadAndDisplaySimpleUsers();
+            
+            // Focus on search input
+            const searchInput = document.getElementById('simple-search-input');
+            if (searchInput) {
+                searchInput.focus();
+                console.log('🔍 Search input focused');
+                
+                // Add search functionality
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    filterSimpleUsers(searchTerm);
+                });
+            }
+                simpleSearchInput.focus();
+                console.log('� Simple search input focused');
+                
+                // Add search functionality
+                simpleSearchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    filterSimpleUsers(searchTerm);
+                });
+            }
+        }
+
+        async function loadUsersForDropdown() {
+            try {
+                const response = await fetch('/api/users');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                allUsers = data.users || [];
+            } catch (error) {
+                console.error('❌ Error loading users for dropdown:', error);
+                document.getElementById('users-list').innerHTML = `
+                    <div style="color: #ef4444; text-align: center; padding: 20px;">
+                        Failed to load users: ${escapeHtml(error.message)}
+                    </div>
+                `;
+            }
+        }
+
+        function displayUsers(users) {
+            const usersList = document.getElementById('users-list');
+            
+            if (!users || users.length === 0) {
+                usersList.innerHTML = `
+                    <div style="color: #94a3b8; text-align: center; padding: 20px;">
+                        No users found
+                    </div>
+                `;
+                return;
+            }
+
+            const usersHTML = users.map(user => {
+                const displayName = user.display_name || user.email || 'Unknown User';
+                const roleClass = getRoleClass(user.role || 'user');
+                const roleName = (user.role || 'user').toUpperCase();
+                
+                return `
+                    <div class="user-option" onclick="selectUser('${user.id}', '${escapeHtml(displayName)}', '${escapeHtml(user.email || '')}')" data-user-id="${user.id}">
+                        <div>
+                            <div class="user-name">${escapeHtml(displayName)}</div>
+                            <div class="user-email">${escapeHtml(user.email || '')}</div>
+                        </div>
+                        <div class="user-role-badge ${roleClass}">${roleName}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            usersList.innerHTML = usersHTML;
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('user-search').value.toLowerCase();
+            
+            if (!searchTerm) {
+                displayUsers(allUsers);
+                return;
+            }
+            
+            const filteredUsers = allUsers.filter(user => {
+                const displayName = (user.display_name || '').toLowerCase();
+                const email = (user.email || '').toLowerCase();
+                const role = (user.role || '').toLowerCase();
+                
+                return displayName.includes(searchTerm) || 
+                       email.includes(searchTerm) || 
+                       role.includes(searchTerm);
+            });
+            
+            displayUsers(filteredUsers);
+        }
+
+        function selectUser(userId, userName, userEmail) {
+            // Remove previous selection
+            document.querySelectorAll('.user-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selection to clicked user
+            const userOption = document.querySelector(`[data-user-id="${userId}"]`);
+            if (userOption) {
+                userOption.classList.add('selected');
+            }
+            
+            selectedUser = {
+                id: userId,
+                name: userName,
+                email: userEmail
+            };
+            
+            document.getElementById('move-btn').disabled = false;
+        }
+
+        async function moveVideo() {
+            console.log('🔄 Move video function called');
+            console.log('👤 Selected user:', selectedUser);
+            console.log('📹 Current video ID:', currentVideoId);
+            console.log('🎬 Current video title:', currentVideoTitle);
+            
+            if (!selectedUser || !currentVideoId) {
+                console.error('❌ Missing required data for move operation');
+                alert('Error: Missing user selection or video information');
+                return;
+            }
+            
+            const moveBtn = document.getElementById('move-btn');
+            if (moveBtn) {
+                moveBtn.disabled = true;
+                moveBtn.textContent = 'Moving...';
+            }
+            
+            try {
+                // Show confirmation dialog first
+                const confirmMessage = `Move Video Confirmation:\n\n` + 
+                    `Video: "${currentVideoTitle}"\n` +
+                    `From: Main Folder\n` +
+                    `To: ${selectedUser.name}'s folder\n` +
+                    `User Email: ${selectedUser.email}\n\n` +
+                    `This will update the video metadata in Vimeo.\n` +
+                    `Do you want to proceed?`;
+                
+                if (!confirm(confirmMessage)) {
+                    return;
+                }
+                
+                console.log('🚀 Calling move video API...');
+                
+                // Call the backend API to move the video
+                const response = await fetch('/api/move-video', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        videoId: currentVideoId.replace('/videos/', ''),
+                        videoUri: currentVideoId,
+                        videoTitle: currentVideoTitle,
+                        userId: selectedUser.id,
+                        userEmail: selectedUser.email,
+                        userName: selectedUser.display_name || selectedUser.email
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    console.log('✅ Video moved successfully:', result);
+                    
+                    // Show success message with details
+                    const successMessage = `✅ Success!\n\n` +
+                        `Video: "${currentVideoTitle}"\n` +
+                        `Has been assigned to: ${selectedUser.display_name || selectedUser.email}\n\n` +
+                        `✓ Video metadata updated in Vimeo\n` +
+                        `✓ Folder assignment recorded\n` +
+                        `✓ Assignment date: ${new Date().toLocaleDateString()}\n\n` +
+                        `The video is now organized in ${selectedUser.display_name || selectedUser.email}'s folder.`;
+                    
+                    alert(successMessage);
+                    
+                    // Close the dropdown
+                    closeUserDropdown();
+                    
+                    // Refresh the folder contents to reflect the change
+                    const modal = document.getElementById('folder-modal');
+                    if (modal && modal.classList.contains('show')) {
+                        console.log('🔄 Refreshing folder contents after successful move...');
+                        // Reload the main folder contents
+                        loadFolderContents('main', 'main');
+                    }
+                    
+                } else {
+                    console.error('❌ Move video failed:', result);
+                    alert(`Failed to move video: ${result.message || result.error || 'Unknown error'}`);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error moving video:', error);
+                alert(`Failed to move video: ${error.message}`);
+            } finally {
+                if (moveBtn) {
+                    moveBtn.disabled = false;
+                    moveBtn.textContent = 'Move';
+                }
+            }
+        }
+
+        function closeUserDropdown() {
+            const dropdown = document.getElementById('user-dropdown');
+            dropdown.classList.remove('show');
+            selectedUser = null;
+            currentVideoId = null;
+            currentVideoTitle = '';
+        }
+        
+
+        
+
+        
+        function openVideoDetailModalById(videoId) {
+            console.log('🎬 Opening modal for video ID:', videoId);
+            if (window.videoModalData && window.videoModalData[videoId]) {
+                const { video, details } = window.videoModalData[videoId];
+                openVideoDetailModal(video, details);
+            } else {
+                console.error('❌ Video data not found for ID:', videoId);
+            }
+        }
+
+        // Close user dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('user-dropdown');
+            
+            if (event.target === dropdown) {
+                closeUserDropdown();
+            }
+        });
+
+        function formatDuration(seconds) {
+            if (!seconds) return '0:00';
+            
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('folders-grid');
+            container.innerHTML = `
+                <div class="error">
+                    <p>${escapeHtml(message)}</p>
+                    <button class="action-btn btn-primary" onclick="loadFolders()" style="margin-top: 20px; padding: 10px 20px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+
+        // Simple dropdown helper functions
+        function closeSimpleDropdown() {
+            const dropdown = document.getElementById('simple-user-dropdown');
+            if (dropdown) {
+                dropdown.remove();
+                console.log('✅ Simple dropdown closed');
+            }
+        }
+
+        async function loadAndDisplaySimpleUsers() {
+            try {
+                // Load users if not already loaded
+                if (allUsers.length === 0) {
+                    console.log('📥 Loading users for simple dropdown...');
+                    await loadUsersForDropdown();
+                }
+                
+                console.log('👥 Displaying', allUsers.length, 'users in simple dropdown');
+                displaySimpleUsers(allUsers);
+            } catch (error) {
+                console.error('❌ Error loading users for simple dropdown:', error);
+                const usersList = document.getElementById('simple-users-list');
+                if (usersList) {
+                    usersList.innerHTML = `<div style="text-align: center; padding: 20px; color: #d32f2f;">Error loading users: ${error.message}</div>`;
+                }
+            }
+        }
+
+        function displaySimpleUsers(users) {
+            const usersList = document.getElementById('simple-users-list');
+            if (!usersList) return;
+
+            if (users.length === 0) {
+                usersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">No users found</div>';
+                return;
+            }
+
+            usersList.innerHTML = users.map(user => `
+                <div onclick="selectUserForMove('${user.id}', '${escapeHtml(user.display_name)}')" 
+                     style="padding: 12px; margin: 5px 0; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                     onmouseover="this.style.background='#e3f2fd'; this.style.borderColor='#2196f3';"
+                     onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#e9ecef';">
+                    <div style="font-weight: bold; color: #333;">${escapeHtml(user.display_name)}</div>
+                    <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                        ${escapeHtml(user.email)} • ${escapeHtml(user.role)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterSimpleUsers(searchTerm) {
+            const filteredUsers = allUsers.filter(user => 
+                user.display_name.toLowerCase().includes(searchTerm) || 
+                user.email.toLowerCase().includes(searchTerm) ||
+                user.role.toLowerCase().includes(searchTerm)
+            );
+            displaySimpleUsers(filteredUsers);
+        }
+
+        function selectUserForMove(userId, userName) {
+            console.log('👤 User selected for move:', userName, '(ID:', userId, ')');
+            closeSimpleDropdown();
+            
+            // Proceed with the move
+            if (currentVideoForMove) {
+                moveVideoToUser(currentVideoForMove, userId, userName);
+            }
+        }
+
+        async function moveVideoToUser(video, userId, userName) {
+            console.log('🔄 Moving video to user folder:', video.title, '→', userName);
+            
+            try {
+                // Show confirmation dialog first
+                const confirmMessage = `Move Video to User Folder:\n\n` + 
+                    `Video: "${video.title}"\n` +
+                    `From: Main Sparky Folder\n` +
+                    `To: ${userName}'s Personal Folder\n\n` +
+                    `This will:\n` +
+                    `• Create "${userName} - Videos" folder if it doesn't exist\n` +
+                    `• Move the video from main folder to user folder\n` +
+                    `• Update video metadata with assignment info\n\n` +
+                    `Do you want to proceed?`;
+                
+                if (!confirm(confirmMessage)) {
+                    console.log('❌ Move cancelled by user');
+                    return;
+                }
+
+                console.log('🚀 Calling move video API...');
+                
+                // Call the backend API to move the video
+                const response = await fetch('/api/move-video', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        videoId: video.uri.replace('/videos/', ''),
+                        videoUri: video.uri,
+                        videoTitle: video.title,
+                        userId: userId,
+                        userEmail: allUsers.find(u => u.id === userId)?.email || 'unknown',
+                        userName: userName
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    console.log('✅ Video moved successfully:', result);
+                    
+                    // Show success message with details
+                    const successMessage = `✅ Success!\n\n` +
+                        `Video: "${video.title}"\n` +
+                        `Has been moved to: ${userName}'s Personal Folder\n\n` +
+                        `✓ Video physically moved in Vimeo\n` +
+                        `✓ User folder created/updated\n` +
+                        `✓ Video metadata updated\n` +
+                        `✓ Move date: ${new Date().toLocaleDateString()}\n\n` +
+                        `The video is now in "${userName} - Videos" folder.`;
+                    
+                    alert(successMessage);
+                    
+                    // Refresh the current folder to remove the moved video
+                    console.log('🔄 Refreshing folder contents after successful move...');
+                    await loadFolders();
+                    
+                } else {
+                    console.error('❌ Move video failed:', result);
+                    alert(`Failed to move video: ${result.message || result.error || 'Unknown error'}`);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error moving video:', error);
+                alert(`Failed to move video: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication - Screen Recorder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: white;
+            margin: 20px;
+        }
+        .debug-section {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .debug-section h3 {
+            color: #60a5fa;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .result {
+            background: #0f172a;
+            border: 1px solid #374151;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            color: #ef4444;
+        }
+        .success {
+            color: #10b981;
+        }
+        input {
+            background: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: white;
+            margin: 5px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Authentication Debug Tool</h1>
+    
+    <div class="debug-section">
+        <h3>Current Session Info</h3>
+        <button onclick="checkCurrentSession()">Check Current Session</button>
+        <div id="session-result" class="result"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>List All Users in Profiles Table</h3>
+        <button onclick="listAllUsers()">List All Users</button>
+        <div id="users-result" class="result"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>Test Login</h3>
+        <input type="email" id="test-email" placeholder="Email" value="">
+        <input type="password" id="test-password" placeholder="Password" value="">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result" class="result"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>List Auth Users (if admin)</h3>
+        <button onclick="listAuthUsers()">List Auth Users</button>
+        <div id="auth-users-result" class="result"></div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        function displayResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+            element.className = `result ${isError ? 'error' : 'success'}`;
+        }
+
+        async function checkCurrentSession() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    displayResult('session-result', `Error: ${error.message}`, true);
+                    return;
+                }
+
+                if (!session) {
+                    displayResult('session-result', 'No active session');
+                    return;
+                }
+
+                const sessionInfo = {
+                    user_id: session.user.id,
+                    email: session.user.email,
+                    created_at: session.user.created_at,
+                    last_sign_in_at: session.user.last_sign_in_at,
+                    user_metadata: session.user.user_metadata,
+                    expires_at: session.expires_at
+                };
+
+                displayResult('session-result', sessionInfo);
+            } catch (error) {
+                displayResult('session-result', `Unexpected error: ${error.message}`, true);
+            }
+        }
+
+        async function listAllUsers() {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, email, display_name, role, created_at');
+
+                if (error) {
+                    displayResult('users-result', `Error: ${error.message}`, true);
+                    return;
+                }
+
+                displayResult('users-result', data || 'No users found');
+            } catch (error) {
+                displayResult('users-result', `Unexpected error: ${error.message}`, true);
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+
+            if (!email || !password) {
+                displayResult('login-result', 'Please enter both email and password', true);
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    displayResult('login-result', `Login failed: ${error.message}`, true);
+                    return;
+                }
+
+                const result = {
+                    success: true,
+                    user_id: data.user.id,
+                    email: data.user.email,
+                    session_expires: data.session.expires_at
+                };
+
+                displayResult('login-result', result);
+            } catch (error) {
+                displayResult('login-result', `Unexpected error: ${error.message}`, true);
+            }
+        }
+
+        async function listAuthUsers() {
+            try {
+                // This requires admin privileges
+                const { data, error } = await supabase.auth.admin.listUsers();
+
+                if (error) {
+                    displayResult('auth-users-result', `Error: ${error.message}`, true);
+                    return;
+                }
+
+                displayResult('auth-users-result', data);
+            } catch (error) {
+                displayResult('auth-users-result', `Unexpected error: ${error.message}`, true);
+            }
+        }
+
+        // Check session on load
+        window.addEventListener('load', checkCurrentSession);
+    </script>
+</body>
+</html>

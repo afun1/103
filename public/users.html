@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - Sparky Screen Recorder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f1f5f9;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .page-subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 15px 25px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #60a5fa;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .table-container {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+            padding: 20px 25px;
+            border-bottom: 1px solid #475569;
+        }
+
+        .table-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-title::before {
+            content: "👥";
+            font-size: 1.5rem;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+        }
+
+        .users-table th {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            color: #f1f5f9;
+            font-weight: 600;
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 2px solid #64748b;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .users-table td {
+            padding: 20px;
+            border-bottom: 1px solid #334155;
+            vertical-align: middle;
+        }
+
+        .users-table tr:hover {
+            background: rgba(51, 65, 85, 0.5);
+            transition: background-color 0.2s ease;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+
+        .user-email {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .user-email::before {
+            content: "📧";
+            font-size: 0.8rem;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .role-admin {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+        }
+
+        .role-manager {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+            color: white;
+        }
+
+        .role-supervisor {
+            background: linear-gradient(135deg, #d97706 0%, #a16207 100%);
+            color: white;
+        }
+
+        .role-user {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            color: white;
+        }
+
+        .role-default {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: white;
+        }
+
+        .hierarchy-info {
+            color: #cbd5e1;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .hierarchy-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+        }
+
+        .supervisor-icon::before {
+            content: "👑";
+            font-size: 0.8rem;
+        }
+
+        .manager-icon::before {
+            content: "📊";
+            font-size: 0.8rem;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(71, 85, 105, 0.8);
+            color: #e2e8f0;
+            border: 1px solid #475569;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(100, 116, 139, 0.8);
+            border-color: #64748b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .loading::before {
+            content: "⏳";
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .error {
+            text-align: center;
+            padding: 60px 20px;
+            color: #ef4444;
+            font-size: 1.1rem;
+        }
+
+        .error::before {
+            content: "❌";
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .empty-state::before {
+            content: "👤";
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .users-table th:nth-child(5),
+            .users-table td:nth-child(5),
+            .users-table th:nth-child(6),
+            .users-table td:nth-child(6) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px 0;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .stats-bar {
+                gap: 15px;
+            }
+
+            .stat-item {
+                padding: 12px 20px;
+                min-width: 100px;
+            }
+
+            .users-table th,
+            .users-table td {
+                padding: 15px 12px;
+            }
+
+            .user-name {
+                font-size: 1rem;
+            }
+
+            .users-table th:nth-child(4),
+            .users-table td:nth-child(4) {
+                display: none;
+            }
+
+            .action-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-title {
+                font-size: 1.8rem;
+            }
+
+            .users-table th,
+            .users-table td {
+                padding: 12px 8px;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .users-table th:nth-child(3),
+            .users-table td:nth-child(3) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Users Management</h1>
+            <p class="page-subtitle">Manage user profiles and organizational hierarchy</p>
+        </div>
+
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number" id="total-users">-</span>
+                <span class="stat-label">Total Users</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="total-admins">-</span>
+                <span class="stat-label">Admins</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="total-managers">-</span>
+                <span class="stat-label">Managers</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="total-supervisors">-</span>
+                <span class="stat-label">Supervisors</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <h2 class="table-title">All Users</h2>
+            </div>
+            
+            <div id="users-content">
+                <div class="loading">
+                    Loading users from Supabase...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Global Header -->
+    <script src="./global-header.js"></script>
+
+    <script>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsers();
+        });
+
+        async function loadUsers() {
+            try {
+                console.log('👥 Loading users from Supabase profiles table...');
+                
+                const response = await fetch('/api/users');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('👤 Received users data:', data);
+                
+                displayUsers(data.users || []);
+                updateStats(data.users || []);
+                
+            } catch (error) {
+                console.error('❌ Error loading users:', error);
+                showError(`Failed to load users: ${error.message}`);
+            }
+        }
+
+        function displayUsers(users) {
+            const container = document.getElementById('users-content');
+            
+            if (!users || users.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No users found in the database.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const tableHTML = `
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>User Details</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Supervisor</th>
+                            <th>Manager</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(user => createUserRow(user)).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+
+        function createUserRow(user) {
+            const firstName = user.first_name || '';
+            const lastName = user.last_name || '';
+            const fullName = `${firstName} ${lastName}`.trim() || user.display_name || 'Unknown User';
+            const email = user.email || 'No email';
+            const role = user.role || 'user';
+            const supervisor = user.assigned_to_supervisor || 'None';
+            const manager = user.assigned_to_manager || 'None';
+            
+            const roleClass = getRoleClass(role);
+
+            return `
+                <tr>
+                    <td>
+                        <div class="user-name">${escapeHtml(fullName)}</div>
+                        <div class="user-email">
+                            ${escapeHtml(email)}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="color: #94a3b8; font-size: 0.9rem;">${escapeHtml(email)}</div>
+                    </td>
+                    <td>
+                        <div class="role-badge ${roleClass}">${escapeHtml(role)}</div>
+                    </td>
+                    <td>
+                        <div class="hierarchy-info">
+                            <div class="hierarchy-item supervisor-icon">
+                                ${escapeHtml(supervisor)}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="hierarchy-info">
+                            <div class="hierarchy-item manager-icon">
+                                ${escapeHtml(manager)}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="user-actions">
+                            <button class="action-btn btn-primary" onclick="editUser('${user.id}')">
+                                <span>✏️</span> Edit
+                            </button>
+                            <button class="action-btn btn-secondary" onclick="viewProfile('${user.id}')">
+                                <span>👁️</span> View
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function getRoleClass(role) {
+            const roleMap = {
+                'admin': 'role-admin',
+                'manager': 'role-manager',
+                'supervisor': 'role-supervisor',
+                'user': 'role-user'
+            };
+            return roleMap[role.toLowerCase()] || 'role-default';
+        }
+
+        function updateStats(users) {
+            const totalUsers = users.length;
+            const totalAdmins = users.filter(user => user.role?.toLowerCase() === 'admin').length;
+            const totalManagers = users.filter(user => user.role?.toLowerCase() === 'manager').length;
+            const totalSupervisors = users.filter(user => user.role?.toLowerCase() === 'supervisor').length;
+            
+            document.getElementById('total-users').textContent = totalUsers.toLocaleString();
+            document.getElementById('total-admins').textContent = totalAdmins.toLocaleString();
+            document.getElementById('total-managers').textContent = totalManagers.toLocaleString();
+            document.getElementById('total-supervisors').textContent = totalSupervisors.toLocaleString();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function editUser(userId) {
+            // Placeholder for edit functionality
+            alert(`Edit user functionality would be implemented here for user ID: ${userId}`);
+        }
+
+        function viewProfile(userId) {
+            // Placeholder for view profile functionality
+            alert(`View profile functionality would be implemented here for user ID: ${userId}`);
+        }
+
+        function showError(message) {
+            const container = document.getElementById('users-content');
+            container.innerHTML = `
+                <div class="error">
+                    <p>${escapeHtml(message)}</p>
+                    <button class="action-btn btn-primary" onclick="loadUsers()" style="margin-top: 20px;">
+                        <span>🔄</span> Retry
+                    </button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
