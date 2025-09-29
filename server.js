@@ -56,6 +56,14 @@ app.get('/header', (req, res) => {
 // Vimeo upload endpoint
 app.post('/api/upload-vimeo', async (req, res) => {
     try {
+        console.log('🚀 Upload endpoint called');
+        console.log('Environment variables check:');
+        console.log('VIMEO_CLIENT_ID:', process.env.VIMEO_CLIENT_ID ? 'SET' : 'MISSING');
+        console.log('VIMEO_CLIENT_SECRET:', process.env.VIMEO_CLIENT_SECRET ? 'SET' : 'MISSING');
+        console.log('VIMEO_ACCESS_TOKEN:', process.env.VIMEO_ACCESS_TOKEN ? 'SET' : 'MISSING');
+        console.log('VIMEO_FOLDER_ID:', process.env.VIMEO_FOLDER_ID ? 'SET' : 'MISSING');
+        console.log('VIMEO_FOLDER_ID value:', process.env.VIMEO_FOLDER_ID);
+        
         const { videoData, title, description, customerData, recordedBy } = req.body;
 
         if (!videoData) {
@@ -119,6 +127,8 @@ Recording Date: ${new Date().toLocaleString()}`;
             );
         });
 
+        console.log('✅ Video upload completed successfully:', uploadResponse.uri);
+
         // After successful upload, try to add custom metadata fields if available
         try {
             const videoId = uploadResponse.uri.split('/').pop();
@@ -164,10 +174,13 @@ Recording Date: ${new Date().toLocaleString()}`;
         });
 
     } catch (error) {
-        console.error('Upload error:', error);
+        console.error('❌ Upload error details:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
         res.status(500).json({
             error: 'Upload failed',
-            message: error.message
+            message: error.message,
+            details: error.toString()
         });
     }
 });
