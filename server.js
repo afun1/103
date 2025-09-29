@@ -75,6 +75,11 @@ app.post('/api/upload-vimeo', async (req, res) => {
         const videoBuffer = Buffer.from(videoData, 'base64');
         console.log('📦 Video buffer created, size:', videoBuffer.length, 'bytes');
 
+        // Validate buffer size
+        if (videoBuffer.length === 0) {
+            throw new Error('Video buffer is empty');
+        }
+
         // Create structured description with all metadata
         const structuredDescription = `${description}
 
@@ -86,6 +91,11 @@ Recording Date: ${new Date().toLocaleString()}`;
 
         // Upload to Vimeo using direct API calls (more reliable for serverless)
         console.log('🚀 Starting Vimeo API upload process...');
+        console.log('📊 Upload parameters:', {
+            title,
+            folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
+            buffer_size: videoBuffer.length
+        });
         
         // Step 1: Create video entry
         const createResponse = await new Promise((resolve, reject) => {
@@ -108,9 +118,17 @@ Recording Date: ${new Date().toLocaleString()}`;
                     }
                 },
                 (error, body, statusCode, headers) => {
+                    console.log('📥 Vimeo create response status:', statusCode);
+                    console.log('📥 Vimeo create response headers:', headers);
+                    console.log('📥 Vimeo create response body:', JSON.stringify(body, null, 2));
+                    
                     if (error) {
                         console.error('❌ Create video error:', error);
+                        console.error('❌ Error details:', JSON.stringify(error, null, 2));
                         reject(error);
+                    } else if (statusCode >= 400) {
+                        console.error('❌ Create video HTTP error:', statusCode, body);
+                        reject(new Error(`HTTP ${statusCode}: ${JSON.stringify(body)}`));
                     } else {
                         console.log('✅ Video entry created:', body.uri);
                         resolve(body);
