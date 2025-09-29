@@ -76,7 +76,7 @@
             padding: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             display: flex;
-            gap: 30px;
+            gap: 20px;
             align-items: flex-start;
         }
 
@@ -86,8 +86,7 @@
         }
 
         .controls-right {
-            flex: 0 0 auto;
-            min-width: 200px;
+            flex: 0 0 200px;
         }
 
         .controls-title {
@@ -1155,8 +1154,44 @@
             
             <div class="controls-section" id="controlsSection">
                 <div class="controls-left">
-                    <div class="audio-header">
-                        <h2 class="controls-title">Audio Levels</h2>
+                    <div class="audio-header" style="
+                        display: flex;
+                        align-items: center;
+                        gap: 20px;
+                        margin-bottom: 20px;
+                    ">
+                        <h2 class="controls-title" style="margin: 0;">Audio Levels</h2>
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                        ">
+                            <label class="control-label" style="margin: 0; font-size: 14px;">Audio Source:</label>
+                            <select class="setting-select" id="audio" style="min-width: 100px;">
+                                <option value="system">System Audio</option>
+                                <option value="microphone">Microphone</option>
+                                <option value="both" selected>Both</option>
+                                <option value="none">No Audio</option>
+                            </select>
+                            <button id="monitorToggle" onclick="toggleAudioMonitoring()" style="
+                                padding: 4px 8px;
+                                background: #4CAF50;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                font-size: 12px;
+                                cursor: pointer;
+                            ">🎵 ON</button>
+                            <button onclick="testAudioMeters()" style="
+                                padding: 4px 8px;
+                                background: #FF9800;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                font-size: 12px;
+                                cursor: pointer;
+                            ">🔔 Test</button>
+                        </div>
                     </div>
                     
                     <div class="audio-meters">
@@ -1184,60 +1219,28 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Audio Source Controls moved here -->
-                    <div class="audio-source-controls" style="
-                        margin-top: 15px;
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                        flex-wrap: wrap;
-                    ">
-                        <label class="control-label" style="font-weight: 500; color: #ddd; font-size: 14px;">Audio Source:</label>
-                        <select class="setting-select" id="audio" style="min-width: 100px;">
-                            <option value="system">System Audio</option>
-                            <option value="microphone">Microphone</option>
-                            <option value="both" selected>Both</option>
-                            <option value="none">No Audio</option>
-                        </select>
-                        <button id="monitorToggle" onclick="toggleAudioMonitoring()" style="
-                            padding: 4px 8px;
-                            background: #4CAF50;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            font-size: 12px;
-                            cursor: pointer;
-                        ">🎵 ON</button>
-                        <button onclick="testAudioMeters()" style="
-                            padding: 4px 8px;
-                            background: #FF9800;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            font-size: 12px;
-                            cursor: pointer;
-                        ">🔔 Test</button>
-                    </div>
                 </div>
                 
                 <div class="controls-right" style="
                     display: flex;
                     flex-direction: column;
-                    align-items: flex-start;
+                    align-items: center;
+                    justify-content: center;
                     margin-left: 20px;
+                    min-width: 200px;
                 ">
-                    <h2 class="controls-title video-title-compact" style="margin-bottom: 15px;">Video Settings</h2>
+                    <h2 class="controls-title video-title-compact" style="margin: 0 0 15px 0; text-align: center;">Video Settings</h2>
                     
                     <div class="video-settings" style="
-                        display: flex;
-                        flex-direction: column;
-                        gap: 12px;
-                        min-width: 200px;
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 15px 20px;
+                        width: 100%;
+                        max-width: 240px;
                     ">
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <label style="font-size: 12px; color: #bbb; margin-bottom: 4px;">Quality:</label>
-                            <select class="setting-select" id="quality" style="width: 100%;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <label style="font-size: 12px; color: #bbb; text-align: center;">Quality:</label>
+                            <select class="setting-select" id="quality" style="width: 100%; font-size: 12px;">
                                 <option value="480p" selected>480p SD</option>
                                 <option value="720p">720p HD</option>
                                 <option value="1080p">1080p Full HD</option>
@@ -1245,17 +1248,17 @@
                             </select>
                         </div>
                         
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <label style="font-size: 12px; color: #bbb; margin-bottom: 4px;">Frame Rate:</label>
-                            <select class="setting-select" id="framerate" style="width: 100%;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <label style="font-size: 12px; color: #bbb; text-align: center;">Frame Rate:</label>
+                            <select class="setting-select" id="framerate" style="width: 100%; font-size: 12px;">
                                 <option value="30" selected>30 FPS</option>
                                 <option value="60">60 FPS</option>
                             </select>
                         </div>
                         
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <label style="font-size: 12px; color: #bbb; margin-bottom: 4px;">Compression:</label>
-                            <select class="setting-select" id="compression" style="width: 100%;">
+                        <div style="display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1;">
+                            <label style="font-size: 12px; color: #bbb; text-align: center;">Compression:</label>
+                            <select class="setting-select" id="compression" style="width: 100%; font-size: 12px;">
                                 <option value="standard" selected>Standard Quality</option>
                                 <option value="high">High Compression (Smaller Files)</option>
                                 <option value="maximum">Maximum Compression (Tiny Files)</option>
