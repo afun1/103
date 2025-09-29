@@ -24,7 +24,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '100mb' }));
+// Increase limits for video uploads but add raw body parsing for large files
+app.use(express.json({ limit: '500mb' }));
+app.use(express.raw({ limit: '500mb', type: 'application/octet-stream' }));
 
 // Debug middleware - log ALL requests
 app.use((req, res, next) => {
@@ -54,7 +56,132 @@ app.get('/header', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'header.html'));
 });
 
-// Vimeo upload endpoint
+// Chunked upload endpoint for large videos (Vercel-friendly)
+app.post('/api/upload-vimeo-chunked', async (req, res) => {
+    try {
+        console.log('🚀 Chunked upload endpoint called');
+        const { chunk, chunkIndex, totalChunks, title, description, customerData, recordedBy, uploadId } = req.body;
+        
+        if (!chunk || chunkIndex === undefined || !totalChunks || !uploadId) {
+            return res.status(400).json({ error: 'Missing required chunk parameters' });
+        }
+        
+        const fs = require('fs');
+        const path = require('path');
+        const os = require('os');
+        
+        // Create temp directory for this upload
+        const tempDir = path.join(os.tmpdir(), `upload_${uploadId}`);
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir);
+        }
+        
+        // Save chunk
+        const chunkPath = path.join(tempDir, `chunk_${chunkIndex}`);
+        fs.writeFileSync(chunkPath, Buffer.from(chunk, 'base64'));
+        
+        console.log(`📦 Saved chunk ${chunkIndex + 1}/${totalChunks}, size: ${Buffer.from(chunk, 'base64').length} bytes`);
+        
+        // If this is the last chunk, combine all chunks and upload
+        if (chunkIndex === totalChunks - 1) {
+            console.log('🔄 Last chunk received, combining chunks...');
+            
+            // Combine all chunks
+            const combinedPath = path.join(tempDir, 'combined.webm');
+            const writeStream = fs.createWriteStream(combinedPath);
+            
+            for (let i = 0; i < totalChunks; i++) {
+                const chunkData = fs.readFileSync(path.join(tempDir, `chunk_${i}`));
+                writeStream.write(chunkData);
+            }
+            writeStream.end();
+            
+            // Wait for write to complete
+            await new Promise((resolve) => writeStream.on('finish', resolve));
+            
+            const finalSize = fs.statSync(combinedPath).size;
+            console.log(`📊 Combined video size: ${Math.round(finalSize / 1024 / 1024)}MB`);
+            
+            // Upload to Vimeo
+            const structuredDescription = `${description}
+
+--- RECORDING DETAILS ---
+Customer Email: ${customerData.email}
+Recorded By: ${recordedBy.displayName}
+Recorded By Email: ${recordedBy.email}
+Recording Date: ${new Date().toLocaleString()}`;
+
+            const uploadTimeout = 15 * 60 * 1000; // 15 minutes
+            
+            const uploadResponse = await Promise.race([
+                new Promise((resolve, reject) => {
+                    vimeo.upload(
+                        combinedPath,
+                        {
+                            name: title,
+                            description: structuredDescription,
+                            folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
+                            privacy: {
+                                view: 'anybody',
+                                embed: 'public'
+                            }
+                        },
+                        function(uri) {
+                            console.log('✅ Upload successful, video URI:', uri);
+                            // Clean up temp directory
+                            try {
+                                fs.rmSync(tempDir, { recursive: true, force: true });
+                                console.log('🗑️ Cleaned up temp directory');
+                            } catch (e) {
+                                console.log('⚠️ Could not clean up temp directory:', e.message);
+                            }
+                            resolve({ uri: uri });
+                        },
+                        function(bytesUploaded, bytesTotal) {
+                            const percent = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                            console.log('📊 Upload progress:', percent + '%');
+                        },
+                        function(error) {
+                            console.error('❌ Upload error:', error);
+                            // Clean up on error
+                            try {
+                                fs.rmSync(tempDir, { recursive: true, force: true });
+                            } catch (e) {}
+                            reject(error);
+                        }
+                    );
+                }),
+                new Promise((_, reject) => {
+                    setTimeout(() => {
+                        try {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                        } catch (e) {}
+                        reject(new Error('Upload timeout'));
+                    }, uploadTimeout);
+                })
+            ]);
+            
+            res.json({
+                success: true,
+                message: 'Video uploaded successfully',
+                videoUri: uploadResponse.uri
+            });
+        } else {
+            res.json({
+                success: true,
+                message: `Chunk ${chunkIndex + 1}/${totalChunks} received`
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Chunked upload error:', error);
+        res.status(500).json({ 
+            error: error.message || 'Upload failed'
+        });
+    }
+});
+
+// Original Vimeo upload endpoint (for smaller videos)
 app.post('/api/upload-vimeo', async (req, res) => {
     try {
         console.log('🚀 Upload endpoint called');

@@ -2217,6 +2217,99 @@
             }
         }
 
+        // Chunked upload function for large videos
+        async function uploadLargeVideo(base64data, customerData, recordedBy) {
+            try {
+                console.log('🚀 Starting chunked upload for large video...');
+                
+                const chunkSize = 4 * 1024 * 1024; // 4MB chunks (well within Vercel's 6MB limit)
+                const totalChunks = Math.ceil(base64data.length / chunkSize);
+                const uploadId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                console.log(`📊 Video split into ${totalChunks} chunks of ~4MB each`);
+                
+                // Update button to show progress
+                const confirmButton = document.querySelector('.confirm-button');
+                if (confirmButton) {
+                    confirmButton.textContent = 'Uploading... 0%';
+                    confirmButton.disabled = true;
+                }
+                
+                // Upload chunks one by one
+                for (let i = 0; i < totalChunks; i++) {
+                    const start = i * chunkSize;
+                    const end = Math.min(start + chunkSize, base64data.length);
+                    const chunk = base64data.slice(start, end);
+                    
+                    console.log(`📦 Uploading chunk ${i + 1}/${totalChunks}...`);
+                    
+                    const response = await fetch('/api/upload-vimeo-chunked', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            chunk: chunk,
+                            chunkIndex: i,
+                            totalChunks: totalChunks,
+                            title: customerData.name,
+                            description: 'Screen recording session',
+                            customerData: customerData,
+                            recordedBy: recordedBy,
+                            uploadId: uploadId
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Chunk upload failed: HTTP ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // Update progress
+                    const progress = Math.round(((i + 1) / totalChunks) * 100);
+                    if (confirmButton) {
+                        confirmButton.textContent = `Uploading... ${progress}%`;
+                    }
+                    
+                    console.log(`✅ Chunk ${i + 1}/${totalChunks} uploaded successfully`);
+                    
+                    // If this was the last chunk, handle success
+                    if (i === totalChunks - 1 && result.success) {
+                        console.log('🎉 All chunks uploaded successfully!');
+                        
+                        // Show success message
+                        window.showBriefSuccessMessage();
+                        
+                        // Refresh video list
+                        if (typeof window.loadUserVideos === 'function') {
+                            setTimeout(() => {
+                                window.loadUserVideos();
+                            }, 2000);
+                        }
+                        
+                        // Auto-reset
+                        setTimeout(() => {
+                            window.autoResetForNextRecording();
+                        }, 1000);
+                        
+                        break;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Chunked upload error:', error);
+                alert('Upload error: ' + error.message);
+            } finally {
+                // Reset button state
+                const confirmButton = document.querySelector('.confirm-button');
+                if (confirmButton) {
+                    confirmButton.textContent = 'Confirm Upload';
+                    confirmButton.disabled = false;
+                }
+            }
+        }
+
         async function confirmUpload() {
             const customerType = document.querySelector('input[name="customerType"]:checked')?.value;
             
@@ -2288,14 +2381,24 @@
                         
                         console.log('📤 Uploading to Vimeo...');
                         
-                        // Upload to server
-                        fetch('/api/upload-vimeo', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(uploadData)
-                        })
+                        // Check video size and choose upload method
+                        const videoSizeMB = base64data.length * 0.75 / (1024 * 1024); // Rough base64 to bytes
+                        console.log(`📊 Video size estimate: ${videoSizeMB.toFixed(2)}MB`);
+                        
+                        // Use chunked upload for videos larger than 5MB to avoid Vercel limits
+                        if (videoSizeMB > 5) {
+                            console.log('📦 Using chunked upload for large video...');
+                            uploadLargeVideo(base64data, customerData, recordedBy);
+                        } else {
+                            console.log('📦 Using direct upload for small video...');
+                            // Upload to server
+                            fetch('/api/upload-vimeo', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(uploadData)
+                            })
                         .then(response => {
                             console.log('📥 Response status:', response.status);
                             if (!response.ok) {
@@ -2343,6 +2446,7 @@
                                 confirmButton.disabled = false;
                             }
                         });
+                        } // End of else block for direct upload
                     };
                     reader.readAsDataURL(videoBlob);
                 } else {
