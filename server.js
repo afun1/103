@@ -183,13 +183,27 @@ Recording Date: ${new Date().toLocaleString()}`;
         console.error('Error name:', error.name);
         console.error('Full error object:', JSON.stringify(error, null, 2));
         
-        res.status(500).json({
+        // Enhanced error information
+        const errorResponse = {
             error: 'Upload failed',
             message: error.message || 'Unknown error',
             details: error.toString(),
             name: error.name,
-            stack: error.stack
-        });
+            stack: error.stack,
+            timestamp: new Date().toISOString(),
+            videoBufferSize: req.body?.videoData ? 'Present' : 'Missing',
+            requestBody: {
+                hasVideoData: !!req.body?.videoData,
+                hasTitle: !!req.body?.title,
+                hasDescription: !!req.body?.description,
+                hasCustomerData: !!req.body?.customerData,
+                hasRecordedBy: !!req.body?.recordedBy
+            }
+        };
+        
+        console.error('🚨 Detailed error response:', JSON.stringify(errorResponse, null, 2));
+        
+        res.status(500).json(errorResponse);
     }
 });
 
