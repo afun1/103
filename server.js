@@ -97,52 +97,53 @@ Recording Date: ${new Date().toLocaleString()}`;
             buffer_size: videoBuffer.length
         });
         
-        // Step 1: Create video entry
-        const createResponse = await new Promise((resolve, reject) => {
-            vimeo.request(
-                {
-                    method: 'POST',
-                    path: '/me/videos',
-                    data: {
-                        name: title,
-                        description: structuredDescription,
-                        folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
-                        privacy: {
-                            view: 'anybody',
-                            embed: 'public'
-                        },
-                        upload: {
-                            approach: 'tus',
-                            size: videoBuffer.length
-                        }
-                    }
-                },
-                (error, body, statusCode, headers) => {
-                    console.log('📥 Vimeo create response status:', statusCode);
-                    console.log('📥 Vimeo create response headers:', headers);
-                    console.log('📥 Vimeo create response body:', JSON.stringify(body, null, 2));
-                    
-                    if (error) {
-                        console.error('❌ Create video error:', error);
-                        console.error('❌ Error details:', JSON.stringify(error, null, 2));
-                        reject(error);
-                    } else if (statusCode >= 400) {
-                        console.error('❌ Create video HTTP error:', statusCode, body);
-                        reject(new Error(`HTTP ${statusCode}: ${JSON.stringify(body)}`));
-                    } else {
-                        console.log('✅ Video entry created:', body.uri);
-                        resolve(body);
-                    }
-                }
-            );
+        // Step 1: Create video entry using direct fetch to debug the issue
+        console.log('🔧 Making direct Vimeo API call to debug upload object issue...');
+        
+        const createPayload = {
+            name: title,
+            description: structuredDescription,
+            folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
+            privacy: {
+                view: 'anybody',
+                embed: 'public'
+            },
+            upload: {
+                approach: 'tus',
+                size: videoBuffer.length
+            }
+        };
+        
+        console.log('📤 Sending payload:', JSON.stringify(createPayload, null, 2));
+        
+        const createResponse = await fetch('https://api.vimeo.com/me/videos', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.VIMEO_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.vimeo.*+json;version=3.4'
+            },
+            body: JSON.stringify(createPayload)
         });
+        
+        console.log('📥 Direct API response status:', createResponse.status);
+        console.log('📥 Direct API response headers:', Object.fromEntries(createResponse.headers.entries()));
+        
+        const createResponseText = await createResponse.text();
+        console.log('📥 Direct API response text:', createResponseText);
+        
+        if (!createResponse.ok) {
+            throw new Error(`Vimeo API error: ${createResponse.status} ${createResponse.statusText} - ${createResponseText}`);
+        }
+        
+        const createResponseData = JSON.parse(createResponseText);
 
         console.log('📤 Uploading video data...');
-        console.log('Upload URL:', createResponse.upload.upload_link);
+        console.log('Upload URL:', createResponseData.upload.upload_link);
         console.log('Video buffer size:', videoBuffer.length);
         
         // Step 2: Upload the actual video data
-        const uploadUrl = createResponse.upload.upload_link;
+        const uploadUrl = createResponseData.upload.upload_link;
         
         const uploadResult = await fetch(uploadUrl, {
             method: 'POST',
@@ -163,7 +164,7 @@ Recording Date: ${new Date().toLocaleString()}`;
         }
 
         console.log('✅ Video data uploaded successfully');
-        const uploadResponse = { uri: createResponse.uri };
+        const uploadResponse = { uri: createResponseData.uri };
 
         console.log('✅ Video upload completed successfully:', uploadResponse.uri);
 
