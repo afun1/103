@@ -189,10 +189,15 @@ Recording Date: ${new Date().toLocaleString()}`;
         console.error('❌ Upload error details:', error);
         console.error('Error message:', error.message);
         console.error('Error stack:', error.stack);
+        console.error('Error name:', error.name);
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+        
         res.status(500).json({
             error: 'Upload failed',
-            message: error.message,
-            details: error.toString()
+            message: error.message || 'Unknown error',
+            details: error.toString(),
+            name: error.name,
+            stack: error.stack
         });
     }
 });
@@ -208,6 +213,45 @@ app.get('/api/test-env', (req, res) => {
         supabase_url: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
         supabase_key: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING'
     });
+});
+
+// Test endpoint to verify Vimeo API connectivity
+app.get('/api/test-vimeo', async (req, res) => {
+    try {
+        console.log('🧪 Testing Vimeo API connectivity...');
+        
+        const testResponse = await new Promise((resolve, reject) => {
+            vimeo.request(
+                {
+                    method: 'GET',
+                    path: '/me'
+                },
+                (error, body, statusCode, headers) => {
+                    if (error) {
+                        console.error('❌ Vimeo API test error:', error);
+                        reject(error);
+                    } else {
+                        console.log('✅ Vimeo API test success:', body.name);
+                        resolve(body);
+                    }
+                }
+            );
+        });
+
+        res.json({
+            success: true,
+            message: 'Vimeo API connectivity test passed',
+            vimeo_user: testResponse.name,
+            account_type: testResponse.account
+        });
+    } catch (error) {
+        console.error('❌ Vimeo API test failed:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Vimeo API connectivity test failed',
+            error: error.message
+        });
+    }
 });
 
 // API endpoint to get all customers from Vimeo
