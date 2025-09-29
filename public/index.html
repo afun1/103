@@ -1231,6 +1231,12 @@
                                 <option value="30" selected>30 FPS</option>
                                 <option value="60">60 FPS</option>
                             </select>
+                            
+                            <select class="setting-select video-select-compact" id="compression">
+                                <option value="standard" selected>Standard Quality</option>
+                                <option value="high">High Compression (Smaller Files)</option>
+                                <option value="maximum">Maximum Compression (Tiny Files)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -1874,9 +1880,10 @@
                 const button = document.getElementById('recordButton');
                 button.classList.add('lighting-up');
                 
-                // Get selected quality and frame rate from UI
+                // Get selected quality, frame rate, and compression from UI
                 const quality = document.getElementById('quality').value;
                 const frameRate = parseInt(document.getElementById('framerate').value);
+                const compression = document.getElementById('compression').value;
                 
                 // Set resolution based on quality setting
                 let width, height;
@@ -1902,7 +1909,8 @@
                         height = 480;
                 }
                 
-                console.log(`🎥 Recording with settings: ${quality} at ${frameRate}fps (${width}x${height})`);
+                console.log(`🎥 Recording with settings: ${quality} at ${frameRate}fps (${width}x${height}) - ${compression} compression`);
+                console.log(`📊 Video bitrate: ${Math.round(videoBitsPerSecond / 1000000 * 100) / 100}Mbps`);
                 
                 const stream = await navigator.mediaDevices.getDisplayMedia({
                     video: {
@@ -1927,23 +1935,41 @@
                 previewScreen.innerHTML = '';
                 previewScreen.appendChild(video);
                 
-                // Set up MediaRecorder with optimized settings
+                // Set up MediaRecorder with compression-optimized settings
                 let videoBitsPerSecond;
+                let baseRate;
+                
+                // Base bitrates by quality
                 switch(quality) {
                     case '480p':
-                        videoBitsPerSecond = 1000000; // 1 Mbps
+                        baseRate = 1000000; // 1 Mbps
                         break;
                     case '720p':
-                        videoBitsPerSecond = 2500000; // 2.5 Mbps
+                        baseRate = 2500000; // 2.5 Mbps
                         break;
                     case '1080p':
-                        videoBitsPerSecond = 5000000; // 5 Mbps
+                        baseRate = 5000000; // 5 Mbps
                         break;
                     case '4k':
-                        videoBitsPerSecond = 15000000; // 15 Mbps
+                        baseRate = 15000000; // 15 Mbps
                         break;
                     default:
-                        videoBitsPerSecond = 1000000; // 1 Mbps
+                        baseRate = 1000000; // 1 Mbps
+                }
+                
+                // Apply compression multiplier
+                switch(compression) {
+                    case 'standard':
+                        videoBitsPerSecond = baseRate; // 100% bitrate
+                        break;
+                    case 'high':
+                        videoBitsPerSecond = Math.round(baseRate * 0.5); // 50% bitrate
+                        break;
+                    case 'maximum':
+                        videoBitsPerSecond = Math.round(baseRate * 0.25); // 25% bitrate
+                        break;
+                    default:
+                        videoBitsPerSecond = baseRate;
                 }
                 
                 const mediaRecorderOptions = {

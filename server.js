@@ -80,11 +80,13 @@ app.post('/api/upload-vimeo', async (req, res) => {
             throw new Error('Video buffer is empty');
         }
         
-        // Check if video is too large for serverless limits
-        const maxSize = 50 * 1024 * 1024; // 50MB limit for Vercel
+        // Check if video is too large for serverless limits - increase limit for long recordings
+        const maxSize = 500 * 1024 * 1024; // 500MB limit for long recordings
         if (videoBuffer.length > maxSize) {
             throw new Error(`Video file too large: ${Math.round(videoBuffer.length / 1024 / 1024)}MB. Maximum allowed: ${Math.round(maxSize / 1024 / 1024)}MB`);
         }
+        
+        console.log(`📊 Video size: ${Math.round(videoBuffer.length / 1024 / 1024)}MB`);
 
         // Create structured description with all metadata
         const structuredDescription = `${description}
@@ -118,7 +120,7 @@ Recording Date: ${new Date().toLocaleString()}`;
         console.log('💾 Writing buffer to temp file:', tempFilePath);
         fs.writeFileSync(tempFilePath, videoBuffer);
         
-        const uploadTimeout = 4 * 60 * 1000; // 4 minutes timeout for Vercel
+        const uploadTimeout = 15 * 60 * 1000; // 15 minutes timeout for large videos
         
         const uploadResponse = await Promise.race([
             new Promise((resolve, reject) => {
