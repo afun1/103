@@ -109,8 +109,8 @@ Recording Date: ${new Date().toLocaleString()}`;
                 embed: 'public'
             },
             upload: {
-                approach: 'tus',
-                size: videoBuffer.length
+                approach: 'streaming',
+                size: videoBuffer.length.toString()
             }
         };
         
@@ -300,8 +300,8 @@ app.get('/api/test-vimeo-create', async (req, res) => {
                             embed: 'public'
                         },
                         upload: {
-                            approach: 'tus',
-                            size: 1000000 // 1MB test size
+                            approach: 'streaming',
+                            size: '1000000' // 1MB test size
                         }
                     }
                 },
