@@ -79,6 +79,12 @@ app.post('/api/upload-vimeo', async (req, res) => {
         if (videoBuffer.length === 0) {
             throw new Error('Video buffer is empty');
         }
+        
+        // Check if video is too large for serverless limits
+        const maxSize = 50 * 1024 * 1024; // 50MB limit for Vercel
+        if (videoBuffer.length > maxSize) {
+            throw new Error(`Video file too large: ${Math.round(videoBuffer.length / 1024 / 1024)}MB. Maximum allowed: ${Math.round(maxSize / 1024 / 1024)}MB`);
+        }
 
         // Create structured description with all metadata
         const structuredDescription = `${description}
@@ -97,38 +103,47 @@ Recording Date: ${new Date().toLocaleString()}`;
             buffer_size: videoBuffer.length
         });
         
-        // Step 1: Use Vimeo SDK upload method (more reliable than manual API calls)
+        // Step 1: Use Vimeo SDK upload method with timeout
         console.log('🔧 Using Vimeo SDK upload method...');
         console.log('📊 Video buffer size:', videoBuffer.length, 'bytes');
         
-        const uploadResponse = await new Promise((resolve, reject) => {
-            console.log('🚀 Starting vimeo.upload...');
-            vimeo.upload(
-                videoBuffer,
-                {
-                    name: title,
-                    description: structuredDescription,
-                    folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
-                    privacy: {
-                        view: 'anybody',
-                        embed: 'public'
+        const uploadTimeout = 4 * 60 * 1000; // 4 minutes timeout for Vercel
+        
+        const uploadResponse = await Promise.race([
+            new Promise((resolve, reject) => {
+                console.log('🚀 Starting vimeo.upload...');
+                vimeo.upload(
+                    videoBuffer,
+                    {
+                        name: title,
+                        description: structuredDescription,
+                        folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
+                        privacy: {
+                            view: 'anybody',
+                            embed: 'public'
+                        }
+                    },
+                    function(uri) {
+                        console.log('✅ Upload successful, video URI:', uri);
+                        resolve({ uri: uri });
+                    },
+                    function(bytesUploaded, bytesTotal) {
+                        const percent = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                        console.log('📊 Upload progress:', percent + '%', `(${bytesUploaded}/${bytesTotal} bytes)`);
+                    },
+                    function(error) {
+                        console.error('❌ Upload error:', error);
+                        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+                        reject(error);
                     }
-                },
-                function(uri) {
-                    console.log('✅ Upload successful, video URI:', uri);
-                    resolve({ uri: uri });
-                },
-                function(bytesUploaded, bytesTotal) {
-                    const percent = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
-                    console.log('📊 Upload progress:', percent + '%', `(${bytesUploaded}/${bytesTotal} bytes)`);
-                },
-                function(error) {
-                    console.error('❌ Upload error:', error);
-                    console.error('❌ Error details:', JSON.stringify(error, null, 2));
-                    reject(error);
-                }
-            );
-        });
+                );
+            }),
+            new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error(`Upload timeout after ${uploadTimeout / 1000} seconds. Try recording a shorter video.`));
+                }, uploadTimeout);
+            })
+        ]);
 
         console.log('✅ Video upload completed successfully:', uploadResponse.uri);
 
