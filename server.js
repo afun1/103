@@ -103,17 +103,28 @@ Recording Date: ${new Date().toLocaleString()}`;
             buffer_size: videoBuffer.length
         });
         
-        // Step 1: Use Vimeo SDK upload method with timeout
-        console.log('🔧 Using Vimeo SDK upload method...');
+        // Step 1: Save buffer to temporary file for Vimeo SDK
+        console.log('🔧 Saving video buffer to temporary file...');
         console.log('📊 Video buffer size:', videoBuffer.length, 'bytes');
+        
+        const fs = require('fs');
+        const path = require('path');
+        const os = require('os');
+        
+        // Create temporary file
+        const tempFileName = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.webm`;
+        const tempFilePath = path.join(os.tmpdir(), tempFileName);
+        
+        console.log('💾 Writing buffer to temp file:', tempFilePath);
+        fs.writeFileSync(tempFilePath, videoBuffer);
         
         const uploadTimeout = 4 * 60 * 1000; // 4 minutes timeout for Vercel
         
         const uploadResponse = await Promise.race([
             new Promise((resolve, reject) => {
-                console.log('🚀 Starting vimeo.upload...');
+                console.log('🚀 Starting vimeo.upload with file path...');
                 vimeo.upload(
-                    videoBuffer,
+                    tempFilePath,
                     {
                         name: title,
                         description: structuredDescription,
@@ -125,6 +136,13 @@ Recording Date: ${new Date().toLocaleString()}`;
                     },
                     function(uri) {
                         console.log('✅ Upload successful, video URI:', uri);
+                        // Clean up temp file
+                        try {
+                            fs.unlinkSync(tempFilePath);
+                            console.log('🗑️ Cleaned up temp file');
+                        } catch (e) {
+                            console.log('⚠️ Could not clean up temp file:', e.message);
+                        }
                         resolve({ uri: uri });
                     },
                     function(bytesUploaded, bytesTotal) {
@@ -134,12 +152,26 @@ Recording Date: ${new Date().toLocaleString()}`;
                     function(error) {
                         console.error('❌ Upload error:', error);
                         console.error('❌ Error details:', JSON.stringify(error, null, 2));
+                        // Clean up temp file on error
+                        try {
+                            fs.unlinkSync(tempFilePath);
+                            console.log('🗑️ Cleaned up temp file after error');
+                        } catch (e) {
+                            console.log('⚠️ Could not clean up temp file after error:', e.message);
+                        }
                         reject(error);
                     }
                 );
             }),
             new Promise((_, reject) => {
                 setTimeout(() => {
+                    // Clean up temp file on timeout
+                    try {
+                        fs.unlinkSync(tempFilePath);
+                        console.log('🗑️ Cleaned up temp file after timeout');
+                    } catch (e) {
+                        console.log('⚠️ Could not clean up temp file after timeout:', e.message);
+                    }
                     reject(new Error(`Upload timeout after ${uploadTimeout / 1000} seconds. Try recording a shorter video.`));
                 }, uploadTimeout);
             })
