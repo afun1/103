@@ -83,33 +83,61 @@ Recorded By: ${recordedBy.displayName}
 Recorded By Email: ${recordedBy.email}
 Recording Date: ${new Date().toLocaleString()}`;
 
-        // Upload to Vimeo using buffer directly (serverless-friendly)
-        const uploadResponse = await new Promise((resolve, reject) => {
-            vimeo.upload(
-                videoBuffer,
+        // Upload to Vimeo using direct API calls (more reliable for serverless)
+        console.log('🚀 Starting Vimeo API upload process...');
+        
+        // Step 1: Create video entry
+        const createResponse = await new Promise((resolve, reject) => {
+            vimeo.request(
                 {
-                    name: title,
-                    description: structuredDescription,
-                    folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
-                    privacy: {
-                        view: 'anybody',
-                        embed: 'public'
+                    method: 'POST',
+                    path: '/me/videos',
+                    data: {
+                        name: title,
+                        description: structuredDescription,
+                        folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
+                        privacy: {
+                            view: 'anybody',
+                            embed: 'public'
+                        },
+                        upload: {
+                            approach: 'post',
+                            size: videoBuffer.length
+                        }
                     }
                 },
-                (uri) => {
-                    console.log('✅ Upload complete:', uri);
-                    resolve({ uri });
-                },
-                (bytesUploaded, bytesTotal) => {
-                    const percentage = (bytesUploaded / bytesTotal * 100).toFixed(2);
-                    console.log(`Upload progress: ${percentage}%`);
-                },
-                (error) => {
-                    console.error('❌ Upload error:', error);
-                    reject(error);
+                (error, body, statusCode, headers) => {
+                    if (error) {
+                        console.error('❌ Create video error:', error);
+                        reject(error);
+                    } else {
+                        console.log('✅ Video entry created:', body.uri);
+                        resolve(body);
+                    }
                 }
             );
         });
+
+        console.log('📤 Uploading video data...');
+        
+        // Step 2: Upload the actual video data
+        const uploadUrl = createResponse.upload.upload_link;
+        const fetch = require('node-fetch');
+        
+        const uploadResult = await fetch(uploadUrl, {
+            method: 'POST',
+            body: videoBuffer,
+            headers: {
+                'Content-Type': 'video/webm'
+            }
+        });
+
+        if (!uploadResult.ok) {
+            throw new Error(`Upload failed: ${uploadResult.status} ${uploadResult.statusText}`);
+        }
+
+        console.log('✅ Video data uploaded successfully');
+        const uploadResponse = { uri: createResponse.uri };
 
         console.log('✅ Video upload completed successfully:', uploadResponse.uri);
 
