@@ -75,18 +75,10 @@
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
         }
 
         .controls-left {
-            flex: 1;
-            min-width: 0; /* Allow flexbox to shrink */
-        }
-
-        .controls-right {
-            flex: 0 0 200px;
+            width: 100%;
         }
 
         .controls-title {
@@ -1154,18 +1146,22 @@
             
             <div class="controls-section" id="controlsSection">
                 <div class="controls-left">
-                    <div class="audio-header" style="
+                    <div class="audio-header">
+                        <h2 class="controls-title">Audio Levels</h2>
+                    </div>
+                    
+                    <!-- Combined Audio Source and Video Settings Controls -->
+                    <div style="
                         display: flex;
                         align-items: center;
                         gap: 20px;
-                        margin-bottom: 20px;
+                        margin-bottom: 15px;
+                        padding: 10px;
+                        background: rgba(0,0,0,0.2);
+                        border-radius: 6px;
+                        flex-wrap: wrap;
                     ">
-                        <h2 class="controls-title" style="margin: 0;">Audio Levels</h2>
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 10px;
-                        ">
+                        <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="control-label" style="margin: 0; font-size: 14px;">Audio Source:</label>
                             <select class="setting-select" id="audio" style="min-width: 100px;">
                                 <option value="system">System Audio</option>
@@ -1191,6 +1187,20 @@
                                 font-size: 12px;
                                 cursor: pointer;
                             ">🔔 Test</button>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <label class="control-label" style="margin: 0; font-size: 14px;">Video Settings:</label>
+                            <select class="setting-select" id="quality" style="min-width: 90px;">
+                                <option value="480p" selected>480p SD</option>
+                                <option value="720p">720p HD</option>
+                                <option value="1080p">1080p Full HD</option>
+                                <option value="4k">4K Ultra HD</option>
+                            </select>
+                            <select class="setting-select" id="framerate" style="min-width: 80px;">
+                                <option value="30" selected>30 FPS</option>
+                                <option value="60">60 FPS</option>
+                            </select>
                         </div>
                     </div>
                     
@@ -1220,52 +1230,7 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="controls-right" style="
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    margin-left: 20px;
-                    min-width: 200px;
-                ">
-                    <h2 class="controls-title video-title-compact" style="margin: 0 0 15px 0; text-align: center;">Video Settings</h2>
-                    
-                    <div class="video-settings" style="
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 15px 20px;
-                        width: 100%;
-                        max-width: 240px;
-                    ">
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <label style="font-size: 12px; color: #bbb; text-align: center;">Quality:</label>
-                            <select class="setting-select" id="quality" style="width: 100%; font-size: 12px;">
-                                <option value="480p" selected>480p SD</option>
-                                <option value="720p">720p HD</option>
-                                <option value="1080p">1080p Full HD</option>
-                                <option value="4k">4K Ultra HD</option>
-                            </select>
-                        </div>
-                        
-                        <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <label style="font-size: 12px; color: #bbb; text-align: center;">Frame Rate:</label>
-                            <select class="setting-select" id="framerate" style="width: 100%; font-size: 12px;">
-                                <option value="30" selected>30 FPS</option>
-                                <option value="60">60 FPS</option>
-                            </select>
-                        </div>
-                        
-                        <div style="display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1;">
-                            <label style="font-size: 12px; color: #bbb; text-align: center;">Compression:</label>
-                            <select class="setting-select" id="compression" style="width: 100%; font-size: 12px;">
-                                <option value="standard" selected>Standard Quality</option>
-                                <option value="high">High Compression (Smaller Files)</option>
-                                <option value="maximum">Maximum Compression (Tiny Files)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+
             </div>
             
             <!-- User Video Grid - 4 columns wide, unlimited rows (Dark Mode) -->
@@ -1906,10 +1871,12 @@
                 const button = document.getElementById('recordButton');
                 button.classList.add('lighting-up');
                 
-                // Get selected quality, frame rate, and compression from UI
+                // Get selected quality and frame rate from UI
                 const quality = document.getElementById('quality').value;
                 const frameRate = parseInt(document.getElementById('framerate').value);
-                const compression = document.getElementById('compression').value;
+                
+                // Automatic compression - use high compression for better upload compatibility
+                const compression = 'high';
                 
                 // Set resolution based on quality setting
                 let width, height;
