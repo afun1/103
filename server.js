@@ -262,6 +262,60 @@ app.get('/api/test-vimeo', async (req, res) => {
     }
 });
 
+// Test endpoint for Vimeo video creation (without upload)
+app.post('/api/test-vimeo-create', async (req, res) => {
+    try {
+        console.log('🧪 Testing Vimeo video creation...');
+        
+        const createResponse = await new Promise((resolve, reject) => {
+            vimeo.request(
+                {
+                    method: 'POST',
+                    path: '/me/videos',
+                    data: {
+                        name: 'Test Video Creation',
+                        description: 'Testing video creation without upload',
+                        folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
+                        privacy: {
+                            view: 'anybody',
+                            embed: 'public'
+                        },
+                        upload: {
+                            approach: 'post',
+                            size: 1000000 // 1MB test size
+                        }
+                    }
+                },
+                (error, body, statusCode, headers) => {
+                    if (error) {
+                        console.error('❌ Video creation error:', error);
+                        reject(error);
+                    } else {
+                        console.log('✅ Video creation success:', body.uri);
+                        resolve(body);
+                    }
+                }
+            );
+        });
+
+        res.json({
+            success: true,
+            message: 'Vimeo video creation test passed',
+            video_uri: createResponse.uri,
+            upload_link: createResponse.upload?.upload_link || 'No upload link',
+            folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`
+        });
+    } catch (error) {
+        console.error('❌ Video creation test failed:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Vimeo video creation test failed',
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
+
 // API endpoint to get all customers from Vimeo
 app.get('/api/get-all-customers', async (req, res) => {
     try {
