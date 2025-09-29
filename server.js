@@ -112,7 +112,7 @@ Recording Date: ${new Date().toLocaleString()}`;
                             embed: 'public'
                         },
                         upload: {
-                            approach: 'post',
+                            approach: 'tus',
                             size: videoBuffer.length
                         }
                     }
@@ -299,7 +299,7 @@ app.get('/api/test-vimeo-create', async (req, res) => {
                             embed: 'public'
                         },
                         upload: {
-                            approach: 'post',
+                            approach: 'tus',
                             size: 1000000 // 1MB test size
                         }
                     }
