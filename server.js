@@ -3,6 +3,7 @@ const cors = require('cors');
 const { Vimeo } = require('@vimeo/vimeo');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
+const fetch = require('node-fetch');
 // const { simpleMoveEndpoint } = require('./simple-move-endpoint'); // Removed to prevent conflicts
 require('dotenv').config();
 
@@ -119,21 +120,28 @@ Recording Date: ${new Date().toLocaleString()}`;
         });
 
         console.log('📤 Uploading video data...');
+        console.log('Upload URL:', createResponse.upload.upload_link);
+        console.log('Video buffer size:', videoBuffer.length);
         
         // Step 2: Upload the actual video data
         const uploadUrl = createResponse.upload.upload_link;
-        const fetch = require('node-fetch');
         
         const uploadResult = await fetch(uploadUrl, {
             method: 'POST',
             body: videoBuffer,
             headers: {
-                'Content-Type': 'video/webm'
+                'Content-Type': 'video/webm',
+                'Content-Length': videoBuffer.length.toString()
             }
         });
 
+        console.log('Upload result status:', uploadResult.status);
+        console.log('Upload result headers:', uploadResult.headers.raw());
+
         if (!uploadResult.ok) {
-            throw new Error(`Upload failed: ${uploadResult.status} ${uploadResult.statusText}`);
+            const errorText = await uploadResult.text();
+            console.error('Upload error response:', errorText);
+            throw new Error(`Upload failed: ${uploadResult.status} ${uploadResult.statusText} - ${errorText}`);
         }
 
         console.log('✅ Video data uploaded successfully');
