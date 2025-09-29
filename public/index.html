@@ -1909,32 +1909,6 @@
                         height = 480;
                 }
                 
-                console.log(`🎥 Recording with settings: ${quality} at ${frameRate}fps (${width}x${height}) - ${compression} compression`);
-                console.log(`📊 Video bitrate: ${Math.round(videoBitsPerSecond / 1000000 * 100) / 100}Mbps`);
-                
-                const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: {
-                        mediaSource: 'screen',
-                        width: { ideal: width, max: width },
-                        height: { ideal: height, max: height },
-                        frameRate: { ideal: frameRate, max: frameRate }
-                    },
-                    audio: true
-                });
-                
-                // Update preview
-                const previewScreen = document.querySelector('.preview-screen');
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.autoplay = true;
-                video.muted = true;
-                video.style.width = '100%';
-                video.style.height = '100%';
-                video.style.objectFit = 'contain';
-                
-                previewScreen.innerHTML = '';
-                previewScreen.appendChild(video);
-                
                 // Set up MediaRecorder with compression-optimized settings
                 let videoBitsPerSecond;
                 let baseRate;
@@ -1971,6 +1945,32 @@
                     default:
                         videoBitsPerSecond = baseRate;
                 }
+                
+                console.log(`🎥 Recording with settings: ${quality} at ${frameRate}fps (${width}x${height}) - ${compression} compression`);
+                console.log(`📊 Video bitrate: ${Math.round(videoBitsPerSecond / 1000000 * 100) / 100}Mbps`);
+                
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        mediaSource: 'screen',
+                        width: { ideal: width, max: width },
+                        height: { ideal: height, max: height },
+                        frameRate: { ideal: frameRate, max: frameRate }
+                    },
+                    audio: true
+                });
+                
+                // Update preview
+                const previewScreen = document.querySelector('.preview-screen');
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.muted = true;
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'contain';
+                
+                previewScreen.innerHTML = '';
+                previewScreen.appendChild(video);
                 
                 const mediaRecorderOptions = {
                     mimeType: 'video/webm;codecs=vp9,opus',
