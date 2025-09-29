@@ -4,7 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sparky Screen Recorder - Folders</title>
-    <script src="global-header.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Wait for DOM and all scripts to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔍 DOM loaded, checking Supabase availability:', typeof supabase);
+            if (typeof supabase === 'undefined') {
+                console.error('❌ Supabase library not loaded on DOM ready!');
+            } else {
+                console.log('✅ Supabase library loaded successfully on DOM ready');
+            }
+        });
+    </script>
+    <script src="global-header.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -541,6 +553,109 @@
     </div>
 
     <script>
+        // Initialize Supabase with error handling
+        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        
+        // Robust Supabase initialization
+        function initializeSupabase() {
+            console.log('🚀 Attempting Supabase initialization...');
+            console.log('🔍 typeof supabase:', typeof supabase);
+            console.log('🔍 window.supabase exists:', !!window.supabase);
+            
+            if (typeof supabase !== 'undefined') {
+                try {
+                    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+                    console.log('✅ Supabase initialized successfully');
+                    console.log('🔗 Supabase client created:', !!window.supabase);
+                    return true;
+                } catch (error) {
+                    console.error('❌ Error creating Supabase client:', error);
+                    return false;
+                }
+            } else {
+                console.log('⏳ Supabase library not yet available, retrying...');
+                setTimeout(initializeSupabase, 200);
+                return false;
+            }
+        }
+        
+        // Start initialization when script loads
+        initializeSupabase();
+
+        // Authentication and role-based access control
+        // Authentication check using Supabase session
+        async function checkAuthAndRole() {
+            try {
+                console.log('🔐 Starting authentication check...');
+                console.log('🔍 Supabase client status:', !!window.supabase);
+                
+                // Wait for Supabase to be available
+                if (!window.supabase) {
+                    console.log('⏳ Waiting for Supabase to load...');
+                    setTimeout(checkAuthAndRole, 100);
+                    return;
+                }
+
+                const { data: { session }, error } = await window.supabase.auth.getSession();
+                
+                if (error || !session) {
+                    console.log('🔒 No Supabase session found - redirecting to login');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+
+                // Get user profile to check role
+                const { data: profile, error: profileError } = await window.supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const role = profile?.role?.toLowerCase() || 'user';
+                if (role !== 'admin' && role !== 'manager' && role !== 'supervisor') {
+                    alert('Access denied: Admin, Manager, or Supervisor role required for Folders page');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                
+                console.log('✅ Full access granted for role:', role);
+                
+                console.log('✅ User authenticated with role:', role);
+                return true;
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+
+        // Check authentication when page loads
+        window.addEventListener('load', async () => {
+            console.log('📄 Page loaded, starting authentication check...');
+            
+            // Ensure Supabase is initialized before proceeding
+            if (!window.supabase) {
+                console.log('⏳ Waiting for Supabase initialization...');
+                setTimeout(async () => {
+                    if (!(await checkAuthAndRole())) {
+                        return;
+                    }
+                    initializePage();
+                }, 500);
+                return;
+            }
+            
+            if (!(await checkAuthAndRole())) {
+                return; // Redirect will happen in the function
+            }
+            
+            console.log('🚀 Authentication successful, calling initializePage()...');
+            // Continue with page initialization
+            await initializePage();
+        });
+
+        // Global variables
         let folders = [];
         let allFolders = []; // Store original unfiltered folders
         let videos = [];
@@ -552,10 +667,19 @@
         let originalVideoDescription = null; // Track original description for update comparison
         let videoUpdatesCache = new Map(); // Cache for updated video data (URI -> updated video object)
 
-        // Load folders on page load
-        window.addEventListener('DOMContentLoaded', async () => {
-            await loadFolders();
-        });
+        async function initializePage() {
+            console.log('🎯 initializePage() function called!');
+            // Variables are now global, function just initializes
+            
+            // Load folders when page initializes
+            console.log('🔄 Starting loadFolders() from initializePage()...');
+            try {
+                await loadFolders();
+                console.log('✅ loadFolders() completed successfully');
+            } catch (error) {
+                console.error('❌ loadFolders() failed:', error);
+            }
+        }
 
         // Load user video counts from localStorage
         function loadUserVideoCounts() {
@@ -581,6 +705,7 @@
 
         async function loadFolders() {
             try {
+                console.log('🎬 loadFolders() function started...');
                 console.log('Loading folders and videos efficiently...');
                 
                 // Load users from Supabase

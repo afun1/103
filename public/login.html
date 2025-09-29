@@ -237,6 +237,25 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+        // Check if user is already authenticated and redirect
+        async function checkExistingAuth() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (!error && session) {
+                    console.log('✅ User already authenticated - redirecting to app');
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                // Continue to login form
+            }
+        }
+
+        window.addEventListener('load', () => {
+            checkExistingAuth();
+        });
+
         // Password visibility toggle
         function togglePassword() {
             const input = document.getElementById('password');

@@ -12,10 +12,11 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1e2852;
-            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             min-height: 100vh;
+            color: #e2e8f0;
+            padding: 20px;
         }
 
         .container {
@@ -173,6 +174,40 @@
         .customers-table tr.selected:hover {
             background: rgba(102, 126, 234, 0.3) !important;
         }
+
+        /* Read-only mode styles */
+        .read-only-mode .admin-controls {
+            display: none !important;
+        }
+
+        .read-only-mode .customer-checkbox {
+            display: none !important;
+        }
+
+        .read-only-mode .customers-table th:first-child,
+        .read-only-mode .customers-table td:first-child {
+            display: none !important;
+        }
+
+        .read-only-mode .customers-table th:last-child,
+        .read-only-mode .customers-table td:last-child {
+            display: none !important;
+        }
+
+        .read-only-banner {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .read-only-banner .icon {
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -248,13 +283,73 @@
     </div>
 
     <!-- Load Global Header -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="./global-header.js"></script>
 
     <script>
-        // Load customers on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadCustomers();
-            checkAdminAccess();
+        // Initialize Supabase
+        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Authentication check using Supabase session
+        async function checkAuthAndRole() {
+            try {
+                // Wait for Supabase to be available
+                if (!window.supabase) {
+                    console.log('⏳ Waiting for Supabase to load...');
+                    setTimeout(checkAuthAndRole, 100);
+                    return;
+                }
+
+                const { data: { session }, error } = await window.supabase.auth.getSession();
+                
+                if (error || !session) {
+                    console.log('🔒 No Supabase session found - redirecting to login');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+
+                // Get user profile to check role
+                const { data: profile, error: profileError } = await window.supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const role = profile?.role?.toLowerCase() || 'user';
+                
+                // All authenticated users can access customers page
+                console.log('✅ User authenticated with role:', role);
+                
+                // Set page mode based on role - only admins get full access
+                const isReadOnly = (role !== 'admin');
+                if (isReadOnly) {
+                    console.log('📖 Read-only mode enabled for non-admin role:', role);
+                    document.body.classList.add('read-only-mode');
+                    
+                    // Add read-only banner
+                    const container = document.querySelector('.container');
+                    const banner = document.createElement('div');
+                    banner.className = 'read-only-banner';
+                    banner.innerHTML = '<span class="icon">📖</span>Read-Only Access: You can view customer information but cannot make changes';
+                    container.insertBefore(banner, container.firstChild.nextSibling);
+                } else {
+                    console.log('� Admin access: Full permissions granted');
+                }
+                return true;
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+        
+        window.addEventListener('load', async () => {
+            if (await checkAuthAndRole()) {
+                loadCustomers();
+                checkAdminAccess();
+            }
         });
 
         // Check if current user is admin
@@ -275,14 +370,21 @@
                 }
 
                 // Check if user is admin (you can modify this logic as needed)
+                // Get user role from profiles table
+                const { data: profile, error: profileError } = await window.supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const userRole = profile?.role?.toLowerCase() || 'user';
                 const userEmail = session.user.email;
-                const adminEmails = ['john@tpnlife.com', 'admin@tpnlife.com']; // Add your admin emails here
                 
-                if (adminEmails.includes(userEmail.toLowerCase())) {
-                    console.log('🔐 Admin access granted for:', userEmail);
+                if (userRole === 'admin' || userRole === 'manager' || userRole === 'supervisor') {
+                    console.log('🔐 Full access granted for:', userEmail, 'Role:', userRole);
                     document.getElementById('admin-controls').style.display = 'block';
                 } else {
-                    console.log('👤 Regular user access for:', userEmail);
+                    console.log('👤 Read-only access for:', userEmail, 'Role:', userRole);
                 }
                 
             } catch (error) {

@@ -374,7 +374,7 @@ function initializeHeader() {
     // Initialize Supabase
     const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
-    window.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     loadUserProfile();
     setActiveNavButton();
@@ -427,19 +427,67 @@ async function loadUserProfile() {
 }
 
 function updateNavigationVisibility(userRole) {
-    const adminOnlyButtons = document.querySelectorAll('.nav-button.admin-only');
+    const role = userRole?.toLowerCase() || 'guest';
     
-    // Hide admin-only buttons for users with "user" role
-    if (userRole === 'user' || userRole === 'User') {
-        adminOnlyButtons.forEach(button => {
-            button.classList.add('hidden');
-        });
-    } else {
-        // Show all buttons for admin, supervisor, manager roles
-        adminOnlyButtons.forEach(button => {
-            button.classList.remove('hidden');
-        });
+    // Get all navigation buttons
+    const homeButton = document.querySelector('[onclick="navigateTo(\'home\')"]');
+    const customersButton = document.querySelector('[onclick="navigateTo(\'customers\')"]');
+    const videosButton = document.querySelector('[onclick="navigateTo(\'videos\')"]');
+    const usersButton = document.querySelector('[onclick="navigateTo(\'users\')"]');
+    const foldersButton = document.querySelector('[onclick="navigateTo(\'folders\')"]');
+    const hierarchyButton = document.querySelector('[onclick="navigateTo(\'hierarchy\')"]');
+    
+    // Role-based navigation visibility
+    const showButton = (button, show) => {
+        if (button) {
+            button.style.display = show ? 'inline-block' : 'none';
+        }
+    };
+    
+    // Define access rules based on role
+    switch (role) {
+        case 'admin':
+        case 'manager':
+        case 'supervisor':
+            // Admin, Manager, Supervisor can see everything with full editing rights
+            showButton(homeButton, true);
+            showButton(customersButton, true);
+            showButton(videosButton, true);
+            showButton(usersButton, true);
+            showButton(foldersButton, true);
+            showButton(hierarchyButton, true);
+            break;
+            
+        case 'user':
+            // Regular users can only see home and customers (read-only)
+            showButton(homeButton, true);
+            showButton(customersButton, true);
+            showButton(videosButton, false);
+            showButton(usersButton, false);
+            showButton(foldersButton, false);
+            showButton(hierarchyButton, false);
+            break;
+            
+        default:
+            // Guest or unknown role - hide everything except home
+            showButton(homeButton, true);
+            showButton(customersButton, false);
+            showButton(videosButton, false);
+            showButton(usersButton, false);
+            showButton(foldersButton, false);
+            showButton(hierarchyButton, false);
+            break;
     }
+    
+    // Also handle legacy admin-only class buttons
+    const adminOnlyButtons = document.querySelectorAll('.nav-button.admin-only');
+    adminOnlyButtons.forEach(button => {
+        if (role === 'admin' || role === 'manager' || role === 'supervisor') {
+            button.classList.remove('hidden');
+        } else {
+            button.classList.add('hidden');
+        }
+    });
 }
 
 function setActiveNavButton() {
@@ -487,8 +535,60 @@ document.addEventListener('click', function(event) {
     }
 });
 
-function navigateTo(page) {
+async function navigateTo(page) {
     console.log(`Navigating to: ${page}`);
+    
+    try {
+        // Check authentication first using Supabase
+        if (!window.supabase) {
+            console.log('⏳ Waiting for Supabase to load...');
+            setTimeout(() => navigateTo(page), 100);
+            return;
+        }
+
+        const { data: { session }, error } = await window.supabase.auth.getSession();
+        
+        if (error || !session) {
+            console.log('🔒 User not authenticated - redirecting to login');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        // Get user profile to check role
+        const { data: profile, error: profileError } = await window.supabase
+            .from('profiles')
+            .select('role')
+            .eq('email', session.user.email)
+            .single();
+
+        if (profileError) {
+            console.error('Profile fetch error:', profileError);
+            console.log('🔒 Profile access denied - redirecting to login');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        const userRole = profile?.role?.toLowerCase() || 'user';
+        
+        // Define role-based access rules
+        const roleAccess = {
+            'admin': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy'],
+            'manager': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy'],
+            'supervisor': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy'],
+            'user': ['home', 'customers']
+        };
+        
+        // Check if user has access to this page
+        if (!roleAccess[userRole] || !roleAccess[userRole].includes(page)) {
+            console.log(`🚫 Access denied - ${userRole} cannot access ${page}`);
+            alert(`Access denied. You do not have permission to access the ${page} page.`);
+            return;
+        }
+    } catch (error) {
+        console.error('Navigation auth check error:', error);
+        window.location.href = '/login.html';
+        return;
+    }
     
     // Check if we're already on the target page
     const currentPage = window.location.pathname;
@@ -524,6 +624,7 @@ function navigateTo(page) {
     }
     
     // Navigate to the page
+    console.log(`✅ Access granted - navigating to ${targetPage}`);
     window.location.href = targetPage;
 }
 

@@ -1344,8 +1344,46 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="global-header.js"></script>
     <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Authentication check using Supabase session
+        async function checkAuth() {
+            try {
+                // Wait for Supabase to be available
+                if (!window.supabase) {
+                    console.log('⏳ Waiting for Supabase to load...');
+                    setTimeout(checkAuth, 100);
+                    return;
+                }
+
+                const { data: { session }, error } = await window.supabase.auth.getSession();
+                
+                if (error || !session) {
+                    console.log('🔒 No Supabase session found - redirecting to login');
+                    window.location.replace('/login.html');
+                    return false;
+                }
+                
+                console.log('✅ User authenticated:', session.user.email);
+                return true;
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.replace('/login.html');
+                return false;
+            }
+        }
+
+        // Check authentication when page loads
+        window.addEventListener('load', () => {
+            checkAuth();
+        });
+
         let isRecording = false;
         let mediaRecorder = null;
         let recordedChunks = [];
