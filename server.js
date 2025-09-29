@@ -185,6 +185,19 @@ Recording Date: ${new Date().toLocaleString()}`;
     }
 });
 
+// Test endpoint to check environment variables
+app.get('/api/test-env', (req, res) => {
+    res.json({
+        vimeo_client_id: process.env.VIMEO_CLIENT_ID ? 'SET' : 'MISSING',
+        vimeo_client_secret: process.env.VIMEO_CLIENT_SECRET ? 'SET' : 'MISSING', 
+        vimeo_access_token: process.env.VIMEO_ACCESS_TOKEN ? 'SET' : 'MISSING',
+        vimeo_folder_id: process.env.VIMEO_FOLDER_ID ? 'SET' : 'MISSING',
+        vimeo_folder_id_value: process.env.VIMEO_FOLDER_ID,
+        supabase_url: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
+        supabase_key: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING'
+    });
+});
+
 // API endpoint to get all customers from Vimeo
 app.get('/api/get-all-customers', async (req, res) => {
     try {
