@@ -263,7 +263,7 @@ app.get('/api/test-vimeo', async (req, res) => {
 });
 
 // Test endpoint for Vimeo video creation (without upload)
-app.post('/api/test-vimeo-create', async (req, res) => {
+app.get('/api/test-vimeo-create', async (req, res) => {
     try {
         console.log('🧪 Testing Vimeo video creation...');
         
