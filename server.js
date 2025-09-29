@@ -70,13 +70,9 @@ app.post('/api/upload-vimeo', async (req, res) => {
             return res.status(400).json({ error: 'No video data provided' });
         }
 
-        // Convert base64 to buffer and save to temporary file
+        // Convert base64 to buffer - use in-memory approach for serverless
         const videoBuffer = Buffer.from(videoData, 'base64');
-        const fs = require('fs');
-        const tmpPath = path.join(__dirname, 'temp_video.webm');
-        
-        // Write buffer to temporary file
-        fs.writeFileSync(tmpPath, videoBuffer);
+        console.log('📦 Video buffer created, size:', videoBuffer.length, 'bytes');
 
         // Create structured description with all metadata
         const structuredDescription = `${description}
@@ -87,10 +83,10 @@ Recorded By: ${recordedBy.displayName}
 Recorded By Email: ${recordedBy.email}
 Recording Date: ${new Date().toLocaleString()}`;
 
-        // Upload to Vimeo using file path
+        // Upload to Vimeo using buffer directly (serverless-friendly)
         const uploadResponse = await new Promise((resolve, reject) => {
             vimeo.upload(
-                tmpPath,
+                videoBuffer,
                 {
                     name: title,
                     description: structuredDescription,
@@ -101,13 +97,7 @@ Recording Date: ${new Date().toLocaleString()}`;
                     }
                 },
                 (uri) => {
-                    console.log('Upload complete:', uri);
-                    // Clean up temporary file
-                    try {
-                        fs.unlinkSync(tmpPath);
-                    } catch (err) {
-                        console.log('Could not delete temp file:', err);
-                    }
+                    console.log('✅ Upload complete:', uri);
                     resolve({ uri });
                 },
                 (bytesUploaded, bytesTotal) => {
@@ -115,13 +105,7 @@ Recording Date: ${new Date().toLocaleString()}`;
                     console.log(`Upload progress: ${percentage}%`);
                 },
                 (error) => {
-                    console.error('Upload error:', error);
-                    // Clean up temporary file on error
-                    try {
-                        fs.unlinkSync(tmpPath);
-                    } catch (err) {
-                        console.log('Could not delete temp file:', err);
-                    }
+                    console.error('❌ Upload error:', error);
                     reject(error);
                 }
             );
