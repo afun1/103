@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folders Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Folders Test Page</h1>
+    <div id="status">Loading...</div>
+    <div id="folders-container">Waiting for data...</div>
+
+    <script>
+        console.log('🚀 Test page loaded');
+        
+        // Initialize Supabase
+        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        
+        function initTest() {
+            const statusDiv = document.getElementById('status');
+            
+            console.log('🔍 typeof supabase:', typeof supabase);
+            
+            if (typeof supabase === 'undefined') {
+                statusDiv.innerHTML = '❌ Supabase not loaded';
+                setTimeout(initTest, 200);
+                return;
+            }
+            
+            try {
+                window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+                statusDiv.innerHTML = '✅ Supabase initialized';
+                console.log('✅ Supabase client created');
+                
+                // Test API call
+                testAPI();
+            } catch (error) {
+                console.error('❌ Supabase init error:', error);
+                statusDiv.innerHTML = '❌ Supabase init failed: ' + error.message;
+            }
+        }
+        
+        async function testAPI() {
+            try {
+                console.log('🔗 Testing API call...');
+                const response = await fetch('/api/users');
+                console.log('📡 API response status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ API call successful:', data);
+                    document.getElementById('folders-container').innerHTML = `Found ${data.users ? data.users.length : 0} users`;
+                } else {
+                    console.error('❌ API call failed:', response.status);
+                    document.getElementById('folders-container').innerHTML = 'API call failed';
+                }
+            } catch (error) {
+                console.error('❌ API test error:', error);
+                document.getElementById('folders-container').innerHTML = 'API test error: ' + error.message;
+            }
+        }
+        
+        // Start when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📄 DOM ready, starting test');
+            initTest();
+        });
+    </script>
+</body>
+</html>
