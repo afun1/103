@@ -828,7 +828,7 @@ app.get('/api/folders', async (req, res) => {
         const mainFolderVideoCount = await new Promise((resolve, reject) => {
             vimeo.request({
                 method: 'GET',
-                path: `/me/projects/26555277/videos`,
+                path: `/me/projects/${process.env.VIMEO_FOLDER_ID}/videos`,
                 query: {
                     per_page: 1,
                     fields: 'uri'
@@ -1346,16 +1346,14 @@ app.post('/api/move-video', async (req, res) => {
         
         // For now, just update the video description with user assignment
         // instead of actually moving between folders (which was causing crashes)
-        console.log(`� Assigning video to ${userName} via description update`);
+        console.log(`📝 Assigning video to ${userName} via description update`);
         
         // Get current video details from Vimeo
         vimeo.request(`/videos/${vimeoVideoId}`, (error, body, status_code, headers) => {
             if (error) {
                 console.error('❌ Error fetching video from Vimeo:', error);
-                return res.status(500).json({
-                    error: 'Failed to fetch video from Vimeo',
-                    message: error.message
-                });
+                // Do not send response here, let the final catch handle it.
+                return;
             }
             
             const currentDescription = body.description || '';
@@ -1379,15 +1377,14 @@ app.post('/api/move-video', async (req, res) => {
             vimeo.request(`/videos/${vimeoVideoId}`, updateData, 'PATCH', (patchError, patchBody, patchStatus) => {
                 if (patchError) {
                     console.error('❌ Error updating video in Vimeo:', patchError);
-                    return res.status(500).json({
-                        error: 'Failed to update video in Vimeo',
-                        message: patchError.message
-                    });
+                    // Let the final catch handle the error response
+                    return;
                 }
                 
                 console.log('✅ Successfully assigned video to user');
                 console.log(`📁 Video "${videoTitle}" assigned to ${userName}`);
                 
+                // This is now the ONLY successful response
                 res.json({
                     success: true,
                     message: `Video successfully assigned to ${userName}`,

@@ -3,706 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sparky Screen Recorder - Folders</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script>
-        // Wait for DOM and all scripts to be fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔍 DOM loaded, checking Supabase availability:', typeof supabase);
-            if (typeof supabase === 'undefined') {
-                console.error('❌ Supabase library not loaded on DOM ready!');
-            } else {
-                console.log('✅ Supabase library loaded successfully on DOM ready');
-            }
-        });
-    </script>
-    <script src="global-header.js" defer></script>
+    <title>Video Folders</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: #1a1a1a;
-            color: #ffffff;
-            min-height: 100vh;
-            padding-bottom: 20px;
-        }
-
-        .container {
-            width: 100%;
-            margin: 0;
-            padding: 0 20px;
-        }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .page-header h1 {
-            font-size: 32px;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .page-header-left {
-            display: flex;
-            align-items: center;
-        }
-
-        .page-header-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .folders-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .folder-card {
-            background: #2a2a2a;
-            border-radius: 8px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 1px solid #404040;
-            min-height: 120px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-sizing: border-box;
-            position: relative;
-        }
-
-        .folder-card:hover {
-            background: #333333;
-            transform: translateY(-2px);
-        }
-
-        .folder-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #ffffff;
-        }
-
-        .folder-role {
-            font-size: 10px;
-            font-weight: 600;
-            color: #888888;
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-        }
-        
-        .folder-email {
-            font-size: 10px;
-            color: #888888;
-            margin-bottom: 10px;
-        }
-
-        .folder-display-name {
-            font-size: 12px;
-            color: #cccccc;
-            margin-bottom: 8px;
-        }
-
-        .search-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .search-input {
-            background: #2a2a2a;
-            border: 1px solid #404040;
-            border-radius: 6px;
-            color: #ffffff;
-            padding: 8px 12px;
-            font-size: 14px;
-            width: 250px;
-            min-width: 200px;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #007bff;
-            background: #333333;
-        }
-
-        .search-input::placeholder {
-            color: #888888;
-        }
-
-        .search-results-info {
-            text-align: left;
-            margin-bottom: 20px;
-            color: #cccccc;
-            font-size: 14px;
-            padding-left: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .page-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .page-header-left,
-            .page-header-right {
-                width: 100%;
-                justify-content: space-between;
-            }
-            
-            .search-input {
-                width: 200px;
-            }
-        }
-
-        .clear-search-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .clear-search-btn:hover {
-            background: #c82333;
-        }
-
-        .folder-count {
-            font-size: 11px;
-            color: #666666;
-        }
-
-        .main-folder {
-            background: #2d4059;
-            border: 1px solid #4a6fa5;
-        }
-
-        .main-folder:hover {
-            background: #355070;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #888888;
-        }
-
-        .error {
-            text-align: center;
-            padding: 40px;
-            color: #ff6b6b;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-        }
-
-        #edit-modal {
-            z-index: 2000 !important;
-        }
-
-        #edit-modal.show {
-            display: flex !important;
-            align-items: flex-start !important;
-            justify-content: center !important;
-            padding-top: 20px !important;
-        }
-
-        .modal.show {
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding-top: 50px;
-        }
-
-        .modal-content {
-            background: #1a1a1a;
-            border-radius: 8px;
-            width: 90%;
-            height: calc(100vh - 100px);
-            max-width: 1400px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .modal-header {
-            background: #2a2a2a;
-            padding: 20px;
-            border-bottom: 1px solid #404040;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #ffffff;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: #ffffff;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 5px 10px;
-        }
-
-        .modal-close:hover {
-            color: #ff6b6b;
-        }
-
-        .modal-body {
-            padding: 20px;
-            height: calc(100% - 120px);
-            overflow-y: auto;
-        }
-
-        /* Search Bar */
-        .search-bar {
-            position: sticky;
-            top: 0;
-            background: #1a1a1a;
-            padding: 0 0 20px 0;
-            margin-bottom: 20px;
-            z-index: 100;
-            border-bottom: 1px solid #404040;
-        }
-
-        .search-input {
-            width: 300px;
-            padding: 12px 16px;
-            background: #2a2a2a;
-            border: 1px solid #404040;
-            border-radius: 6px;
-            color: #ffffff;
-            font-size: 16px;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #4a6fa5;
-        }
-
-        .search-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: #2a2a2a;
-            border: 1px solid #404040;
-            border-top: none;
-            border-radius: 0 0 6px 6px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 200;
-            display: none;
-        }
-
-        .search-result-item {
-            padding: 10px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #404040;
-        }
-
-        .search-result-item:hover {
-            background: #3a3a3a;
-        }
-
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-
-        /* Video Grid */
-        .videos-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-        }
-
-        .video-card {
-            background: #2a2a2a;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #404040;
-            transition: all 0.2s ease;
-        }
-
-        .video-thumbnail-container {
-            position: relative;
-        }
-
-        .video-card:hover {
-            border-color: #4a6fa5;
-            transform: translateY(-2px);
-        }
-
-        .video-thumbnail {
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            background: #404040;
-        }
-
-        .video-info {
-            padding: 15px;
-        }
-
-        .video-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #ffffff;
-        }
-
-        .video-details {
-            font-size: 12px;
-            color: #cccccc;
-            line-height: 1.4;
-        }
-
-        .video-details > div {
-            margin-bottom: 4px;
-        }
-
-        .video-description {
-            margin-top: 8px;
-            font-size: 11px;
-            color: #aaaaaa;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            line-height: 1.3;
-        }
-
-        .video-title-old {
-            font-size: 14px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 8px;
-            line-height: 1.3;
-        }
-
-        .video-meta {
-            font-size: 12px;
-            color: #888888;
-            margin-bottom: 12px;
-        }
-
-        .copy-button {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(74, 111, 165, 0.9);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(4px);
-        }
-
-        .copy-button:hover {
-            background: linear-gradient(135deg, #5a7fb5, #3d5069);
-            transform: translateY(-1px);
-        }
-
-        .copy-button:disabled {
-            background: #666666;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .edit-button {
-            position: absolute;
-            top: 8px;
-            right: 120px;
-            background: rgba(40, 167, 69, 0.9);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(4px);
-        }
-
-        .edit-button:hover {
-            background: linear-gradient(135deg, #28a745, #1e7e34);
-            transform: translateY(-1px);
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1e2852; color: #fff; min-height: 100vh; }
+        .container { width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
+        .header-container { width: 100%; height: 80px; position: sticky; top: 0; z-index: 1000; }
+        .main-content { flex: 1; padding: 20px; }
+        .folders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .folder-card { background: #444; border: 2px solid #666; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s; }
+        .folder-card:hover { transform: translateY(-2px); border-color: #4CAF50; }
+        .folder-card.main-folder { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: #4CAF50; }
+        .folder-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        .folder-email { font-size: 14px; color: #ccc; margin-bottom: 4px; }
+        .folder-count { font-size: 16px; color: #4CAF50; font-weight: bold; }
+        .folder-role { font-size: 12px; background: #4CAF50; color: #000; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 8px; }
+        .error { color: #ff4444; text-align: center; padding: 40px; }
+        .back-to-folders { position: sticky; top: 60px; z-index: 1000; margin-bottom: 20px; }
+        .back-to-folders button { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3); transition: all 0.3s ease; }
+        .back-to-folders button:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4); background: linear-gradient(135deg, #45a049 0%, #4CAF50 100%); }
+        .back-to-folders button:active { transform: translateY(0); }
+        #video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .video-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none; align-items: center; justify-content: center; z-index: 20000; padding: 24px; }
+        .video-modal-overlay.open { display: flex; }
+        .video-modal-content { width: 100%; max-width: 1200px; background: #000; border-radius: 10px; overflow: hidden; position: relative; }
+        .video-modal-close { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); color: #fff; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+        .video-modal-body video, .video-modal-body iframe { width: 100%; height: 70vh; background: #000; display: block; }
+        .video-metadata-section { width: 100%; background: #1a1a1a; display: flex; border-top: 1px solid #333; }
+        .video-metadata-left { width: 33%; background: #2a2a2a; padding: 20px; border-right: 1px solid #333; }
+        .video-metadata-right { width: 67%; padding: 20px; background: #1a1a1a; }
+        .metadata-item { color: #e2e8f0; font-size: 14px; margin-bottom: 8px; }
+        .metadata-description { color: #cbd5e1; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="page-header">
-            <div class="page-header-left">
-                <h1>Video Folders</h1>
+        <div class="header-container"></div>
+        <div class="main-content">
+            <div id="folders-container">
+                <!-- Folder grid will be built by script -->
             </div>
-            <div class="page-header-right">
-                <div class="search-container">
-                    <input type="text" id="search-input" class="search-input" placeholder="🔍 Search by name or email..." oninput="filterFolders()" onkeydown="handleSearchKeydown(event)">
-                    <button onclick="clearSearch()" class="clear-search-btn">Clear</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="search-results-info" class="search-results-info" style="display: none;"></div>        <div id="folders-container">
-            <div class="loading">Loading folders...</div>
-        </div>
-    </div>
-
-    <!-- Video Modal -->
-    <div id="video-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">Sparky Screen Recordings</div>
-                <button class="modal-close" onclick="closeVideoModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="search-bar">
-                    <div style="position: relative;">
-                        <input type="text" id="user-search" class="search-input" placeholder="Search users..." oninput="searchUsers(this.value)">
-                        <div id="search-results" class="search-results"></div>
-                    </div>
-                </div>
-                <div id="videos-container">
-                    <div class="loading">Loading videos...</div>
+            <div id="video-grid-container" style="display:none;">
+                <div id="video-grid">
+                    <!-- Video cards will be injected here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Video Modal -->
-    <div id="edit-modal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
-            <div class="modal-header">
-                <div class="modal-title">Edit Video Metadata</div>
-                <button class="modal-close" onclick="closeEditModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Title:</label>
-                        <input type="text" id="edit-title" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #404040; border-radius: 6px; color: #ffffff; font-size: 14px;">
+    <div id="videoModal" class="video-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="video-modal-content">
+            <button class="video-modal-close" aria-label="Close video" id="videoModalClose" onclick="closeVideoModal()">✕</button>
+            <div class="video-modal-body">
+                <div id="videoModalInner" style="width:100%;"></div>
+                <div id="videoMetadataSection" class="video-metadata-section" style="display:none;">
+                    <div class="video-metadata-left">
+                        <div id="metadataItems"></div>
                     </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Customer Name:</label>
-                        <input type="text" id="edit-customer-name" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #404040; border-radius: 6px; color: #ffffff; font-size: 14px;">
+                    <div class="video-metadata-right">
+                        <div id="metadataDescription" class="metadata-description"></div>
                     </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Customer Email:</label>
-                        <input type="email" id="edit-customer-email" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #404040; border-radius: 6px; color: #ffffff; font-size: 14px;">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Recorded By Name:</label>
-                        <input type="text" id="edit-recorded-by-name" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #404040; border-radius: 6px; color: #ffffff; font-size: 14px;">
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Recorded By Email:</label>
-                        <input type="email" id="edit-recorded-by-email" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #404040; border-radius: 6px; color: #ffffff; font-size: 14px;">
-                    </div>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; color: #ffffff; font-weight: 600;">Additional Notes:</label>
-                    <textarea id="edit-description" rows="4" placeholder="Any additional notes or description..." style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #404040; border-radius: 6px; color: #ffffff; font-size: 14px; resize: vertical;"></textarea>
-                </div>
-                <div style="text-align: right;">
-                    <button onclick="closeEditModal()" style="background: #666; color: white; border: none; padding: 10px 20px; border-radius: 6px; margin-right: 10px; cursor: pointer;">Cancel</button>
-                    <button onclick="saveVideoChanges()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Save Changes</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="global-header.js"></script>
     <script>
-        // Initialize Supabase with error handling
-        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        // Debug header loading
+        console.log('🔍 FOLDERS.HTML DEBUG: Script loaded');
+        console.log('🔍 Global header functions available:', typeof window.loadGlobalHeader);
+        console.log('🔍 Window supabase exists:', !!window.supabase);
         
-        // Robust Supabase initialization
-        function initializeSupabase() {
-            console.log('🚀 Attempting Supabase initialization...');
-            console.log('🔍 typeof supabase:', typeof supabase);
-            console.log('🔍 window.supabase exists:', !!window.supabase);
+        // Check if header loaded and force load if needed
+        setTimeout(() => {
+            const headerExists = !!document.querySelector('.header');
+            const userDropdown = !!document.getElementById('user-dropdown');
+            console.log('🔍 After 1s - Header elements:', {
+                userDropdown,
+                userName: !!document.getElementById('user-name'),
+                headerExists
+            });
             
-            if (typeof supabase !== 'undefined') {
-                try {
-                    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
-                    console.log('✅ Supabase initialized successfully');
-                    console.log('🔗 Supabase client created:', !!window.supabase);
-                    return true;
-                } catch (error) {
-                    console.error('❌ Error creating Supabase client:', error);
-                    return false;
+            if (!headerExists && typeof window.loadGlobalHeader === 'function') {
+                console.log('🔄 Header not found, attempting to load it manually...');
+                window.loadGlobalHeader();
+            }
+        }, 1000);
+        
+        // Additional fallback for DOM ready
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (!document.querySelector('.header') && typeof window.loadGlobalHeader === 'function') {
+                    console.log('🔄 DOM ready - loading header manually...');
+                    window.loadGlobalHeader();
                 }
+            }, 100);
+        });
+        
+        // Utility functions
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+        
+        function getCurrentUserInfo() {
+            if (window.getCurrentUser && typeof window.getCurrentUser === 'function') {
+                return window.getCurrentUser();
+            }
+            return { displayName: 'Unknown User', email: 'unknown@example.com' };
+        }
+        
+        // Supabase client is now initialized in global-header.js
+        // We will wait for it to be ready.
+        let supabase;
+
+        document.addEventListener('profileLoaded', () => {
+            console.log('📢 profileLoaded event received in folders.html');
+            if (window.supabase) {
+                supabase = window.supabase;
+                console.log('✅ Supabase client ready in folders.html');
+                initializeApp();
             } else {
-                console.log('⏳ Supabase library not yet available, retrying...');
-                setTimeout(initializeSupabase, 200);
-                return false;
+                console.error('❌ Supabase client not found after profileLoaded event.');
             }
+        });
+        
+        // Multiple fallback initialization methods
+        let initializationAttempted = false;
+        
+        function tryInitialization() {
+            if (initializationAttempted) return;
+            
+            console.log('🔄 Attempting fallback initialization...');
+            console.log('Window supabase exists:', !!window.supabase);
+            console.log('Local supabase exists:', !!supabase);
+            
+            if (!supabase && window.supabase) {
+                console.log('✅ Using fallback initialization');
+                supabase = window.supabase;
+                initializationAttempted = true;
+                initializeApp();
+                return true;
+            }
+            return false;
         }
         
-        // Start initialization when script loads
-        initializeSupabase();
-
-        // Authentication and role-based access control
-        // Authentication check using Supabase session
-        async function checkAuthAndRole() {
-            try {
-                console.log('🔐 Starting authentication check...');
-                console.log('🔍 Supabase client status:', !!window.supabase);
-                
-                // Wait for Supabase to be available
-                if (!window.supabase) {
-                    console.log('⏳ Waiting for Supabase to load...');
-                    setTimeout(checkAuthAndRole, 100);
-                    return;
-                }
-
-                const { data: { session }, error } = await window.supabase.auth.getSession();
-                
-                if (error || !session) {
-                    console.log('🔒 No Supabase session found - redirecting to login');
-                    window.location.href = 'login.html';
-                    return false;
-                }
-
-                // Get user profile to check role
-                const { data: profile, error: profileError } = await window.supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', session.user.id)
-                    .single();
-
-                const role = profile?.role?.toLowerCase() || 'user';
-                if (role !== 'admin' && role !== 'manager' && role !== 'supervisor') {
-                    alert('Access denied: Admin, Manager, or Supervisor role required for Folders page');
-                    window.location.href = 'index.html';
-                    return false;
-                }
-                
-                console.log('✅ Full access granted for role:', role);
-                
-                console.log('✅ User authenticated with role:', role);
-                return true;
-            } catch (error) {
-                console.error('Auth check error:', error);
-                window.location.href = 'login.html';
-                return false;
-            }
-        }
-
-        // Check authentication when page loads
-        window.addEventListener('load', async () => {
-            console.log('📄 Page loaded, starting authentication check...');
-            
-            // Ensure Supabase is initialized before proceeding
-            if (!window.supabase) {
-                console.log('⏳ Waiting for Supabase initialization...');
-                setTimeout(async () => {
-                    if (!(await checkAuthAndRole())) {
-                        return;
-                    }
-                    initializePage();
-                }, 500);
-                return;
-            }
-            
-            if (!(await checkAuthAndRole())) {
-                return; // Redirect will happen in the function
-            }
-            
-            console.log('🚀 Authentication successful, calling initializePage()...');
-            // Continue with page initialization
-            await initializePage();
+        // Try multiple times with increasing delays
+        setTimeout(() => tryInitialization(), 1000);
+        setTimeout(() => tryInitialization(), 3000);
+        setTimeout(() => tryInitialization(), 5000);
+        
+        // Also try when the page is fully loaded
+        window.addEventListener('load', () => {
+            setTimeout(() => tryInitialization(), 500);
         });
 
-        // Global variables
-        let folders = [];
-        let allFolders = []; // Store original unfiltered folders
-        let videos = [];
-        let allVideos = []; // Store all videos globally for copying
-        let selectedVideoForCopy = null;
-        let filteredUsers = [];
-        let currentFolderType = null; // Track current folder type ('main' or 'user')
-        let currentFolderData = null; // Track current folder data
-        let originalVideoDescription = null; // Track original description for update comparison
-        let videoUpdatesCache = new Map(); // Cache for updated video data (URI -> updated video object)
-
-        async function initializePage() {
-            console.log('🎯 initializePage() function called!');
-            // Variables are now global, function just initializes
-            
-            // Load folders when page initializes
-            console.log('🔄 Starting loadFolders() from initializePage()...');
+        async function initializeApp() {
             try {
+                console.log('🚀 Initializing folders app...');
+                // All the functions that depend on supabase can now be called.
                 await loadFolders();
-                console.log('✅ loadFolders() completed successfully');
+                console.log('✅ Folders app initialized successfully');
             } catch (error) {
-                console.error('❌ loadFolders() failed:', error);
+                console.error('❌ Error initializing app:', error);
+                document.getElementById('folders-container').innerHTML = 
+                    '<div class="error">Failed to initialize: ' + error.message + '</div>';
             }
         }
+        
+        // State variables
+        let folders = [], allFolders = [], videos = [], allVideos = [];
+        let currentFolderData = null;
+        let currentFolderType = 'main';
+        let supabaseUser, supabaseUsers = [];
+        let videoUpdatesCache = new Map();
+        let selectedUserForMove = null;
 
-        // Load user video counts from localStorage
-        function loadUserVideoCounts() {
-            const userVideos = JSON.parse(localStorage.getItem('userVideos') || '{}');
-            
-            for (const folder of folders.filter(f => f.type === 'user')) {
-                const count = userVideos[folder.userId] ? userVideos[folder.userId].length : 0;
-                updateUserVideoCount(folder.userId, count);
-            }
-        }
+        // Initialize the page
+        // The initialization is now triggered by the 'profileLoaded' event.
 
-        async function refreshFolders() {
-            console.log('🔄 Refreshing folders and videos...');
-            const foldersContainer = document.getElementById('folders-container');
-            foldersContainer.innerHTML = '<div class="loading">Refreshing videos...</div>';
-            
-            // Clear cache and reload everything
-            folders = [];
-            videos = [];
-            allVideos = [];
-            await loadFolders();
-        }
-
+        // Fetch and display folders
         async function loadFolders() {
             try {
                 console.log('🎬 loadFolders() function started...');
@@ -714,7 +205,7 @@
                 const usersData = await usersResponse.json();
                 const users = usersData.users || [];
 
-                // Create folders array (main folder will be added after videos are loaded)
+                // Create folders array - start fresh to avoid duplicates
                 folders = [];
 
                 // Add user folders with role information and sort by role then name
@@ -810,7 +301,17 @@
                 
                 console.log(`� EFFICIENT ASSIGNMENT: Processed ${allVideos.length} videos in single batch`);
                 
-                // Create folders for all Supabase users
+                // First, add the main Sparky folder at the beginning
+                folders.push({
+                    id: 'main',
+                    name: 'Sparky Screen Recordings',
+                    type: 'main',
+                    videoCount: allVideos.length,
+                    displayName: '',
+                    email: ''
+                });
+                
+                // Then add user folders (excluding any that might duplicate the main folder)
                 sortedUsers.forEach(user => {
                     const userVideos = userVideosMap.get(user.email.toLowerCase()) || [];
                     console.log(`📧 ${user.email}: assigned ${userVideos.length} videos`);
@@ -841,31 +342,47 @@
                     folders.push(folderData);
                 });
                 
-                // Add main Sparky folder at the beginning
-                folders.unshift({
-                    id: 'main',
-                    name: 'Sparky Screen Recordings',
-                    type: 'main',
-                    videoCount: allVideos.length,
-                    displayName: '',
-                    email: ''
-                });
-                
-                console.log(`✅ Created ${folders.length - 1} user folders from Supabase users (plus main folder)`);
-                console.log('Folder breakdown:', folders.map(f => `${f.name}: ${f.videoCount} videos`));
+            console.log(`✅ Created ${folders.length - 1} user folders from Supabase users (plus main folder)`);
+            console.log('Folder breakdown:', folders.map(f => `${f.name}: ${f.videoCount} videos`));
 
-                // Store original folders for search filtering
-                allFolders = [...folders];
-                displayFolders();
-                
-            } catch (error) {
-                console.error('Error loading folders:', error);
-                document.getElementById('folders-container').innerHTML = 
-                    '<div class="error">Failed to load folders: ' + error.message + '</div>';
-            }
+            // Store original folders for search filtering
+            allFolders = [...folders];
+            displayFolders();
+            
+        } catch (error) {
+            console.error('Error loading folders:', error);
+            document.getElementById('folders-container').innerHTML = 
+                '<div class="error">Failed to load folders: ' + error.message + '</div>';
         }
+    }
 
-        function applyLocalUpdates(videoList) {
+    function showMainVideos() {
+        console.log('Showing main folder videos');
+        document.getElementById('folders-container').style.display = 'none';
+        document.getElementById('video-grid-container').style.display = 'block';
+        
+        // Add back button
+        const videoGridContainer = document.getElementById('video-grid-container');
+        const backButton = `
+            <div class="back-to-folders">
+                <button onclick="backToFolders()">
+                    <span>←</span> Back to Folders
+                </button>
+            </div>
+        `;
+        
+        const container = document.getElementById('video-grid');
+        if (!container) return;
+        
+        if (!allVideos || allVideos.length === 0) {
+            videoGridContainer.innerHTML = backButton + '<div id="video-grid"><div style="grid-column: 1 / -1; text-align: center; color: #ccc; padding: 40px 0;">No videos found in main folder.</div></div>';
+            return;
+        }
+        
+        videoGridContainer.innerHTML = backButton + '<div id="video-grid"></div>';
+        const newContainer = document.getElementById('video-grid');
+        displayVideosInGrid(allVideos, newContainer);
+    }        function applyLocalUpdates(videoList) {
             // Apply any locally cached updates to the video list
             return videoList.map(video => {
                 if (videoUpdatesCache.has(video.uri)) {
@@ -918,6 +435,11 @@
         function displayFolders() {
             const container = document.getElementById('folders-container');
             
+            if (!container) {
+                console.error('folders-container not found');
+                return;
+            }
+            
             if (folders.length === 0) {
                 container.innerHTML = '<div class="error">No folders found</div>';
                 return;
@@ -948,14 +470,20 @@
             currentFolderData = { id: folderId, type: folderType };
             
             if (folderType === 'main') {
-                openVideoModal();
+                // Show main folder videos
+                showMainVideos();
             } else {
                 // Extract the actual user ID from the folder ID (remove 'user-' prefix)
                 const userId = folderId.startsWith('user-') ? folderId.substring(5) : folderId;
                 console.log(`Extracted userId: ${userId} from folderId: ${folderId}`);
                 currentFolderData.userId = userId;
-                // Show user folder videos
-                showUserVideos(userId);
+                // Find the folder data
+                const folderData = folders.find(f => f.id === folderId);
+                if (folderData && folderData.userVideos) {
+                    showUserVideos(userId, folderData.userVideos);
+                } else {
+                    console.error('Folder data not found for:', folderId);
+                }
             }
         }
 
@@ -1131,9 +659,12 @@
                     // Immediately refresh display with cached data
                     await reloadVideos(); // This will apply local cache
                     if (currentFolderType === 'main') {
-                        displayVideos(); // Refresh main folder videos with cached data
+                        showMainVideos(); // Refresh main folder videos with cached data
                     } else if (currentFolderType === 'user' && currentFolderData) {
-                        showUserVideos(currentFolderData.userId); // Refresh user folder videos with cached data
+                        const folderData = folders.find(f => f.id === `user-${currentFolderData.userId}`);
+                        if (folderData && folderData.userVideos) {
+                            showUserVideos(currentFolderData.userId, folderData.userVideos);
+                        }
                     }
                     
                     // Check in background if Vimeo has propagated the changes
@@ -1175,378 +706,244 @@
             }
         });
 
-        function displayVideos() {
-            const container = document.getElementById('videos-container');
+        function displayVideos(videos, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (videos.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ccc; padding: 40px 0;">No videos found for this folder.</div>';
+                return;
+            }
+
+            let html = '';
+            videos.forEach(video => {
+                const details = parseVideoDescription(video.fullDescription);
+                const videoUserInfo = supabaseUsers.find(u => u.email === details.recordedByEmail);
+
+                const name = video.name || 'Unknown';
+                const fullDesc = video.fullDescription || '';
+                const onclickAttribute = `openVideoModalWithMetadata('${video.vimeoLink}','${name.replace(/'/g, '\\\'')}','${fullDesc.replace(/'/g, '\\\'').replace(/"/g, '&quot;')}')`;
+
+                html += `
+                    <div class="video-card" style="background:#444;border:2px solid #666;border-radius:12px;overflow:hidden;transition:.3s;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);" onclick="${onclickAttribute}">
+                        <div style="position:relative;width:100%;height:160px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;color:#fff;">
+                            ${video.thumbnail ? `<img src='${video.thumbnail}' style='width:100%;height:100%;object-fit:cover;'>` : `<div style='text-align:center;'><div style='font-size:36px;margin-bottom:8px;'>🎬</div><div style='font-size:12px;opacity:.8;'>Click to View</div></div>`}
+                            <div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.8);color:#fff;padding:4px 8px;border-radius:4px;font-size:10px;font-weight:bold;border:1px solid #4CAF50;">${new Date(details.recordingDate).toLocaleDateString()}</div>
+                        </div>
+                        <div style="padding:12px;">
+                            <div style="font-size:14px;font-weight:bold;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(video.name)}</div>
+                            <div style="font-size:12px;color:#ddd;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(details.customerName || 'No customer name')}</div>
+                            <div style="font-size:12px;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(details.recordedBy || 'Unknown recorder')}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function showUserVideos(userId, videos) {
+            console.log(`Showing videos for user: ${userId}`);
+            document.getElementById('folders-container').style.display = 'none';
+            document.getElementById('video-grid-container').style.display = 'block';
+            
+            // Add back button
+            const videoGridContainer = document.getElementById('video-grid-container');
+            const backButton = `
+                <div class="back-to-folders">
+                    <button onclick="backToFolders()">
+                        <span>←</span> Back to Folders
+                    </button>
+                </div>
+            `;
             
             if (!videos || videos.length === 0) {
-                container.innerHTML = '<div class="error">No videos found</div>';
+                videoGridContainer.innerHTML = backButton + '<div id="video-grid"><div style="grid-column: 1 / -1; text-align: center; color: #ccc; padding: 40px 0;">No videos found for this user.</div></div>';
                 return;
             }
 
-            const videosHTML = videos.map(video => {
-                const thumbnail = video.pictures?.sizes?.find(size => size.width >= 300)?.link || 
-                                 video.pictures?.sizes?.[0]?.link || '';
-                const title = video.name || 'Untitled Video';
-                const duration = formatDuration(video.duration || 0);
-                const createdDate = video.created_time ? new Date(video.created_time).toLocaleDateString() : 'Unknown';
-                const videoId = video.uri?.split('/').pop() || '';
-                
-                // Parse recording details from description
-                const recordingDetails = parseRecordingDetails(video.description || '');
-                
-                // Debug: log first video's description to see format
-                if (videos.indexOf(video) === 0) {
-                    console.log('Sample video description:', video.description);
-                    console.log('Parsed details:', recordingDetails);
-                    console.log('Video user info:', video.user);
-                }
+            videoGridContainer.innerHTML = backButton + '<div id="video-grid"></div>';
+            const container = document.getElementById('video-grid');
+            displayVideosInGrid(videos, container);
+        }
 
-                return `
-                    <div class="video-card">
-                        <div class="video-thumbnail-container">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${escapeHtml(title)}" class="video-thumbnail">` : '<div class="video-thumbnail"></div>'}
-                            <button class="copy-button" onclick="showCopyOptions('${video.uri}', '${escapeHtml(title)}')">
-                                Copy to folder
-                            </button>
-                            <button class="edit-button" data-video-uri="${video.uri}" data-video-title="${escapeHtml(title)}" onclick="openEditModalSafe(this)">
-                                Edit
-                            </button>
+        function displayVideosInGrid(videos, container) {
+            let html = '';
+            videos.forEach(video => {
+                const name = video.name || 'Unknown';
+                const description = video.description || '';
+                const videoUrl = video.link || '';
+                const thumbnail = video.pictures?.sizes?.[0]?.link || null;
+                const createdDate = new Date(video.created_time || Date.now()).toLocaleDateString();
+                
+                // Parse description for details
+                const customerEmailMatch = description.match(/Customer Email:\s*([^\n\r]+)/);
+                const recordedByMatch = description.match(/Recorded By:\s*([^\n\r]+)/);
+                
+                const customerEmail = customerEmailMatch ? customerEmailMatch[1].trim() : '';
+                const recordedBy = recordedByMatch ? recordedByMatch[1].trim() : 'Unknown';
+                
+                const safeVideoUrl = videoUrl.replace(/'/g, '\\\'');
+                const safeName = name.replace(/'/g, '\\\'');
+                const safeDescription = description.replace(/'/g, '\\\\').replace(/"/g, '&quot;');
+                
+                html += `
+                    <div class="video-card" style="background:#444;border:2px solid #666;border-radius:12px;overflow:hidden;transition:.3s;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);" onclick="openVideoModalWithMetadata('${safeVideoUrl}','${safeName}','${safeDescription}')">
+                        <div style="position:relative;width:100%;height:160px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;color:#fff;">
+                            ${thumbnail ? `<img src='${thumbnail}' style='width:100%;height:100%;object-fit:cover;'>` : `<div style='text-align:center;'><div style='font-size:36px;margin-bottom:8px;'>🎬</div><div style='font-size:12px;opacity:.8;'>Click to View</div></div>`}
+                            <div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.8);color:#fff;padding:4px 8px;border-radius:4px;font-size:10px;font-weight:bold;border:1px solid #4CAF50;">${createdDate}</div>
                         </div>
-                        <div class="video-info">
-                            <div class="video-title">${escapeHtml(title)}</div>
-                            <div class="video-meta">
-                                <div>${duration} - ${createdDate}</div>
-                                ${video.user?.name ? `<div><strong>Uploaded by:</strong> ${escapeHtml(video.user.name)}</div>` : ''}
-                                ${recordingDetails.recordedBy ? `<div><strong>Recorded by:</strong> ${escapeHtml(recordingDetails.recordedBy)}</div>` : ''}
-                                ${recordingDetails.customerName ? `<div><strong>Customer:</strong> ${escapeHtml(recordingDetails.customerName)}</div>` : ''}
-                                ${recordingDetails.customerEmail ? `<div><strong>Customer Email:</strong> ${escapeHtml(recordingDetails.customerEmail)}</div>` : ''}
-                                ${recordingDetails.recordedByEmail ? `<div><strong>Recorder Email:</strong> ${escapeHtml(recordingDetails.recordedByEmail)}</div>` : ''}
-                                ${recordingDetails.recordingDate ? `<div><strong>Recording Date:</strong> ${escapeHtml(recordingDetails.recordingDate)}</div>` : ''}
-                                ${video.description ? `<div><strong>Full Description:</strong><br><pre style="white-space: pre-wrap; font-size: 10px; color: #aaa; margin: 4px 0;">${escapeHtml(video.description)}</pre></div>` : ''}
-                            </div>
+                        <div style="padding:12px;">
+                            <div style="font-size:14px;font-weight:bold;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}</div>
+                            <div style="font-size:12px;color:#ddd;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(customerEmail || 'No customer email')}</div>
+                            <div style="font-size:12px;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(recordedBy)}</div>
                         </div>
                     </div>
                 `;
-            }).join('');
-
-            container.innerHTML = `<div class="videos-grid">${videosHTML}</div>`;
+            });
+            
+            container.innerHTML = html;
         }
+        
+        // ===== Modal Functions (Copied from index.html for consistency) =====
+        function openVideoModal(url, title, metadata = null) {
+            try {
+                const modal = document.getElementById('videoModal');
+                const inner = document.getElementById('videoModalInner');
+                inner.innerHTML = '';
 
-        function formatDuration(seconds) {
-            if (!seconds) return '0:00';
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-        }
-
-        function parseRecordingDetails(description) {
-            const details = {
-                customerName: '',
-                customerEmail: '',
-                recordedBy: '',
-                recordedByEmail: '',
-                recordingDate: ''
-            };
-
-            if (!description) return details;
-
-            // Extract customer name
-            const customerNameMatch = description.match(/(?:Name|Customer):\s*([^\n]+?)(?:\s*Email:|$)/i);
-            if (customerNameMatch) {
-                details.customerName = customerNameMatch[1].trim();
-            }
-
-            // Extract customer email (try multiple patterns)
-            const customerEmailMatch = description.match(/(?:Customer Email|Email):\s*([^\s\n]+)/i);
-            if (customerEmailMatch) {
-                details.customerEmail = customerEmailMatch[1];
-            }
-
-            // Extract recorded by name
-            const recordedByMatch = description.match(/Recorded by:\s*([^\n]+)/i);
-            if (recordedByMatch) {
-                details.recordedBy = recordedByMatch[1].trim();
-            }
-
-            // Extract recorded by email
-            const recordedByEmailMatch = description.match(/Recorded by email:\s*([^\s\n]+)/i);
-            if (recordedByEmailMatch) {
-                details.recordedByEmail = recordedByEmailMatch[1];
-            }
-
-            // Extract recording date
-            const recordingDateMatch = description.match(/Recording Date:\s*([^\n]+)/);
-            if (recordingDateMatch) {
-                details.recordingDate = recordingDateMatch[1].trim();
-            }
-
-            return details;
-        }
-
-        function showCopyOptions(videoUri, videoTitle) {
-            selectedVideoForCopy = { uri: videoUri, title: videoTitle };
-            const searchInput = document.getElementById('user-search');
-            const searchResults = document.getElementById('search-results');
-            
-            // Focus search input
-            searchInput.focus();
-            searchInput.placeholder = `Search users to copy "${videoTitle}"...`;
-            
-            // Show all users initially
-            showSearchResults('');
-        }
-
-        function searchUsers(query) {
-            const searchResults = document.getElementById('search-results');
-            
-            if (!query.trim()) {
-                searchResults.style.display = 'none';
-                return;
-            }
-
-            // Filter users based on search query
-            const allUsers = folders.filter(f => f.type === 'user');
-            filteredUsers = allUsers.filter(user => 
-                user.name.toLowerCase().includes(query.toLowerCase()) ||
-                user.email.toLowerCase().includes(query.toLowerCase())
-            );
-
-            showSearchResults(query);
-        }
-
-        function showSearchResults(query) {
-            const searchResults = document.getElementById('search-results');
-            
-            if (!selectedVideoForCopy) {
-                searchResults.style.display = 'none';
-                return;
-            }
-
-            const usersToShow = query ? filteredUsers : folders.filter(f => f.type === 'user');
-            
-            if (usersToShow.length === 0) {
-                searchResults.innerHTML = '<div class="search-result-item">No users found</div>';
-                searchResults.style.display = 'block';
-                return;
-            }
-
-            const resultsHTML = usersToShow.map(user => `
-                <div class="search-result-item" onclick="copyVideoToUser('${user.userId}', '${escapeHtml(user.name)}')">
-                    <div style="font-weight: 600;">${escapeHtml(user.name)}</div>
-                    <div style="font-size: 11px; color: #888;">${escapeHtml(user.email)}</div>
-                </div>
-            `).join('');
-
-            searchResults.innerHTML = resultsHTML;
-            searchResults.style.display = 'block';
-        }
-
-        function copyVideoToUser(userId, userName) {
-            if (!selectedVideoForCopy) return;
-            
-            console.log(`Copying video "${selectedVideoForCopy.title}" to user: ${userName}`);
-            
-            // Initialize user videos storage if it doesn't exist
-            if (!localStorage.getItem('userVideos')) {
-                localStorage.setItem('userVideos', JSON.stringify({}));
-            }
-            
-            // Get current user videos
-            const userVideos = JSON.parse(localStorage.getItem('userVideos'));
-            if (!userVideos[userId]) {
-                userVideos[userId] = [];
-            }
-            
-            // Find the full video data from our loaded videos
-            const fullVideoData = allVideos.find(v => v.uri === selectedVideoForCopy.uri);
-            if (fullVideoData) {
-                // Check if video is already assigned to avoid duplicates
-                const alreadyAssigned = userVideos[userId].some(v => v.uri === fullVideoData.uri);
-                if (!alreadyAssigned) {
-                    userVideos[userId].push(fullVideoData);
-                    localStorage.setItem('userVideos', JSON.stringify(userVideos));
-                    
-                    // Update the folder display with new video count
-                    updateUserVideoCount(userId, userVideos[userId].length);
-                    
-                    alert(`Video "${selectedVideoForCopy.title}" copied to ${userName}! (${userVideos[userId].length} total videos)`);
-                } else {
-                    alert(`Video "${selectedVideoForCopy.title}" is already in ${userName}'s folder.`);
-                }
-            } else {
-                alert('Error: Could not find video data to copy.');
-            }
-            
-            // Clear selection and hide search results
-            selectedVideoForCopy = null;
-            document.getElementById('user-search').value = '';
-            document.getElementById('user-search').placeholder = 'Search users...';
-            document.getElementById('search-results').style.display = 'none';
-        }
-
-        // Close search results when clicking outside
-        document.addEventListener('click', function(e) {
-            const searchContainer = document.querySelector('.search-bar');
-            if (!searchContainer.contains(e.target)) {
-                document.getElementById('search-results').style.display = 'none';
-            }
-        });
-
-        function updateUserVideoCount(userId, count) {
-            // Find the user folder and update its display
-            const folder = folders.find(f => f.userId === userId);
-            if (folder) {
-                folder.videoCount = count;
-                // Update the DOM - look for the folder using the full folder ID
-                const folderId = `user-${userId}`;
-                const folderElement = document.querySelector(`[onclick*="'${folderId}'"]`);
-                if (folderElement) {
-                    const countElement = folderElement.querySelector('.folder-count');
-                    if (countElement) {
-                        countElement.textContent = `${count} videos`;
+                if (/vimeo\.com|player\.vimeo\.com/.test(url)) {
+                    let src = url;
+                    if (/^https:\/\/(www\.)?vimeo\.com\/.+/.test(url)) {
+                        const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+                        if (m && m[1]) src = `https://player.vimeo.com/video/${m[1]}?autoplay=1`;
+                    } else if (url.indexOf('player.vimeo.com') !== -1 && url.indexOf('autoplay') === -1) {
+                        src += (url.indexOf('?') === -1 ? '?' : '&') + 'autoplay=1';
                     }
+                    const iframe = document.createElement('iframe');
+                    iframe.src = src;
+                    iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+                    iframe.allowFullscreen = true;
+                    iframe.frameBorder = '0';
+                    inner.appendChild(iframe);
+                } else if (url && (url.startsWith('blob:') || /(\.mp4|\.webm|\.ogg)$/i.test(url))) {
+                    const v = document.createElement('video');
+                    v.src = url;
+                    v.controls = true;
+                    v.autoplay = true;
+                    v.playsInline = true;
+                    v.addEventListener('canplay', () => {
+                        const p = v.play();
+                        if (p && p.catch) p.catch(() => {});
+                    });
+                    inner.appendChild(v);
+                } else {
+                    window.open(url, '_blank');
+                    return;
+                }
+
+                const metadataSection = document.getElementById('videoMetadataSection');
+                if (metadata) {
+                    const items = document.getElementById('metadataItems');
+                    const desc = document.getElementById('metadataDescription');
+                    let html = '';
+                    if (metadata.customerName) html += `<div class="metadata-item">👤 ${metadata.customerName}</div>`;
+                    if (metadata.customerEmail) html += `<div class="metadata-item">📧 ${metadata.customerEmail}</div>`;
+                    if (metadata.recordedBy) html += `<div class="metadata-item">🎬 ${metadata.recordedBy}</div>`;
+                    if (metadata.recordedByEmail) html += `<div class="metadata-item">📨 ${metadata.recordedByEmail}</div>`;
+                    if (metadata.recordingDate) html += `<div class="metadata-item">🕒 ${new Date(metadata.recordingDate).toLocaleString()}</div>`;
+                    items.innerHTML = html;
+                    desc.textContent = (metadata.description || 'No description available');
+                    metadataSection.style.display = 'flex';
+                } else {
+                    metadataSection.style.display = 'none';
+                }
+
+                modal._ignoreClicks = true;
+                modal.classList.add('open');
+                modal.setAttribute('aria-hidden', 'false');
+                setTimeout(() => { modal._ignoreClicks = false; }, 50);
+                modal._previouslyFocused = document.activeElement;
+                document.getElementById('videoModalClose').focus();
+            } catch (e) {
+                console.error("Error in openVideoModal:", e);
+                window.open(url, '_blank');
+            }
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            if (!modal) return;
+            const inner = document.getElementById('videoModalInner');
+            const el = inner.querySelector('video,iframe');
+            if (el) {
+                try {
+                    if (el.tagName.toLowerCase() === 'video') {
+                        el.pause();
+                        if (el.src && el.src.startsWith('blob:')) URL.revokeObjectURL(el.src);
+                    }
+                    if (el.tagName.toLowerCase() === 'iframe') el.src = '';
+                } catch (e) {
+                    console.error("Error closing video modal content:", e);
                 }
             }
+            inner.innerHTML = '';
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+            const prev = modal._previouslyFocused;
+            if (prev && prev.focus) prev.focus();
         }
 
-        function showUserVideos(userId) {
-            console.log(`showUserVideos called for userId: ${userId}`);
-            
-            // Find the user folder and get their automatically assigned videos
-            const userFolder = folders.find(f => f.userId === userId);
-            if (!userFolder) {
-                alert('User folder not found.');
-                return;
-            }
-            
-            const videos = userFolder.userVideos || [];
-            console.log(`Videos automatically assigned to ${userFolder.name}:`, videos);
-            console.log(`Number of videos found: ${videos.length}`);
-            
-            if (videos.length === 0) {
-                alert(`No recordings found for ${userFolder.name}. Videos are automatically assigned based on the "Recorded by Email" field in video metadata.`);
-                return;
-            }
-            
-            // Open modal and display user's videos
-            const modal = document.getElementById('video-modal');
-            const videoGrid = document.getElementById('videos-container');
-            const modalTitle = document.querySelector('.modal-title');
-            
-            modalTitle.textContent = `${userFolder.name}'s Recordings (${videos.length})`;
-            
-            // Display videos with custom layout - values only in specific order
-            const videosHTML = videos.map(video => {
-                const thumbnail = video.pictures?.sizes?.find(size => size.width >= 300)?.link || 
-                                 video.pictures?.sizes?.[0]?.link || '';
-                const duration = formatDuration(video.duration || 0);
-                const createdDate = video.created_time ? new Date(video.created_time).toLocaleDateString() : 'Unknown';
-                const recordingDetails = parseRecordingDetails(video.description || '');
-                
-                // Use video name as customer name if no customer name found in description
-                const customerName = recordingDetails.customerName || video.name || 'Unknown Customer';
-                
-                // Extract description without the recording details section
-                const cleanDescription = video.description ? 
-                    video.description.split('--- RECORDING DETAILS ---')[0].trim() : '';
-
-                return `
-                    <div class="video-card">
-                        <div class="video-thumbnail-container">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="Video thumbnail" class="video-thumbnail">` : '<div class="video-thumbnail"></div>'}
-                            <button class="copy-button" onclick="removeVideoFromUser('${userId}', '${video.uri}', 'Video')">Remove</button>
-                        </div>
-                        <div class="video-info">
-                            <div class="video-details">
-                                <div>${escapeHtml(customerName)}</div>
-                                <div>${escapeHtml(recordingDetails.customerEmail || 'No email')}</div>
-                                <div>${escapeHtml(recordingDetails.recordedBy || 'Unknown')}</div>
-                                <div>${escapeHtml(recordingDetails.recordedByEmail || 'No email')}</div>
-                                <div>${duration} - ${createdDate}</div>
-                            </div>
-                            ${cleanDescription ? `<div class="video-description">${escapeHtml(cleanDescription)}</div>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            videoGrid.innerHTML = videosHTML;
-            modal.classList.add('show');
+        function openVideoModalWithMetadata(url, title, description) {
+            const recordedByMatch = description.match(/Recorded By:\s*([^\n\r]+)/);
+            const recordedByEmailMatch = description.match(/Recorded By Email:\s*([^\n\r]+)/);
+            const customerEmailMatch = description.match(/Customer Email:\s*([^\n\r]+)/);
+            const recordingDateMatch = description.match(/Recording Date:\s*([^\n\r]+)/);
+            const userInfo = getCurrentUserInfo();
+            const mainDesc = description.split('--- RECORDING DETAILS ---')[0].trim();
+            const cleanDesc = mainDesc || description || 'No description available';
+            const metadata = {
+                customerName: title,
+                customerEmail: customerEmailMatch ? customerEmailMatch[1].trim() : '',
+                recordedBy: recordedByMatch ? recordedByMatch[1].trim() : userInfo.displayName,
+                recordedByEmail: recordedByEmailMatch ? recordedByEmailMatch[1].trim() : userInfo.email,
+                recordingDate: recordingDateMatch ? recordingDateMatch[1].trim() : new Date().toLocaleString(),
+                description: cleanDesc
+            };
+            openVideoModal(url, title, metadata);
         }
 
-        function removeVideoFromUser(userId, videoUri, videoTitle) {
-            if (confirm(`Remove "${videoTitle}" from this folder?`)) {
-                const userVideos = JSON.parse(localStorage.getItem('userVideos') || '{}');
-                if (userVideos[userId]) {
-                    userVideos[userId] = userVideos[userId].filter(v => v.uri !== videoUri);
-                    localStorage.setItem('userVideos', JSON.stringify(userVideos));
-                    
-                    // Update count and refresh display
-                    updateUserVideoCount(userId, userVideos[userId].length);
-                    showUserVideos(userId); // Refresh the modal
-                    
-                    alert(`Video removed successfully!`);
-                }
-            }
-        }
-
-        // Search and filtering functions
-        function filterFolders() {
-            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
-            const resultsInfo = document.getElementById('search-results-info');
-            
-            if (!searchTerm) {
-                // Show all folders when search is empty
-                folders = [...allFolders];
-                resultsInfo.style.display = 'none';
-            } else {
-                // Filter folders by name or email
-                folders = allFolders.filter(folder => {
-                    const nameMatch = folder.name.toLowerCase().includes(searchTerm);
-                    const emailMatch = folder.email ? folder.email.toLowerCase().includes(searchTerm) : false;
-                    const displayNameMatch = folder.displayName ? folder.displayName.toLowerCase().includes(searchTerm) : false;
-                    
-                    return nameMatch || emailMatch || displayNameMatch;
-                });
-                
-                // Show search results info
-                const totalCount = allFolders.length - 1; // Subtract 1 for main folder
-                const filteredCount = folders.length - (folders.some(f => f.type === 'main') ? 1 : 0); // Account for main folder
-                resultsInfo.innerHTML = `Found ${filteredCount} of ${totalCount} folders matching "${searchTerm}"`;
-                resultsInfo.style.display = 'block';
-            }
-            
-            displayFolders();
-        }
-
-        function clearSearch() {
-            document.getElementById('search-input').value = '';
-            document.getElementById('search-results-info').style.display = 'none';
-            folders = [...allFolders];
-            displayFolders();
-        }
-
-        function handleSearchKeydown(event) {
-            if (event.key === 'Escape') {
-                clearSearch();
-                event.target.blur();
-            }
-        }
-
-        // Global keyboard shortcut to focus search (Ctrl+F or Cmd+F)
-        document.addEventListener('keydown', function(event) {
-            if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
-                event.preventDefault();
-                document.getElementById('search-input').focus();
+        document.addEventListener('click', e => {
+            const modal = document.getElementById('videoModal');
+            if (!modal || !modal.classList.contains('open') || modal._ignoreClicks) return;
+            const content = modal.querySelector('.video-modal-content');
+            if (content && !content.contains(e.target)) {
+                closeVideoModal();
             }
         });
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('videoModal');
+                if (modal && modal.classList.contains('open')) {
+                    closeVideoModal();
+                }
+            }
+        });
+
+        // Back to folders function
+        function backToFolders() {
+            console.log('Returning to folders view');
+            document.getElementById('video-grid-container').style.display = 'none';
+            document.getElementById('folders-container').style.display = 'block';
+            currentFolderType = 'main';
+            currentFolderData = null;
         }
+        
+        window.openVideoModal = openVideoModal;
+        window.closeVideoModal = closeVideoModal;
+        window.openVideoModalWithMetadata = openVideoModalWithMetadata;
+        window.backToFolders = backToFolders;
     </script>
 </body>
 </html>
