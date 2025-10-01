@@ -1,5 +1,5 @@
 // Test Vimeo API connection
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     console.log('🔍 Testing Vimeo API connection...');
     
     // Enable CORS
