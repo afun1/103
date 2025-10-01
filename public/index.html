@@ -935,7 +935,66 @@
         if(typeof window.showBriefSuccessMessage==='undefined'){ window.showBriefSuccessMessage=function(){ const n=document.createElement('div'); n.innerHTML='✅ Upload Complete!'; n.style.cssText='position:fixed;top:120px;right:20px;background:#4CAF50;color:#fff;padding:12px 24px;border-radius:8px;font-weight:bold;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.3);'; document.body.appendChild(n); setTimeout(()=>n.remove(),2500); }; }
         if(typeof window.autoResetForNextRecording==='undefined'){ window.autoResetForNextRecording=function(){ location.reload(); }; }
         window.addLocalRecordingToGrid=function(blobUrl,meta){ try{ const grid=document.getElementById('videoGrid'); if(!grid) return; const name=meta.customerName||'Local Recording'; const card=document.createElement('div'); card.className='video-card'; card.setAttribute('data-vimeo',blobUrl); card.setAttribute('data-title',name); card.setAttribute('data-description',meta.description||''); card.setAttribute('data-customer-email',meta.customerEmail||''); card.setAttribute('data-recording-date',meta.recordingDate||new Date().toLocaleString()); card.style='background:#444;border:2px solid #666;border-radius:12px;overflow:hidden;transition:.3s;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);'; card.onclick=function(){ const userInfo=getCurrentUserInfo(); const metadata={customerName:name, customerEmail:this.dataset.customerEmail, recordedBy:userInfo.displayName, recordedByEmail:userInfo.email, recordingDate:this.dataset.recordingDate, description:this.dataset.description}; openVideoModal(this.dataset.vimeo,this.dataset.title,metadata); }; card.innerHTML=`<div style="position:relative;width:100%;height:160px;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;">🎬</div><div style="padding:14px;"><div style="font-weight:700;font-size:15px;color:#4CAF50;margin-bottom:4px;">👤 ${name}</div><div style="font-size:11px;color:#bbb;margin-bottom:8px;">📧 ${meta.customerEmail||''}</div><div style="font-size:11px;color:#ccc;line-height:1.3;height:28px;overflow:hidden;">${meta.description||''}</div></div>`; grid.insertBefore(card,grid.firstChild); }catch(e){ console.warn('addLocalRecordingToGrid failed',e);} };
-        function cleanLoadVideoLibrary(){ let userEmail=''; if(window.getCurrentUser){ try{ userEmail=window.getCurrentUser()?.email||'';}catch{} } if(!userEmail){ const stored=JSON.parse(localStorage.getItem('currentUser')||'{}'); userEmail=stored.email||'john@tpnlife.com'; } const grid=document.getElementById('videoGrid'); const badge=document.getElementById('videoCountBadge'); if(!grid) return; grid.innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;align-items:center;height:100px;color:#666;font-size:16px;">Loading recordings for '+userEmail+'...</div>'; fetch('/api/all-user-videos/'+encodeURIComponent(userEmail)).then(r=>r.json()).then(videos=>{ badge.textContent=videos.length; if(!videos.length){ grid.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ccc;">No recordings found</div>'; return;} let html=''; videos.forEach(video=>{ const date=new Date(video.recordingDate).toLocaleDateString(); const name=video.customerName||'Unknown'; const fullDesc=video.description||'';                 const recordedByMatch=fullDesc.match(/Recorded By:\s*([^\n\r]+)/);
+        function cleanLoadVideoLibrary(){ 
+            let userEmail=''; 
+            
+            // Try multiple methods to get user email
+            if(window.headerUserProfile && window.headerUserProfile.email) {
+                userEmail = window.headerUserProfile.email;
+            } else if(window.getCurrentUser){ 
+                try{ userEmail=window.getCurrentUser()?.email||''; }catch{} 
+            }
+            
+            // Check body data attributes set by global header
+            if(!userEmail) {
+                userEmail = document.body.getAttribute('data-user-email') || '';
+            }
+            
+            // Check localStorage as fallback
+            if(!userEmail){ 
+                const stored=JSON.parse(localStorage.getItem('currentUser')||'{}'); 
+                userEmail=stored.email||''; 
+            } 
+            
+            // If still no email, wait for profile to load
+            if(!userEmail) {
+                console.log('⏳ Waiting for user profile to load...');
+                document.addEventListener('profileLoaded', function(event) {
+                    if(event.detail && event.detail.email) {
+                        cleanLoadVideoLibrary();
+                    }
+                }, { once: true });
+                return;
+            }
+            
+            console.log('👤 Loading recordings for user:', userEmail);
+            
+            const grid=document.getElementById('videoGrid'); 
+            const badge=document.getElementById('videoCountBadge'); 
+            if(!grid) return; 
+            
+            grid.innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;align-items:center;height:100px;color:#666;font-size:16px;">Loading recordings for '+userEmail+'...</div>'; 
+            
+            // Use the correct API endpoint
+            fetch('/api/user-recordings/'+encodeURIComponent(userEmail))
+                .then(r=>{
+                    if(!r.ok) {
+                        throw new Error('HTTP ' + r.status);
+                    }
+                    return r.json();
+                })
+                .then(videos=>{ 
+                    console.log(`📹 Loaded ${videos.length} recordings for ${userEmail}`);
+                    badge.textContent=videos.length; 
+                    if(!videos.length){ 
+                        grid.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ccc;">No recordings found for '+userEmail+'</div>'; 
+                        return;
+                    } 
+                    let html=''; 
+                    videos.forEach(video=>{ 
+                        const date=new Date(video.recordingDate).toLocaleDateString(); 
+                        const name=video.customerName||'Unknown'; 
+                        const fullDesc=video.description||'';                 const recordedByMatch=fullDesc.match(/Recorded By:\s*([^\n\r]+)/);
                 const recordedByEmailMatch=fullDesc.match(/Recorded By Email:\s*([^\n\r]+)/);
                 let recordedByName='Unknown';
                 let recordedByEmail='';
