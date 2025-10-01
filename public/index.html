@@ -938,29 +938,25 @@
         function cleanLoadVideoLibrary(){ 
             let userEmail=''; 
             
-            // Try multiple methods to get user email
+            // Primary: Get from global header profile
             if(window.headerUserProfile && window.headerUserProfile.email) {
                 userEmail = window.headerUserProfile.email;
-            } else if(window.getCurrentUser){ 
+            } 
+            // Secondary: Use getCurrentUser function from global header
+            else if(window.getCurrentUser){ 
                 try{ userEmail=window.getCurrentUser()?.email||''; }catch{} 
             }
-            
-            // Check body data attributes set by global header
-            if(!userEmail) {
+            // Tertiary: Check body data attributes set by global header
+            else {
                 userEmail = document.body.getAttribute('data-user-email') || '';
             }
             
-            // Check localStorage as fallback
-            if(!userEmail){ 
-                const stored=JSON.parse(localStorage.getItem('currentUser')||'{}'); 
-                userEmail=stored.email||''; 
-            } 
-            
             // If still no email, wait for profile to load
-            if(!userEmail) {
+            if(!userEmail || userEmail === '') {
                 console.log('⏳ Waiting for user profile to load...');
                 document.addEventListener('profileLoaded', function(event) {
                     if(event.detail && event.detail.email) {
+                        console.log('🔄 Profile loaded, retrying video library load...');
                         cleanLoadVideoLibrary();
                     }
                 }, { once: true });
@@ -975,8 +971,8 @@
             
             grid.innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;align-items:center;height:100px;color:#666;font-size:16px;">Loading recordings for '+userEmail+'...</div>'; 
             
-            // Use the correct API endpoint
-            fetch('/api/user-recordings/'+encodeURIComponent(userEmail))
+            // Use the existing API endpoint
+            fetch('/api/all-user-videos/'+encodeURIComponent(userEmail))
                 .then(r=>{
                     if(!r.ok) {
                         throw new Error('HTTP ' + r.status);
