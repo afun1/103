@@ -340,6 +340,146 @@
                 align-items: center;
             }
         }
+
+        /* Modal styles for video player */
+        .video-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            padding: 24px;
+            padding-top: 80px; /* Push content below sticky header */
+        }
+
+        .video-modal-overlay.open {
+            display: flex;
+        }
+
+        .video-modal-content {
+            width: 100%;
+            max-width: 1200px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            position: relative;
+        }
+
+        .video-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .video-modal-body {
+            width: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-modal-body video,
+        .video-modal-body iframe {
+            width: 100%;
+            /* Remove fixed viewport height to allow responsive wrapper control */
+            height: auto;
+            background: black;
+            display: block;
+            border: none;
+            outline: none;
+        }
+
+        #videoModalInner {
+          width:100%;
+          min-height:360px;
+          display:block;
+          background:#000;
+        }
+        .video-embed-wrapper { /* simplified wrapper */
+          width:100%;
+          background:#000;
+        }
+        .video-embed-wrapper iframe,
+        .video-embed-wrapper video {
+          width:100% !important;
+          height:60vh !important;
+          max-height:80vh;
+          background:#000;
+          display:block;
+          border:0;
+          outline:0;
+        }
+
+        .video-metadata-section {
+            width: 100%;
+            background: #1a1a1a;
+            display: flex;
+            border-top: 1px solid #333;
+        }
+
+        .video-metadata-left {
+            width: 33%;
+            background: #2a2a2a;
+            padding: 20px;
+            padding-right: 20px;
+            border-right: 1px solid #333;
+        }
+
+        .video-metadata-right {
+            width: 67%;
+            padding: 20px;
+            background: #1a1a1a;
+        }
+
+        .metadata-item {
+            color: #e2e8f0;
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        .metadata-description {
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        /* Playback hardening */
+        #videoModalInner iframe, #videoModalInner video {
+          width:100% !important;
+          height:60vh !important;
+          max-height:80vh;
+          background:#000 !important;
+          display:block !important;
+          border:0 !important;
+          outline:0 !important;
+          position:relative;
+          z-index:1;
+        }
+        #videoModalInner { position:relative; }
+        /* Ensure no parent collapses */
+        .video-modal-body { align-items:stretch; }
     </style>
 </head>
 <body>
@@ -372,6 +512,26 @@
             <div id="videos-content">
                 <div class="loading">
                     Loading videos from Vimeo...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="video-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="video-modal-content" role="document">
+            <button class="video-modal-close" aria-label="Close video" id="videoModalClose">✕</button>
+            <div class="video-modal-body">
+                <!-- Will inject either iframe (Vimeo) or <video> element -->
+                <div id="videoModalInner"></div>
+                <!-- Metadata section below video -->
+                <div id="videoMetadataSection" class="video-metadata-section" style="display:none;">
+                    <div class="video-metadata-left">
+                        <div id="metadataItems"></div>
+                    </div>
+                    <div class="video-metadata-right">
+                        <div id="metadataDescription" class="metadata-description"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -504,6 +664,9 @@
             
             const title = video.name || 'Untitled Video';
             const description = video.description || 'No description available';
+            console.log('📝 Creating video row for', title);
+            console.log('📝 Full video object:', video);
+            console.log('📝 Video description:', description);
             const createdDate = video.created_time ? new Date(video.created_time).toLocaleDateString() : 'Unknown';
             const duration = formatDuration(video.duration || 0);
             const views = video.stats?.plays || 0;
@@ -540,9 +703,14 @@
                     </td>
                     <td>
                         <div class="video-actions">
-                            <a href="${vimeoUrl}" target="_blank" class="action-btn btn-primary">
+                            <button class="action-btn btn-primary watch-video-btn" 
+                                    data-vimeo-url="${vimeoUrl}" 
+                                    data-video-title="${escapeHtml(title)}" 
+                                    data-video-description="${escapeHtml(description)}"
+                                    data-video-id="${videoId}"
+                                    data-video-created="${createdDate}">
                                 <span>🎬</span> Watch
-                            </a>
+                            </button>
                             <button class="action-btn btn-secondary" onclick="copyVideoLink('${vimeoUrl}')">
                                 <span>🔗</span> Copy Link
                             </button>
@@ -610,6 +778,439 @@
                     </button>
                 </div>
             `;
+        }
+
+        // Debug function to test API endpoints
+        async function debugAPIs() {
+            console.log('🔍 Testing API endpoints...');
+            
+            try {
+                // Test folder-videos endpoint
+                const folderResponse = await fetch('/api/folder-videos');
+                const folderData = await folderResponse.json();
+                console.log('✅ /api/folder-videos works:', folderData.videos?.length || 0, 'videos');
+                
+                // Test if there are any user-specific calls
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                if currentUser.email) {
+                    console.log('👤 Current user:', currentUser.email);
+                }
+                
+            } catch (error) {
+                console.error('❌ API debugging failed:', error);
+            }
+        }
+        
+        // Call debug on page load
+        document.addEventListener('DOMContentLoaded', debugAPIs);
+
+        // Parse video description to extract metadata
+        function parseVideoDescription(description) {
+            console.log('🔍 Parsing description:', description);
+            const data = {
+                customerName: '',
+                customerEmail: '',
+                recordedBy: '',
+                recordedByEmail: '',
+                recordingDate: '',
+                additionalNotes: ''
+            };
+            
+            if (!description) {
+                console.log('⚠️ No description provided');
+                return data;
+            }
+            
+            // Parse existing format patterns using EXACT same regex as index.html
+            const customerNameMatch = description.match(/Customer:\s*([^\n\r]+)/i);
+            const customerEmailMatch = description.match(/Customer Email:\s*([^\n\r]+)/i);
+            const recordedByMatch = description.match(/Recorded By:\s*([^\n\r]+)/i); // Note: "Recorded By" not "Recorded by"
+            const recordedByEmailMatch = description.match(/Recorded By Email:\s*([^\n\r]+)/i);
+            const recordingDateMatch = description.match(/Recording Date:\s*([^\n\r]+)/i);
+            
+            if (customerNameMatch) data.customerName = customerNameMatch[1].trim();
+            if (customerEmailMatch) data.customerEmail = customerEmailMatch[1].trim();
+            if (recordedByMatch) data.recordedBy = recordedByMatch[1].trim();
+            if (recordedByEmailMatch) data.recordedByEmail = recordedByEmailMatch[1].trim();
+            if (recordingDateMatch) data.recordingDate = recordingDateMatch[1].trim();
+            
+            // Extract user notes using the EXACT same pattern as index.html
+            const userNotes = extractUserNotes(description);
+            data.additionalNotes = userNotes;
+            
+            console.log('📋 Parsed description data:', data);
+            return data;
+        }
+
+        // Video Modal Functions
+        // Open modal with either Vimeo link or blob URL
+        function openVideoModal(url, title, metadata = null) {
+          try {
+            const modal = document.getElementById('videoModal');
+            const inner = document.getElementById('videoModalInner');
+            inner.innerHTML = '';
+
+            const addIframe = (src) => {
+              const iframe = document.createElement('iframe');
+              iframe.src = src;
+              iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+              iframe.setAttribute('allowfullscreen','');
+              iframe.frameBorder = '0';
+              iframe.style.width='100%';
+              iframe.style.height='60vh';
+              iframe.style.background='#000';
+              iframe.addEventListener('load', () => {
+                console.log('✅ Vimeo iframe loaded');
+                iframe.style.visibility='visible';
+                iframe.style.opacity='1';
+              });
+              iframe.addEventListener('error', () => {
+                console.warn('⚠️ Iframe load error - opening in new tab');
+                window.open(src.replace('player.vimeo.com/video/','vimeo.com/'), '_blank');
+              });
+              inner.appendChild(iframe);
+            };
+
+            const addVideoTag = (src) => {
+              const v = document.createElement('video');
+              v.src = src;
+              v.controls = true;
+              v.autoplay = true;
+              v.playsInline = true;
+              v.muted = false;
+              v.style.width='100%';
+              v.style.height='60vh';
+              v.style.background='#000';
+              v.addEventListener('canplay', () => {
+                console.log('✅ HTML5 video can play');
+                const p=v.play(); if(p&&p.catch) p.catch(()=>{});
+              });
+              v.addEventListener('error', (e)=>{
+                console.error('❌ Video tag error', e);
+              });
+              inner.appendChild(v);
+            };
+
+            if (/vimeo\.com|player\.vimeo\.com/.test(url)) {
+              let id='';
+              const m1=url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+              const m2=url.match(/player\.vimeo\.com\/video\/(\d+)/);
+              if (m1) id=m1[1]; else if (m2) id=m2[1];
+              if (!id) { console.warn('No Vimeo ID parsed, opening externally'); window.open(url,'_blank'); return; }
+              const src = `https://player.vimeo.com/video/${id}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&muted=0&dnt=1`; 
+              console.log('🎥 Embedding Vimeo ID:', id, 'SRC:', src);
+              addIframe(src);
+            } else if (url && url.startsWith('blob:')) {
+              console.log('🎥 Using blob video');
+              addVideoTag(url);
+            } else if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) {
+              console.log('🎥 Using direct media file');
+              addVideoTag(url);
+            } else {
+              console.log('🌐 Unsupported format, opening new tab');
+              window.open(url,'_blank');
+              return;
+            }
+
+            // Metadata
+            const metadataSection = document.getElementById('videoMetadataSection');
+            if (metadata) {
+              const items = document.getElementById('metadataItems');
+              const desc = document.getElementById('metadataDescription');
+              let html='';
+              if (metadata.customerName) html+=`<div class="metadata-item">${escapeHtml(metadata.customerName)}</div>`;
+              if (metadata.customerEmail) html+=`<div class="metadata-item">${escapeHtml(metadata.customerEmail)}</div>`;
+              if (metadata.recordedBy) html+=`<div class="metadata-item">${escapeHtml(metadata.recordedBy)}</div>`;
+              if (metadata.recordedByEmail) html+=`<div class="metadata-item">${escapeHtml(metadata.recordedByEmail)}</div>`;
+              if (metadata.recordingDate) html+=`<div class="metadata-item">${escapeHtml(metadata.recordingDate)}</div>`;
+              items.innerHTML = html;
+              desc.innerHTML = escapeHtml(metadata.description||'').replace(/\n/g,'<br>');
+              metadataSection.style.display='flex';
+            } else {
+              metadataSection.style.display='none';
+            }
+
+            modal._ignoreClicks = true;
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden','false');
+            setTimeout(()=>{ modal._ignoreClicks=false; },50);
+            modal._previouslyFocused = document.activeElement;
+            const closeBtn = document.getElementById('videoModalClose');
+            if (closeBtn) closeBtn.focus();
+
+            // Diagnostic fallback: ensure height after render
+            setTimeout(()=>{
+              const iframe = inner.querySelector('iframe, video');
+              if (iframe) {
+                const rect = iframe.getBoundingClientRect();
+                console.log('🔎 Media element rect:', rect);
+                if (rect.height < 50) {
+                  console.warn('⚠️ Media height too small, forcing height');
+                    iframe.style.height='60vh';
+                }
+              }
+            }, 300);
+          } catch (e) {
+            console.error('openVideoModal fatal error', e);
+            window.open(url,'_blank');
+          }
+        }
+
+        function closeVideoModal() {
+            console.log('🚪 Closing video modal');
+            const modal = document.getElementById('videoModal');
+            if (!modal) return;
+            const inner = document.getElementById('videoModalInner');
+            // Pause and remove media
+            const el = inner.querySelector('video, iframe');
+            if (el) {
+                try {
+                    if (el.tagName.toLowerCase() === 'video') {
+                        el.pause();
+                        if (el.src && el.src.startsWith('blob:')) {
+                            URL.revokeObjectURL(el.src);
+                        }
+                    }
+                    // remove iframe src to stop playback
+                    if (el.tagName.toLowerCase() === 'iframe') {
+                        el.src = '';
+                    }
+                } catch (e) {
+                    console.warn('Error while cleaning media element', e);
+                }
+            }
+
+            inner.innerHTML = '';
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+
+            // restore focus
+            const previously = modal._previouslyFocused;
+            if (previously && previously.focus) previously.focus();
+            console.log('✅ Modal closed successfully');
+        }
+
+        // Close on overlay click (but not when clicking the modal content)
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('videoModal');
+            if (!modal || !modal.classList.contains('open')) return;
+            // If the modal was just opened, ignore the originating click to avoid immediate close
+            if (modal._ignoreClicks) return;
+            const content = modal.querySelector('.video-modal-content');
+            if (!content.contains(e.target)) {
+                closeVideoModal();
+            }
+        });
+
+        // Close on close button
+        document.addEventListener('DOMContentLoaded', function() {
+            const closeBtn = document.getElementById('videoModalClose');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeVideoModal);
+                console.log('✅ Modal close button event listener added');
+            }
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('videoModal');
+                if (modal && modal.classList.contains('open')) closeVideoModal();
+            }
+        });
+
+        // Event delegation for watch button clicks
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.watch-video-btn')) {
+                const btn = e.target.closest('.watch-video-btn');
+                const url = btn.dataset.vimeoUrl;
+                const title = btn.dataset.videoTitle;
+                const description = btn.dataset.videoDescription;
+                const videoId = btn.dataset.videoId;
+                const createdDate = btn.dataset.videoCreated;
+                
+                console.log('🎬 Watch button clicked with data:', { 
+                    url, 
+                    title, 
+                    description, 
+                    videoId,
+                    createdDate,
+                    descriptionLength: description ? description.length : 0
+                });
+                
+                // Create enhanced metadata object
+                const videoMetadata = {
+                    id: videoId,
+                    title: title,
+                    description: description,
+                    createdDate: createdDate,
+                    vimeoUrl: url
+                };
+                
+                openVideoModalWithMetadata(url, title, description, videoMetadata);
+            }
+        });
+
+        // Helper function to get current user info
+        function getCurrentUserInfo() {
+            // Try to get from global header if available
+            if (window.getCurrentUser && typeof window.getCurrentUser === 'function') {
+                const user = window.getCurrentUser();
+                return {
+                    displayName: user?.displayName || user?.name || 'Unknown User',
+                    email: user?.email || 'unknown@example.com'
+                };
+            }
+            
+            // Get current user from Supabase session or header
+            try {
+                const headerUser = document.querySelector('.user-info');
+                if (headerUser) {
+                    const userText = headerUser.textContent || headerUser.innerText || '';
+                    const parts = userText.trim().split(/\s+/);
+                    if (parts.length >= 2) {
+                        const email = parts[parts.length - 1];
+                        const name = parts.slice(0, -1).join(' ');
+                        if (email.includes('@')) {
+                            return { displayName: name, email: email };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Could not get user from header:', e);
+            }
+            
+            // Fallback to hardcoded values
+            return {
+                displayName: 'John Bradshaw',
+                email: 'john@tpnlife.com'
+            };
+        }
+
+        // Helper function to extract user notes from description
+        function extractUserNotes(description) {
+            if (!description) return '';
+            
+            console.log('🔍 Extracting user notes from:', description);
+            
+            // Look for UserNotes field first
+            const userNotesMatch = description.match(/(?:Description|UserNotes):\s*([^\n\r]+)/i);
+            if (userNotesMatch) {
+                console.log('✅ Found UserNotes field:', userNotesMatch[1].trim());
+                return userNotesMatch[1].trim();
+            }
+            
+            // Find where structured metadata starts - be more specific about the delimiter
+            const structuredStart = description.search(/\n\s*---\s*RECORDING DETAILS\s*---/i);
+            
+            if (structuredStart > 0) {
+                // Take everything before the structured metadata delimiter
+                const notes = description.substring(0, structuredStart).trim();
+                console.log('✅ Found content before RECORDING DETAILS section:', notes);
+                return notes;
+            }
+            
+            // If no RECORDING DETAILS section, look for any --- delimiter
+            const genericStructuredStart = description.search(/\n\s*---/i);
+            if (genericStructuredStart > 0) {
+                const notes = description.substring(0, genericStructuredStart).trim();
+                console.log('✅ Found content before --- delimiter:', notes);
+                return notes;
+            }
+            
+            // If no structured section found, return cleaned description
+            let notes = description
+                .replace(/Customer:\s*[^\n\r]+/gi, '')
+                .replace(/Customer Email:\s*[^\n\r]+/gi, '')
+                .replace(/Recorded by:\s*[^\n\r]+/gi, '')
+                .replace(/Recorded By Email:\s*[^\n\r]+/gi, '')
+                .replace(/Recording Date:\s*[^\n\r]+/gi, '')
+                .replace(/\n\s*\n/g, '\n')
+                .replace(/^\s*\n+/g, '')
+                .replace(/\n+\s*$/g, '')
+                .trim();
+            
+            console.log('✅ Extracted notes after cleanup:', notes);
+            return notes;
+        }
+
+        // Wrapper function to handle metadata extraction and modal opening
+        function openVideoModalWithMetadata(url, title, description, videoMetadata = null) {
+            console.log('🎬 openVideoModalWithMetadata called with:', url, title, description);
+            const parsedMetadata = parseVideoDescription(description || '');
+            console.log('📋 Parsed metadata:', parsedMetadata);
+            
+            // Get current user info
+            const currentUser = getCurrentUserInfo();
+            
+            const metadata = {
+                customerName: parsedMetadata.customerName || title,
+                customerEmail: parsedMetadata.customerEmail,
+                recordedBy: parsedMetadata.recordedBy || currentUser.displayName,
+                recordedByEmail: parsedMetadata.recordedByEmail || currentUser.email,
+                recordingDate: parsedMetadata.recordingDate || (videoMetadata?.createdDate || new Date().toLocaleString()),
+                description: parsedMetadata.additionalNotes || 'No additional description available'
+            };
+            
+            console.log('📊 Final metadata object:', metadata);
+            console.log('📝 Description will show:', metadata.description);
+            openVideoModal(url, title, metadata);
+        }
+
+        // Fetch ALL recordings from folder API (not user-specific) - FIXED VERSION
+        async function fetchRecordings() {
+            try {
+                showLoading(true);
+                console.log('🔄 Fetching ALL recordings from folder...');
+                
+                const response = await fetch('/api/folder-videos');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                const allVideos = result.videos || [];
+                
+                console.log('✅ Fetched ALL videos:', allVideos.length);
+                
+                // Transform folder videos to match the expected format
+                const recordings = allVideos.map(video => {
+                    const description = video.description || '';
+                    const customerEmailMatch = description.match(/Customer Email:\s*([^\n]+)/);
+                    const recordedByMatch = description.match(/Recorded By:\s*([^\n]+)/);
+                    const recordedByEmailMatch = description.match(/Recorded By Email:\s*([^\n]+)/);
+                    const recordingDateMatch = description.match(/Recording Date:\s*([^\n]+)/);
+                    
+                    // Extract main description (everything before metadata)
+                    const mainDescription = description.split('\n\nCustomer Email:')[0] || 'No description available';
+                    
+                    return {
+                        id: video.uri ? video.uri.split('/').pop() : 'unknown',
+                        customerName: video.name || 'Unknown Customer',
+                        customerEmail: customerEmailMatch ? customerEmailMatch[1].trim() : 'No email',
+                        recordedBy: recordedByMatch ? recordedByMatch[1].trim() : 'Unknown',
+                        recordedByEmail: recordedByEmailMatch ? recordedByEmailMatch[1].trim() : 'unknown@example.com',
+                        recordingDate: recordingDateMatch ? recordingDateMatch[1].trim() : video.created_time,
+                        description: mainDescription,
+                        vimeoLink: video.link || `https://vimeo.com/${video.uri ? video.uri.split('/').pop() : ''}`,
+                        thumbnail: video.pictures?.sizes?.[0]?.link || null,
+                        createdTime: video.created_time
+                    };
+                });
+                
+                console.log('✅ Transformed recordings:', recordings.length);
+                
+                displayRecordings(recordings);
+                updateStats(recordings);
+                
+            } catch (error) {
+                console.error('❌ Error fetching recordings:', error);
+                document.getElementById('recordingsContainer').innerHTML = 
+                    `<div class="error">Failed to load recordings: ${error.message}</div>`;
+            } finally {
+                showLoading(false);
+            }
         }
     </script>
 </body>

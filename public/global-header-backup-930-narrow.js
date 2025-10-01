@@ -372,14 +372,7 @@ function initializeHeader() {
     // Initialize Supabase
     const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
-    
-    // Check if Supabase library is loaded
-    if (window.supabase && window.supabase.createClient) {
-        window.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-    } else {
-        console.error('Supabase library not loaded properly');
-        return;
-    }
+    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     loadUserProfile();
     setActiveNavButton();

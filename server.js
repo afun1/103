@@ -3,7 +3,6 @@ const cors = require('cors');
 const { Vimeo } = require('@vimeo/vimeo');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
-const fetch = require('node-fetch');
 // const { simpleMoveEndpoint } = require('./simple-move-endpoint'); // Removed to prevent conflicts
 require('dotenv').config();
 
@@ -24,9 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
 app.use(cors());
-// Increase limits for video uploads but add raw body parsing for large files
-app.use(express.json({ limit: '500mb' }));
-app.use(express.raw({ limit: '500mb', type: 'application/octet-stream' }));
+app.use(express.json({ limit: '100mb' }));
 
 // Debug middleware - log ALL requests
 app.use((req, res, next) => {
@@ -56,257 +53,82 @@ app.get('/header', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'header.html'));
 });
 
-// Chunked upload endpoint for large videos (Vercel-friendly)
-app.post('/api/upload-vimeo-chunked', async (req, res) => {
-    try {
-        console.log('🚀 Chunked upload endpoint called');
-        const { chunk, chunkIndex, totalChunks, title, description, customerData, recordedBy, uploadId } = req.body;
-        
-        if (!chunk || chunkIndex === undefined || !totalChunks || !uploadId) {
-            return res.status(400).json({ error: 'Missing required chunk parameters' });
-        }
-        
-        const fs = require('fs');
-        const path = require('path');
-        const os = require('os');
-        
-        // Create temp directory for this upload
-        const tempDir = path.join(os.tmpdir(), `upload_${uploadId}`);
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir);
-        }
-        
-        // Save chunk
-        const chunkPath = path.join(tempDir, `chunk_${chunkIndex}`);
-        fs.writeFileSync(chunkPath, Buffer.from(chunk, 'base64'));
-        
-        console.log(`📦 Saved chunk ${chunkIndex + 1}/${totalChunks}, size: ${Buffer.from(chunk, 'base64').length} bytes`);
-        
-        // If this is the last chunk, combine all chunks and upload
-        if (chunkIndex === totalChunks - 1) {
-            console.log('🔄 Last chunk received, combining chunks...');
-            
-            // Combine all chunks
-            const combinedPath = path.join(tempDir, 'combined.webm');
-            const writeStream = fs.createWriteStream(combinedPath);
-            
-            for (let i = 0; i < totalChunks; i++) {
-                const chunkData = fs.readFileSync(path.join(tempDir, `chunk_${i}`));
-                writeStream.write(chunkData);
-            }
-            writeStream.end();
-            
-            // Wait for write to complete
-            await new Promise((resolve) => writeStream.on('finish', resolve));
-            
-            const finalSize = fs.statSync(combinedPath).size;
-            console.log(`📊 Combined video size: ${Math.round(finalSize / 1024 / 1024)}MB`);
-            
-            // Upload to Vimeo
-            const structuredDescription = `${description}
-
---- RECORDING DETAILS ---
-Customer Email: ${customerData.email}
-Recorded By: ${recordedBy.displayName}
-Recorded By Email: ${recordedBy.email}
-Recording Date: ${new Date().toLocaleString()}`;
-
-            const uploadTimeout = 15 * 60 * 1000; // 15 minutes
-            
-            const uploadResponse = await Promise.race([
-                new Promise((resolve, reject) => {
-                    vimeo.upload(
-                        combinedPath,
-                        {
-                            name: title,
-                            description: structuredDescription,
-                            folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
-                            privacy: {
-                                view: 'anybody',
-                                embed: 'public'
-                            }
-                        },
-                        function(uri) {
-                            console.log('✅ Upload successful, video URI:', uri);
-                            // Clean up temp directory
-                            try {
-                                fs.rmSync(tempDir, { recursive: true, force: true });
-                                console.log('🗑️ Cleaned up temp directory');
-                            } catch (e) {
-                                console.log('⚠️ Could not clean up temp directory:', e.message);
-                            }
-                            resolve({ uri: uri });
-                        },
-                        function(bytesUploaded, bytesTotal) {
-                            const percent = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
-                            console.log('📊 Upload progress:', percent + '%');
-                        },
-                        function(error) {
-                            console.error('❌ Upload error:', error);
-                            // Clean up on error
-                            try {
-                                fs.rmSync(tempDir, { recursive: true, force: true });
-                            } catch (e) {}
-                            reject(error);
-                        }
-                    );
-                }),
-                new Promise((_, reject) => {
-                    setTimeout(() => {
-                        try {
-                            fs.rmSync(tempDir, { recursive: true, force: true });
-                        } catch (e) {}
-                        reject(new Error('Upload timeout'));
-                    }, uploadTimeout);
-                })
-            ]);
-            
-            res.json({
-                success: true,
-                message: 'Video uploaded successfully',
-                videoUri: uploadResponse.uri
-            });
-        } else {
-            res.json({
-                success: true,
-                message: `Chunk ${chunkIndex + 1}/${totalChunks} received`
-            });
-        }
-        
-    } catch (error) {
-        console.error('❌ Chunked upload error:', error);
-        res.status(500).json({ 
-            error: error.message || 'Upload failed'
-        });
-    }
-});
-
-// Original Vimeo upload endpoint (for smaller videos)
+// Vimeo upload endpoint
 app.post('/api/upload-vimeo', async (req, res) => {
     try {
-        console.log('🚀 Upload endpoint called');
-        console.log('Environment variables check:');
-        console.log('VIMEO_CLIENT_ID:', process.env.VIMEO_CLIENT_ID ? 'SET' : 'MISSING');
-        console.log('VIMEO_CLIENT_SECRET:', process.env.VIMEO_CLIENT_SECRET ? 'SET' : 'MISSING');
-        console.log('VIMEO_ACCESS_TOKEN:', process.env.VIMEO_ACCESS_TOKEN ? 'SET' : 'MISSING');
-        console.log('VIMEO_FOLDER_ID:', process.env.VIMEO_FOLDER_ID ? 'SET' : 'MISSING');
-        console.log('VIMEO_FOLDER_ID value:', process.env.VIMEO_FOLDER_ID);
-        
         const { videoData, title, description, customerData, recordedBy } = req.body;
 
         if (!videoData) {
             return res.status(400).json({ error: 'No video data provided' });
         }
 
-        // Convert base64 to buffer - use in-memory approach for serverless
+        // Convert base64 to buffer and save to temporary file
         const videoBuffer = Buffer.from(videoData, 'base64');
-        console.log('📦 Video buffer created, size:', videoBuffer.length, 'bytes');
+        const fs = require('fs');
+        const tmpPath = path.join(__dirname, 'temp_video.webm');
+        
+        // Write buffer to temporary file
+        fs.writeFileSync(tmpPath, videoBuffer);
 
-        // Validate buffer size
-        if (videoBuffer.length === 0) {
-            throw new Error('Video buffer is empty');
-        }
+        // Extract proper user information from recordedBy object
+        const recordedByName = recordedBy?.displayName || 'John Bradshaw';
+        const recordedByEmail = recordedBy?.email || 'john@tpnlife.com';
         
-        // Check if video is too large for serverless limits - increase limit for long recordings
-        const maxSize = 500 * 1024 * 1024; // 500MB limit for long recordings
-        if (videoBuffer.length > maxSize) {
-            throw new Error(`Video file too large: ${Math.round(videoBuffer.length / 1024 / 1024)}MB. Maximum allowed: ${Math.round(maxSize / 1024 / 1024)}MB`);
-        }
-        
-        console.log(`📊 Video size: ${Math.round(videoBuffer.length / 1024 / 1024)}MB`);
+        console.log('📊 Upload metadata:', {
+            customerName: customerData.name,
+            customerEmail: customerData.email,
+            recordedByName,
+            recordedByEmail,
+            description: description?.substring(0, 50) + '...'
+        });
 
         // Create structured description with all metadata
         const structuredDescription = `${description}
 
---- RECORDING DETAILS ---
 Customer Email: ${customerData.email}
-Recorded By: ${recordedBy.displayName}
-Recorded By Email: ${recordedBy.email}
+Recorded By: ${recordedByName}
+Recorded By Email: ${recordedByEmail}
 Recording Date: ${new Date().toLocaleString()}`;
 
-        // Upload to Vimeo using direct API calls (more reliable for serverless)
-        console.log('🚀 Starting Vimeo API upload process...');
-        console.log('📊 Upload parameters:', {
-            title,
-            folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
-            buffer_size: videoBuffer.length
-        });
-        
-        // Step 1: Save buffer to temporary file for Vimeo SDK
-        console.log('🔧 Saving video buffer to temporary file...');
-        console.log('📊 Video buffer size:', videoBuffer.length, 'bytes');
-        
-        const fs = require('fs');
-        const path = require('path');
-        const os = require('os');
-        
-        // Create temporary file
-        const tempFileName = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.webm`;
-        const tempFilePath = path.join(os.tmpdir(), tempFileName);
-        
-        console.log('💾 Writing buffer to temp file:', tempFilePath);
-        fs.writeFileSync(tempFilePath, videoBuffer);
-        
-        const uploadTimeout = 15 * 60 * 1000; // 15 minutes timeout for large videos
-        
-        const uploadResponse = await Promise.race([
-            new Promise((resolve, reject) => {
-                console.log('🚀 Starting vimeo.upload with file path...');
-                vimeo.upload(
-                    tempFilePath,
-                    {
-                        name: title,
-                        description: structuredDescription,
-                        folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
-                        privacy: {
-                            view: 'anybody',
-                            embed: 'public'
-                        }
-                    },
-                    function(uri) {
-                        console.log('✅ Upload successful, video URI:', uri);
-                        // Clean up temp file
-                        try {
-                            fs.unlinkSync(tempFilePath);
-                            console.log('🗑️ Cleaned up temp file');
-                        } catch (e) {
-                            console.log('⚠️ Could not clean up temp file:', e.message);
-                        }
-                        resolve({ uri: uri });
-                    },
-                    function(bytesUploaded, bytesTotal) {
-                        const percent = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
-                        console.log('📊 Upload progress:', percent + '%', `(${bytesUploaded}/${bytesTotal} bytes)`);
-                    },
-                    function(error) {
-                        console.error('❌ Upload error:', error);
-                        console.error('❌ Error details:', JSON.stringify(error, null, 2));
-                        // Clean up temp file on error
-                        try {
-                            fs.unlinkSync(tempFilePath);
-                            console.log('🗑️ Cleaned up temp file after error');
-                        } catch (e) {
-                            console.log('⚠️ Could not clean up temp file after error:', e.message);
-                        }
-                        reject(error);
+        // Upload to Vimeo using file path
+        const uploadResponse = await new Promise((resolve, reject) => {
+            vimeo.upload(
+                tmpPath,
+                {
+                    name: title,
+                    description: structuredDescription,
+                    folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
+                    privacy: {
+                        view: 'anybody',
+                        embed: 'public'
                     }
-                );
-            }),
-            new Promise((_, reject) => {
-                setTimeout(() => {
-                    // Clean up temp file on timeout
+                },
+                (uri) => {
+                    console.log('Upload complete:', uri);
+                    // Clean up temporary file
                     try {
-                        fs.unlinkSync(tempFilePath);
-                        console.log('🗑️ Cleaned up temp file after timeout');
-                    } catch (e) {
-                        console.log('⚠️ Could not clean up temp file after timeout:', e.message);
+                        fs.unlinkSync(tmpPath);
+                    } catch (err) {
+                        console.log('Could not delete temp file:', err);
                     }
-                    reject(new Error(`Upload timeout after ${uploadTimeout / 1000} seconds. Try recording a shorter video.`));
-                }, uploadTimeout);
-            })
-        ]);
-
-        console.log('✅ Video upload completed successfully:', uploadResponse.uri);
+                    resolve({ uri });
+                },
+                (bytesUploaded, bytesTotal) => {
+                    const percentage = (bytesUploaded / bytesTotal * 100).toFixed(2);
+                    console.log(`Upload progress: ${percentage}%`);
+                },
+                (error) => {
+                    console.error('Upload error:', error);
+                    // Clean up temporary file on error
+                    try {
+                        fs.unlinkSync(tmpPath);
+                    } catch (err) {
+                        console.log('Could not delete temp file:', err);
+                    }
+                    reject(error);
+                }
+            );
+        });
 
         // After successful upload, try to add custom metadata fields if available
         try {
@@ -322,8 +144,8 @@ Recording Date: ${new Date().toLocaleString()}`;
                             // Custom fields for enterprise account
                             custom_fields: {
                                 'customer_email': customerData.email,
-                                'recorded_by': recordedBy.displayName,
-                                'recorded_by_email': recordedBy.email,
+                                'recorded_by': recordedByName,
+                                'recorded_by_email': recordedByEmail,
                                 'recording_date': new Date().toISOString(),
                                 'customer_first_name': customerData.firstName || customerData.name.split(' ')[0],
                                 'customer_last_name': customerData.lastName || customerData.name.split(' ').slice(1).join(' ')
@@ -344,42 +166,53 @@ Recording Date: ${new Date().toLocaleString()}`;
             // Continue anyway as the video was uploaded successfully
         }
 
+        // Extract video ID and create public URL
+        const videoId = uploadResponse.uri.split('/').pop();
+        const vimeoUrl = `https://vimeo.com/${videoId}`;
+        
+        console.log('✅ Video uploaded successfully:', vimeoUrl);
+        
+        // Save to database if Supabase is available
+        try {
+            const { data: insertData, error: dbError } = await supabase
+                .from('recordings')
+                .insert([{
+                    customer_name: customerData.name,
+                    customer_email: customerData.email,
+                    vimeo_link: vimeoUrl,
+                    recorded_by_name: recordedByName,
+                    recorded_by_email: recordedByEmail,
+                    recording_date: new Date().toISOString(),
+                    description: description || 'No description provided'
+                }]);
+            
+            if (dbError) {
+                console.error('❌ Database save failed:', dbError);
+                // Don't fail the whole operation, video is already uploaded
+            } else {
+                console.log('✅ Recording saved to database');
+            }
+        } catch (dbError) {
+            console.error('❌ Database error:', dbError);
+            // Continue anyway
+        }
+
         res.json({
             success: true,
             uri: uploadResponse.uri,
+            vimeoUrl: vimeoUrl,
+            videoId: videoId,
             message: 'Video uploaded successfully with metadata',
             customerData,
             recordedBy
         });
 
     } catch (error) {
-        console.error('❌ Upload error details:', error);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        console.error('Error name:', error.name);
-        console.error('Full error object:', JSON.stringify(error, null, 2));
-        
-        // Enhanced error information
-        const errorResponse = {
+        console.error('Upload error:', error);
+        res.status(500).json({
             error: 'Upload failed',
-            message: error.message || 'Unknown error',
-            details: error.toString(),
-            name: error.name,
-            stack: error.stack,
-            timestamp: new Date().toISOString(),
-            videoBufferSize: req.body?.videoData ? 'Present' : 'Missing',
-            requestBody: {
-                hasVideoData: !!req.body?.videoData,
-                hasTitle: !!req.body?.title,
-                hasDescription: !!req.body?.description,
-                hasCustomerData: !!req.body?.customerData,
-                hasRecordedBy: !!req.body?.recordedBy
-            }
-        };
-        
-        console.error('🚨 Detailed error response:', JSON.stringify(errorResponse, null, 2));
-        
-        res.status(500).json(errorResponse);
+            message: error.message
+        });
     }
 });
 
@@ -401,6 +234,24 @@ app.get('/api/test-vimeo', async (req, res) => {
     try {
         console.log('🧪 Testing Vimeo API connectivity...');
         
+        const { VIMEO_ACCESS_TOKEN, VIMEO_FOLDER_ID } = process.env;
+        
+        if (!VIMEO_ACCESS_TOKEN) {
+            return res.json({
+                success: false,
+                error: 'VIMEO_ACCESS_TOKEN not found in environment variables',
+                details: 'Check .env file for VIMEO_ACCESS_TOKEN'
+            });
+        }
+        
+        if (!VIMEO_FOLDER_ID) {
+            return res.json({
+                success: false,
+                error: 'VIMEO_FOLDER_ID not found in environment variables', 
+                details: 'Check .env file for VIMEO_FOLDER_ID'
+            });
+        }
+        
         const testResponse = await new Promise((resolve, reject) => {
             vimeo.request(
                 {
@@ -412,18 +263,46 @@ app.get('/api/test-vimeo', async (req, res) => {
                         console.error('❌ Vimeo API test error:', error);
                         reject(error);
                     } else {
-                        console.log('✅ Vimeo API test success:', body.name);
+                        console.log('✅ Vimeo API test success:', body?.name || 'Unknown User');
                         resolve(body);
                     }
                 }
             );
         });
 
+        // Test folder access
+        let folderTest = null;
+        try {
+            const folderResponse = await new Promise((resolve, reject) => {
+                vimeo.request({
+                    method: 'GET',
+                    path: `/me/projects/${VIMEO_FOLDER_ID}`
+                }, (error, body) => {
+                    if (error) {
+                        resolve({ error: `Folder access failed: ${error.message}` });
+                    } else {
+                        resolve(body);
+                    }
+                });
+            });
+            folderTest = folderResponse;
+        } catch (e) {
+            folderTest = { error: e.message };
+        }
+
         res.json({
             success: true,
-            message: 'Vimeo API connectivity test passed',
-            vimeo_user: testResponse.name,
-            account_type: testResponse.account
+            message: 'Vimeo API connection successful',
+            user: {
+                name: testResponse?.name || 'Unknown User',
+                uri: testResponse?.uri || 'Unknown URI',
+                account: testResponse?.account || 'Unknown Account'
+            },
+            folder: folderTest,
+            config: {
+                tokenPreview: VIMEO_ACCESS_TOKEN.substring(0, 10) + '...',
+                folderId: VIMEO_FOLDER_ID
+            }
         });
     } catch (error) {
         console.error('❌ Vimeo API test failed:', error);
@@ -760,7 +639,7 @@ app.get('/api/all-user-videos/:userEmail', async (req, res) => {
                 recordedBy: recordedByMatch ? recordedByMatch[1].trim() : 'Unknown',
                 recordedByEmail: userEmail,
                 recordingDate: recordingDateMatch ? recordingDateMatch[1].trim() : video.created_time,
-                description: desc.split('--- RECORDING DETAILS ---')[0].trim() || 'No description available',
+                description: desc.split('\n\nCustomer Email:')[0].trim() || 'No description available',
                 vimeoLink: video.link,
                 thumbnail: video.pictures?.base_link || null,
                 createdTime: video.created_time
@@ -840,7 +719,7 @@ app.get('/api/user-recordings/:userEmail', async (req, res) => {
             const recordingDateMatch = description.match(/Recording Date:\s*([^\n]+)/);
             
             if (recordedByEmailMatch && recordedByEmailMatch[1].trim().toLowerCase() === userEmail.toLowerCase()) {
-                const mainDescription = description.split('--- RECORDING DETAILS ---')[0].trim();
+                const mainDescription = description.split('\n\nCustomer Email:')[0].trim();
                 
                 userVideos.push({
                     id: video.uri.split('/').pop(),

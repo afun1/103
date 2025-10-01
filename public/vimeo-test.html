@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vimeo API Test - Sparky Screen Recorder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e2852;
+            color: #e2e8f0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #334155;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        h1 {
+            color: #60a5fa;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            background: #475569;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .test-button:hover {
+            background: #2563eb;
+        }
+        
+        .results {
+            background: #1e293b;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Vimeo API Diagnostic Tool</h1>
+        
+        <div class="test-section">
+            <h3>🔍 Basic Connection Tests</h3>
+            <button class="test-button" onclick="testVimeoConnection()">Test Vimeo API Connection</button>
+            <button class="test-button" onclick="testVimeoConfig()">Check Config</button>
+            <button class="test-button" onclick="testFolderAccess()">Test Folder Access</button>
+            <div id="connectionResults" class="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📤 Upload Test</h3>
+            <button class="test-button" onclick="testUploadEndpoint()">Test Upload Endpoint</button>
+            <button class="test-button" onclick="createTestVideo()">Create Test Video</button>
+            <div id="uploadResults" class="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Environment Check</h3>
+            <button class="test-button" onclick="checkEnvironment()">Check Environment Variables</button>
+            <button class="test-button" onclick="testDatabase()">Test Database Connection</button>
+            <div id="envResults" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            element.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        async function testVimeoConnection() {
+            const resultId = 'connectionResults';
+            log(resultId, '🧪 Testing Vimeo API connection...', 'info');
+            
+            try {
+                const response = await fetch('/api/test-vimeo');
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(resultId, '✅ Vimeo API connection successful!', 'success');
+                    log(resultId, `👤 User: ${result.user.name}`, 'success');
+                    log(resultId, `🔑 Token: ${result.config.tokenPreview}`, 'info');
+                    log(resultId, `📁 Folder ID: ${result.config.folderId}`, 'info');
+                    
+                    if (result.folder && !result.folder.error) {
+                        log(resultId, `📂 Folder access: OK`, 'success');
+                    } else {
+                        log(resultId, `❌ Folder access failed: ${result.folder?.error || 'Unknown error'}`, 'error');
+                    }
+                } else {
+                    log(resultId, `❌ Connection failed: ${result.error}`, 'error');
+                    if (result.details) {
+                        log(resultId, `📋 Details: ${result.details}`, 'error');
+                    }
+                }
+            } catch (error) {
+                log(resultId, `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testVimeoConfig() {
+            const resultId = 'connectionResults';
+            log(resultId, '🔧 Checking Vimeo configuration...', 'info');
+            
+            try {
+                const response = await fetch('/api/vimeo-config');
+                const result = await response.json();
+                
+                log(resultId, `🔑 Token exists: ${result.token ? 'YES' : 'NO'}`, result.token ? 'success' : 'error');
+                log(resultId, `📁 Folder ID: ${result.folderId || 'NOT SET'}`, result.folderId ? 'success' : 'error');
+                
+                if (result.token) {
+                    log(resultId, `🔑 Token preview: ${result.token.substring(0, 10)}...`, 'info');
+                }
+            } catch (error) {
+                log(resultId, `❌ Config check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFolderAccess() {
+            const resultId = 'connectionResults';
+            log(resultId, '📂 Testing folder access...', 'info');
+            
+            try {
+                const response = await fetch('/api/folder-videos');
+                const result = await response.json();
+                
+                if (response.ok && result.videos) {
+                    log(resultId, `✅ Folder access successful! Found ${result.videos.length} videos`, 'success');
+                } else {
+                    log(resultId, `❌ Folder access failed: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                log(resultId, `❌ Folder test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUploadEndpoint() {
+            const resultId = 'uploadResults';
+            log(resultId, '📤 Testing upload endpoint...', 'info');
+            
+            // Create minimal test data
+            const testData = {
+                videoData: btoa('test-video-data'), // Base64 encoded test data
+                title: 'Test Video Upload',
+                description: 'Test upload from diagnostic tool',
+                customerData: {
+                    name: 'Test Customer',
+                    email: 'test@example.com'
+                },
+                recordedBy: {
+                    displayName: 'Test User',
+                    email: 'tester@example.com'
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/upload-vimeo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(resultId, '✅ Upload endpoint test successful!', 'success');
+                    log(resultId, `🔗 Vimeo URL: ${result.vimeoUrl}`, 'success');
+                } else {
+                    log(resultId, `❌ Upload test failed: ${result.error || result.message}`, 'error');
+                }
+            } catch (error) {
+                log(resultId, `❌ Upload endpoint error: ${error.message}`, 'error');
+            }
+        }
+
+        async function createTestVideo() {
+            const resultId = 'uploadResults';
+            log(resultId, '🎥 Creating test video with canvas...', 'info');
+            
+            try {
+                // Create a simple test video using canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw test pattern
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('TEST VIDEO', canvas.width/2, canvas.height/2);
+                
+                // Convert to blob
+                canvas.toBlob(async (blob) => {
+                    const reader = new FileReader();
+                    reader.onload = async function() {
+                        const base64data = reader.result.split(',')[1];
+                        
+                        const uploadData = {
+                            videoData: base64data,
+                            title: 'Canvas Test Video',
+                            description: 'Test video created from canvas for diagnostics',
+                            customerData: {
+                                name: 'Canvas Test',
+                                email: 'canvas@test.com'
+                            },
+                            recordedBy: {
+                                displayName: 'Diagnostic Tool',
+                                email: 'diagnostics@sparky.com'
+                            }
+                        };
+                        
+                        log(resultId, `📊 Test video created: ${Math.round(blob.size/1024)}KB`, 'info');
+                        
+                        const response = await fetch('/api/upload-vimeo', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(uploadData)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            log(resultId, '✅ Test video upload successful!', 'success');
+                            log(resultId, `🔗 Vimeo URL: ${result.vimeoUrl}`, 'success');
+                        } else {
+                            log(resultId, `❌ Test video upload failed: ${result.error || result.message}`, 'error');
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                }, 'video/webm');
+            } catch (error) {
+                log(resultId, `❌ Test video creation failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkEnvironment() {
+            const resultId = 'envResults';
+            log(resultId, '🌍 Checking environment...', 'info');
+            
+            try {
+                // Check if endpoints exist
+                const endpoints = [
+                    '/api/vimeo-config',
+                    '/api/upload-vimeo', 
+                    '/api/folder-videos',
+                    '/api/test-vimeo'
+                ];
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(endpoint, { method: 'HEAD' });
+                        log(resultId, `${endpoint}: ${response.status === 404 ? '❌ NOT FOUND' : '✅ EXISTS'}`, 
+                            response.status === 404 ? 'error' : 'success');
+                    } catch (e) {
+                        log(resultId, `${endpoint}: ❌ ERROR - ${e.message}`, 'error');
+                    }
+                }
+            } catch (error) {
+                log(resultId, `❌ Environment check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDatabase() {
+            const resultId = 'envResults';
+            log(resultId, '🗄️ Testing database connection...', 'info');
+            
+            try {
+                // Test if we can fetch some data
+                const response = await fetch('/api/user-recordings/test@example.com');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(resultId, '✅ Database connection successful', 'success');
+                    log(resultId, `📊 Sample query returned: ${Array.isArray(data) ? data.length + ' records' : 'Data object'}`, 'info');
+                } else {
+                    log(resultId, `❌ Database test failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(resultId, `❌ Database connection error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
