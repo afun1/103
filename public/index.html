@@ -971,7 +971,7 @@
             
             grid.innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;align-items:center;height:100px;color:#666;font-size:16px;">Loading recordings for '+userEmail+'...</div>'; 
             
-            // Use the existing API endpoint
+            // Use the renamed API endpoint to avoid Vercel conflicts
             fetch('/api/all-user-videos/'+encodeURIComponent(userEmail))
                 .then(r=>{
                     if(!r.ok) {

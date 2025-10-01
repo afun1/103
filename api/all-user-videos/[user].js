@@ -1,4 +1,4 @@
-// Get all videos from Vimeo folder for a specific user - Updated for Vercel deployment
+// Get all videos from Vimeo folder for a specific user - Clean version to avoid conflicts
 module.exports = async function handler(req, res) {
     console.log('📹 API: Fetching user videos...');
     
@@ -16,8 +16,8 @@ module.exports = async function handler(req, res) {
     }
     
     try {
-        const { userEmail: userEmailParam } = req.query;
-        const userEmail = userEmailParam;
+        const { user } = req.query;
+        const userEmail = user;
         
         if (!userEmail) {
             return res.status(400).json({
