@@ -3,6 +3,9 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60
+    },
+    "api/user-recordings.js": {
+      "maxDuration": 30
     }
   },
   "builds": [
