@@ -1,1217 +1,359 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Videos - Sparky Screen Recorder</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>My Videos</title>
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0f182f; color:#fff; }
+  main { max-width:1400px; margin:70px auto 60px; padding:0 24px; }
+  h1 { font-size:28px; margin:0 0 20px; display:flex; align-items:center; gap:10px; font-weight:600; }
+  #videosToolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:0 0 16px; }
+  #videoGrid { display:grid; gap:18px; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+  .video-card { background:#222c44; border:1px solid #2f3b55; border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; transition:box-shadow .18s,transform .18s; }
+  .video-card:hover { box-shadow:0 6px 18px -4px rgba(0,0,0,.6); transform:translateY(-4px); }
+  .thumb { position:relative; aspect-ratio:16/9; background:#111; }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .badge-date { position:absolute; bottom:6px; left:6px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; padding:3px 7px; border-radius:4px; letter-spacing:.3px; }
+  .meta { padding:10px 12px 12px; display:flex; flex-direction:column; gap:4px; }
+  .line-1 { font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .line-2,.line-3,.line-4,.line-5 { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#b6c2d6; }
+  .line-3 { color:#8dd28d; }
+  .line-4 { color:#6fbf6f; font-size:10px; }
+  .line-5 { color:#999; font-size:10px; }
+  .desc { margin-top:2px; color:#cfd6e2; font-size:11px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; }
+  .status { text-align:center; color:#b0b8c6; padding:40px 10px; grid-column:1/-1; }
+  .pill { background:#1f2c48; border:1px solid #2e3d5a; padding:4px 10px; border-radius:30px; font-size:12px; display:inline-flex; align-items:center; gap:6px; }
+  button.refresh { background:#2563eb; border:none; color:#fff; font-weight:600; padding:10px 18px; border-radius:8px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 10px -2px rgba(0,0,0,.4); }
+  button.refresh:hover { background:#1d4ed8; }
+  button.refresh:active { background:#1e40af; }
+  input#searchBox { background:#1b2540; border:1px solid #2f3b55; border-radius:8px; padding:10px 12px; font-size:14px; color:#fff; width:260px; }
+  input#searchBox:focus { outline:2px solid #2563eb; }
+  .user-video-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:flex-start; justify-content:center; z-index:50000; padding:24px 20px 40px; overflow:auto; }
+  .modal-frame { width:100%; max-width:1150px; background:#0f0f0f; border:1px solid #2a2a2a; border-radius:12px; overflow:hidden; position:relative; box-shadow:0 10px 30px rgba(0,0,0,.45); }
+  .modal-close { position:absolute; top:10px; right:10px; width:44px; height:44px; border:none; border-radius:50%; background:#dc2626; color:#fff; font-size:22px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px rgba(0,0,0,.4); }
+  .modal-close:hover { background:#ef4444; }
+  .modal-video { aspect-ratio:16/9; background:#111; }
+  .modal-sections { display:flex; flex-wrap:wrap; border-top:1px solid #1f1f1f; }
+  .modal-left { flex:1 1 260px; padding:18px 22px; border-right:1px solid #1f1f1f; min-width:240px; display:flex; flex-direction:column; gap:8px; }
+  .modal-left div { font-size:13px; color:#e2e8f0; line-height:1.25; word-break:break-word; }
+  .modal-desc { flex:3 1 400px; padding:18px 0 18px 22px; max-height:260px; overflow:auto; color:#ccc; font-size:13px; line-height:1.4; white-space:pre-wrap; word-break:break-word; margin-right:20px; }
+  @media (max-width:900px){ .modal-left { border-right:none; border-bottom:1px solid #1f1f1f; } .modal-desc { margin-right:0; } }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            min-height: 100vh;
-            color: #e2e8f0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px 0;
-        }
-
-        .page-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .page-title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #f1f5f9;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .page-subtitle {
-            font-size: 1.1rem;
-            color: #94a3b8;
-            margin-bottom: 20px;
-        }
-
-        .stats-bar {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-
-        .stat-item {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 15px 25px;
-            text-align: center;
-            min-width: 120px;
-        }
-
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #60a5fa;
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: #94a3b8;
-            margin-top: 5px;
-        }
-
-        .table-container {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid #334155;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-        }
-
-        .table-header {
-            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
-            padding: 20px 25px;
-            border-bottom: 1px solid #475569;
-        }
-
-        .table-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #f1f5f9;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .table-title::before {
-            content: "🎬";
-            font-size: 1.5rem;
-        }
-
-        .videos-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #1e293b;
-        }
-
-        .videos-table th {
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
-            color: #f1f5f9;
-            font-weight: 600;
-            padding: 15px 20px;
-            text-align: left;
-            border-bottom: 2px solid #64748b;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .videos-table td {
-            padding: 20px;
-            border-bottom: 1px solid #334155;
-            vertical-align: middle;
-        }
-
-        .videos-table tr:hover {
-            background: rgba(51, 65, 85, 0.5);
-            transition: background-color 0.2s ease;
-        }
-
-        .video-thumbnail {
-            width: 80px;
-            height: 60px;
-            border-radius: 8px;
-            object-fit: cover;
-            border: 2px solid #475569;
-            transition: transform 0.2s ease;
-        }
-
-        .video-thumbnail:hover {
-            transform: scale(1.1);
-            border-color: #60a5fa;
-        }
-
-        .video-title {
-            font-weight: 600;
-            color: #f1f5f9;
-            margin-bottom: 5px;
-            font-size: 1.1rem;
-        }
-
-        .video-description {
-            color: #94a3b8;
-            font-size: 0.9rem;
-            line-height: 1.4;
-            max-width: 300px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .video-date {
-            color: #cbd5e1;
-            font-size: 0.9rem;
-            white-space: nowrap;
-        }
-
-        .video-stats {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .stat-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #94a3b8;
-            font-size: 0.85rem;
-        }
-
-        .stat-icon {
-            width: 16px;
-            text-align: center;
-        }
-
-        .video-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .action-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(71, 85, 105, 0.8);
-            color: #e2e8f0;
-            border: 1px solid #475569;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(100, 116, 139, 0.8);
-            border-color: #64748b;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-            color: #94a3b8;
-            font-size: 1.1rem;
-        }
-
-        .loading::before {
-            content: "⏳";
-            font-size: 2rem;
-            display: block;
-            margin-bottom: 15px;
-        }
-
-        .error {
-            text-align: center;
-            padding: 60px 20px;
-            color: #ef4444;
-            font-size: 1.1rem;
-        }
-
-        .error::before {
-            content: "❌";
-            font-size: 2rem;
-            display: block;
-            margin-bottom: 15px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #94a3b8;
-            font-size: 1.1rem;
-        }
-
-        .empty-state::before {
-            content: "📹";
-            font-size: 3rem;
-            display: block;
-            margin-bottom: 15px;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .videos-table th:nth-child(3),
-            .videos-table td:nth-child(3) {
-                display: none;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px 0;
-            }
-
-            .page-title {
-                font-size: 2rem;
-            }
-
-            .stats-bar {
-                gap: 15px;
-            }
-
-            .stat-item {
-                padding: 12px 20px;
-                min-width: 100px;
-            }
-
-            .videos-table th,
-            .videos-table td {
-                padding: 15px 12px;
-            }
-
-            .video-thumbnail {
-                width: 60px;
-                height: 45px;
-            }
-
-            .video-title {
-                font-size: 1rem;
-            }
-
-            .videos-table th:nth-child(4),
-            .videos-table td:nth-child(4),
-            .videos-table th:nth-child(5),
-            .videos-table td:nth-child(5) {
-                display: none;
-            }
-
-            .action-btn {
-                padding: 6px 12px;
-                font-size: 0.8rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .page-title {
-                font-size: 1.8rem;
-            }
-
-            .videos-table th,
-            .videos-table td {
-                padding: 12px 8px;
-            }
-
-            .stats-bar {
-                flex-direction: column;
-                align-items: center;
-            }
-        }
-
-        /* Modal styles for video player */
-        .video-modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.75);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 20000;
-            padding: 24px;
-            padding-top: 80px; /* Push content below sticky header */
-        }
-
-        .video-modal-overlay.open {
-            display: flex;
-        }
-
-        .video-modal-content {
-            width: 100%;
-            max-width: 1200px;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            position: relative;
-        }
-
-        .video-modal-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255,255,255,0.06);
-            color: #fff;
-            border: none;
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-        }
-
-        .video-modal-body {
-            width: 100%;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .video-modal-body video,
-        .video-modal-body iframe {
-            width: 100%;
-            /* Remove fixed viewport height to allow responsive wrapper control */
-            height: auto;
-            background: black;
-            display: block;
-            border: none;
-            outline: none;
-        }
-
-        #videoModalInner {
-          width:100%;
-          min-height:360px;
-          display:block;
-          background:#000;
-        }
-        .video-embed-wrapper { /* simplified wrapper */
-          width:100%;
-          background:#000;
-        }
-        .video-embed-wrapper iframe,
-        .video-embed-wrapper video {
-          width:100% !important;
-          height:60vh !important;
-          max-height:80vh;
-          background:#000;
-          display:block;
-          border:0;
-          outline:0;
-        }
-
-        .video-metadata-section {
-            width: 100%;
-            background: #1a1a1a;
-            display: flex;
-            border-top: 1px solid #333;
-        }
-
-        .video-metadata-left {
-            width: 33%;
-            background: #2a2a2a;
-            padding: 20px;
-            padding-right: 20px;
-            border-right: 1px solid #333;
-        }
-
-        .video-metadata-right {
-            width: 67%;
-            padding: 20px;
-            background: #1a1a1a;
-        }
-
-        .metadata-item {
-            color: #e2e8f0;
-            font-size: 14px;
-            line-height: 1.4;
-            margin-bottom: 8px;
-            word-wrap: break-word;
-            word-break: break-word;
-        }
-
-        .metadata-description {
-            color: #cbd5e1;
-            font-size: 14px;
-            line-height: 1.5;
-            word-wrap: break-word;
-            word-break: break-word;
-        }
-
-        /* Playback hardening */
-        #videoModalInner iframe, #videoModalInner video {
-          width:100% !important;
-          height:60vh !important;
-          max-height:80vh;
-          background:#000 !important;
-          display:block !important;
-          border:0 !important;
-          outline:0 !important;
-          position:relative;
-          z-index:1;
-        }
-        #videoModalInner { position:relative; }
-        /* Ensure no parent collapses */
-        .video-modal-body { align-items:stretch; }
-    </style>
+  /* Table layout styles */
+  .videos-table-wrapper { width:100%; overflow-x:auto; }
+  table.videos-table { width:100%; border-collapse:collapse; font-size:13px; background:#1b2540; }
+  table.videos-table thead { background:#24324f; }
+  table.videos-table th { padding:10px 10px; text-align:left; font-weight:600; color:#dce6f5; font-size:12px; border-bottom:1px solid #334362; white-space:nowrap; }
+  table.videos-table td { padding:8px 10px; border-bottom:1px solid #2b3a56; vertical-align:top; color:#e5ecf7; }
+  table.videos-table tbody tr:hover { background:#22314d; }
+  .thumb-cell { width:70px; }
+  .thumb-small { width:68px; height:38px; object-fit:cover; border-radius:4px; background:#111; display:block; }
+  .no-thumb { width:68px; height:38px; display:flex; align-items:center; justify-content:center; background:#111; color:#555; font-size:18px; border-radius:4px; }
+  .nowrap { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+  .desc-col { max-width:260px; }
+  .desc-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3; color:#c6d2e4; }
+  button.watch-btn { background:#2563eb; border:none; color:#fff; font-weight:600; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 6px -1px rgba(0,0,0,.5); }
+  button.watch-btn:hover { background:#1d4ed8; }
+  button.watch-btn:active { background:#1e40af; }
+  @media (max-width:800px){ table.videos-table th:nth-child(7), table.videos-table td:nth-child(7){ display:none; } }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">Videos Library</h1>
-            <p class="page-subtitle">Browse all recorded videos from Sparky Screen Recorder</p>
-        </div>
-
-        <div class="stats-bar" id="stats-bar">
-            <div class="stat-item">
-                <span class="stat-number" id="total-videos">-</span>
-                <span class="stat-label">Total Videos</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="total-views">-</span>
-                <span class="stat-label">Total Views</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="total-duration">-</span>
-                <span class="stat-label">Total Duration</span>
-            </div>
-        </div>
-
-        <div class="table-container">
-            <div class="table-header">
-                <h2 class="table-title">All Videos</h2>
-            </div>
-            
-            <div id="videos-content">
-                <div class="loading">
-                    Loading videos from Vimeo...
-                </div>
-            </div>
-        </div>
+  <script src="global-header.js"></script>
+  <main>
+    <h1>📼 My Vimeo Videos <span id="countPill" class="pill" style="display:none;">0</span></h1>
+    <div id="videosToolbar">
+      <input id="searchBox" placeholder="Search (customer, email, recorder, desc)..." />
+      <button class="refresh" id="refreshBtn" type="button">🔄 Refresh</button>
+      <span style="font-size:12px;color:#8ca0c0;">Auto-loads after login</span>
     </div>
+    <div id="videoGrid"><div class="status">Waiting for profile...</div></div>
+  </main>
 
-    <!-- Video Modal -->
-    <div id="videoModal" class="video-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
-        <div class="video-modal-content" role="document">
-            <button class="video-modal-close" aria-label="Close video" id="videoModalClose">✕</button>
-            <div class="video-modal-body">
-                <!-- Will inject either iframe (Vimeo) or <video> element -->
-                <div id="videoModalInner"></div>
-                <!-- Metadata section below video -->
-                <div id="videoMetadataSection" class="video-metadata-section" style="display:none;">
-                    <div class="video-metadata-left">
-                        <div id="metadataItems"></div>
-                    </div>
-                    <div class="video-metadata-right">
-                        <div id="metadataDescription" class="metadata-description"></div>
-                    </div>
-                </div>
-            </div>
+<script>
+// Folder-wide public Vimeo load patch
+(function(){
+  if(window.__folderVideosPatched) return; window.__folderVideosPatched = true;
+  const FOLDER_ID = '26555277'; // Vimeo folder id
+  const grid = document.getElementById('videoGrid');
+  const pill = document.getElementById('countPill');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const searchBox = document.getElementById('searchBox');
+
+  // Reuse existing normalization utilities if present
+  const normalizeList = window.normalizeList || (v=>v);
+  let allFolderCache = [];
+  let loadingFolder = false;
+
+  async function fetchFolderVideos(){
+    if(loadingFolder) return; loadingFolder = true;
+    if(grid) grid.innerHTML = '<div class="status">Loading folder videos...</div>';
+    try {
+      // Expect a backend endpoint that proxies Vimeo folder (implement separately)
+      // e.g. /api/vimeo-folder/26555277 returning array of { thumbnail, customerName, customerEmail, description, vimeoLink, recordingDate, recordedBy{displayName,email} }
+      const resp = await fetch(`/api/vimeo-folder/${FOLDER_ID}`);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const data = await resp.json();
+      allFolderCache = normalizeList(data);
+      window.__videosCache = allFolderCache; // keep for existing render logic
+      if(typeof renderVideos === 'function') renderVideos(allFolderCache);
+      else grid.innerHTML = '<div class="status" style="color:#f66;">Render function missing.</div>';
+    } catch(err){
+      console.error('Folder fetch failed', err);
+      grid.innerHTML = '<div class="status" style="color:#f66;">Failed to load folder videos. Ensure /api/vimeo-folder/'+FOLDER_ID+' is implemented.</div>';
+    } finally { loadingFolder = false; }
+  }
+
+  // Override refresh button to use folder fetch
+  if(refreshBtn){
+    refreshBtn.addEventListener('click', ()=> fetchFolderVideos());
+  }
+
+  // Remove dependency on profileLoaded for this page; auto-fetch folder
+  document.addEventListener('DOMContentLoaded', fetchFolderVideos);
+
+  // Override search to filter folder cache
+  if(searchBox){
+    const origFilter = window.filterVideos;
+    window.filterVideos = function(term){
+      term = (term||'').toLowerCase();
+      if(!term){ if(typeof renderVideos==='function') renderVideos(allFolderCache); return; }
+      const filtered = allFolderCache.filter(v=>{
+        const blob = [v.customerName,v.customerEmail,v.recordedBy?.displayName,v.recordedBy?.email,v.__cleanDescription,v.description].join('\n').toLowerCase();
+        return blob.includes(term);
+      });
+      if(typeof renderVideos==='function') renderVideos(filtered);
+    };
+    searchBox.addEventListener('input', e=> window.filterVideos(e.target.value));
+  }
+})();
+</script>
+<script>
+// Normalization & fetch
+let __videosCache = [];
+let __loading = false;
+
+function splitDescription(desc){
+  if(!desc) return { userPart:'', detailsPart:'' };
+  const marker = /---\s*RECORDING DETAILS\s*---/i;
+  const idx = desc.search(marker);
+  if(idx === -1) return { userPart: desc.trim(), detailsPart:'' };
+  const before = desc.slice(0, idx).trim();
+  const after = desc.slice(idx).replace(marker,'').trim();
+  return { userPart: before, detailsPart: after };
+}
+function extractDetailsMap(detailsPart){
+  const map={}; if(!detailsPart) return map;
+  detailsPart.split(/\n+/).forEach(line=>{ const t=line.trim(); if(!t) return; const m=t.match(/^([A-Za-z ]+):\s*(.+)$/); if(m){ const key=m[1].toLowerCase().replace(/\s+/g,'_'); if(!(key in map)) map[key]=m[2].trim(); }}); return map; }
+function normalizeVideo(v, profile){
+  if(!v) return v; if(!v.recordedBy) v.recordedBy={};
+  const {userPart, detailsPart} = splitDescription(v.description||'');
+  const info = extractDetailsMap(detailsPart);
+  if(!v.customerName && info.customer) v.customerName = info.customer;
+  if(!v.customerEmail && info.customer_email) v.customerEmail = info.customer_email;
+  const nameCandidates=[v.recordedBy.displayName, v.recordedByName, info.recorded_by, profile.displayName, profile.email].filter(Boolean);
+  const emailCandidates=[v.recordedBy.email, v.recordedByEmail, info.recorded_by_email, profile.email].filter(Boolean);
+  v.recordedBy.displayName = nameCandidates[0] || 'Unknown';
+  v.recordedBy.email = emailCandidates[0] || '';
+  v.__cleanDescription = userPart;
+  return v;
+}
+function normalizeList(list){
+  const prof = window.headerUserProfile || {};
+  return (list||[]).map(v=>normalizeVideo(v, prof));
+}
+
+async function fetchUserVideos(email){
+  if(__loading) return; __loading=true;
+  const grid = document.getElementById('videoGrid');
+  grid.innerHTML = '<div class="status">Loading videos...</div>';
+  try {
+    const resp = await fetch(`/api/all-user-videos/${encodeURIComponent(email)}`);
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data = await resp.json();
+    __videosCache = normalizeList(data);
+    renderVideos(__videosCache);
+  } catch(err){
+    console.error('Video fetch failed', err);
+    grid.innerHTML = '<div class="status" style="color:#f66;">Failed to load videos.</div>';
+  } finally { __loading=false; }
+}
+
+function renderVideos(list){
+  const grid = document.getElementById('videoGrid');
+  const pill = document.getElementById('countPill');
+  pill.style.display='inline-flex'; pill.textContent=list.length;
+  if(!list.length){ grid.innerHTML = '<div class="status">No videos found.</div>'; return; }
+  grid.innerHTML = list.map((v,i)=>{
+    const safeDesc = (v.__cleanDescription||'').replace(/</g,'&lt;');
+    return `
+      <div class="video-card" data-vid="${i}">
+        <div class="thumb">${v.thumbnail ? `<img src="${v.thumbnail}">` : '<div style=\'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#555;font-size:36px;\'>🎬</div>'}
+          <div class="badge-date">${v.recordingDate ? new Date(v.recordingDate).toLocaleDateString() : ''}</div>
         </div>
-    </div>
+        <div class="meta">
+          <div class="line-1">${v.customerName||''}</div>
+            <div class="line-2">${v.customerEmail||''}</div>
+            <div class="line-3">${v.recordedBy.displayName||''}</div>
+            <div class="line-4">${v.recordedBy.email||''}</div>
+            <div class="line-5">${v.recordingDate? new Date(v.recordingDate).toLocaleString():''}</div>
+            ${safeDesc? `<div class=\"desc\">${safeDesc}</div>`:''}
+        </div>
+      </div>`; }).join('');
+}
 
-    <!-- Load Global Header -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="./global-header.js"></script>
+function filterVideos(term){
+  term = term.trim().toLowerCase();
+  if(!term) return renderVideos(__videosCache);
+  const filtered = __videosCache.filter(v=>{
+    const blob = [v.customerName,v.customerEmail,v.recordedBy?.displayName,v.recordedBy?.email,v.__cleanDescription].join('\n').toLowerCase();
+    return blob.includes(term);
+  });
+  renderVideos(filtered);
+}
 
-    <script>
-        // Initialize Supabase
-        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
-        window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+// Modal
+function openVideoModal(video){
+  document.querySelectorAll('.user-video-modal-overlay').forEach(e=>e.remove());
+  const overlay = document.createElement('div');
+  overlay.className='user-video-modal-overlay';
+  const safeDesc = (video.__cleanDescription||'').replace(/</g,'&lt;') || 'No description provided.';
+  overlay.innerHTML = `
+    <div class="modal-frame">
+      <button class="modal-close" aria-label="Close">×</button>
+      <div class="modal-video">${video.vimeoLink ? `<iframe src="${video.vimeoLink.replace('vimeo.com','player.vimeo.com/video')}" style="width:100%;height:100%;border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>`:'<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#555;\'>No Link</div>'}</div>
+      <div class="modal-sections">
+        <div class="modal-left">
+          <div>${video.customerName||''}</div>
+          <div>${video.customerEmail||''}</div>
+          <div>${video.recordedBy?.displayName||''}</div>
+          <div>${video.recordedBy?.email||''}</div>
+          <div>${video.recordingDate? new Date(video.recordingDate).toLocaleString():''}</div>
+        </div>
+        <div class="modal-desc">${safeDesc}</div>
+      </div>
+    </div>`;
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+  overlay.querySelector('.modal-close').addEventListener('click',()=> overlay.remove());
+  document.body.appendChild(overlay);
+}
 
-        // Authentication check with role validation (admin, manager, supervisor only)
-        async function checkAuth() {
-            try {
-                // Wait for Supabase to be available
-                if (!window.supabase) {
-                    console.log('⏳ Waiting for Supabase to load...');
-                    setTimeout(checkAuth, 100);
-                    return;
-                }
+document.addEventListener('click', e=>{
+  const card = e.target.closest('.video-card');
+  if(card && card.dataset.vid){
+    const v = __videosCache[card.dataset.vid];
+    if(v) openVideoModal(v);
+  }
+});
 
-                const { data: { session }, error } = await window.supabase.auth.getSession();
-                
-                if (error || !session) {
-                    console.log('🔒 No Supabase session found - redirecting to login');
-                    window.location.href = 'login.html';
-                    return false;
-                }
+// Events
+const searchBox = document.getElementById('searchBox');
+searchBox.addEventListener('input', e=> filterVideos(e.target.value));
+document.getElementById('refreshBtn').addEventListener('click', ()=>{
+  if(window.headerUserProfile?.email) fetchUserVideos(window.headerUserProfile.email);
+});
 
-                // Get user profile to check role
-                const { data: profile, error: profileError } = await window.supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('email', session.user.email)
-                    .single();
+document.addEventListener('profileLoaded', e=>{
+  const email = e.detail?.email; if(email) fetchUserVideos(email);
+});
+</script>
+<!-- Table layout patch -->
+<script>
+(function(){
+  if(window.__videosTableApplied) return; window.__videosTableApplied = true;
 
-                if (profileError) {
-                    console.error('Profile fetch error:', profileError);
-                    window.location.href = 'login.html';
-                    return false;
-                }
+  // Inject table styles
+  const style = document.createElement('style');
+  style.textContent = `
+    .videos-table-wrapper { width:100%; overflow-x:auto; }
+    table.videos-table { width:100%; border-collapse:collapse; font-size:13px; background:#1b2540; }
+    table.videos-table thead { background:#24324f; }
+    table.videos-table th { padding:10px 10px; text-align:left; font-weight:600; color:#dce6f5; font-size:12px; border-bottom:1px solid #334362; white-space:nowrap; }
+    table.videos-table td { padding:8px 10px; border-bottom:1px solid #2b3a56; vertical-align:top; color:#e5ecf7; }
+    table.videos-table tbody tr:hover { background:#22314d; }
+    .thumb-cell { width:70px; }
+    .thumb-small { width:68px; height:38px; object-fit:cover; border-radius:4px; background:#111; display:block; }
+    .no-thumb { width:68px; height:38px; display:flex; align-items:center; justify-content:center; background:#111; color:#555; font-size:18px; border-radius:4px; }
+    .nowrap { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+    .desc-col { max-width:260px; }
+    .desc-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3; color:#c6d2e4; }
+    button.watch-btn { background:#2563eb; border:none; color:#fff; font-weight:600; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 6px -1px rgba(0,0,0,.5); }
+    button.watch-btn:hover { background:#1d4ed8; }
+    button.watch-btn:active { background:#1e40af; }
+    @media (max-width:800px){ table.videos-table th:nth-child(7), table.videos-table td:nth-child(7){ display:none; } }
+  `;
+  document.head.appendChild(style);
 
-                const role = profile?.role?.toLowerCase() || 'user';
-                
-                // Only admin, manager, supervisor can access videos page
-                if (role !== 'admin' && role !== 'manager' && role !== 'supervisor') {
-                    alert('Access denied: Admin, Manager, or Supervisor role required for Videos page');
-                    window.location.href = 'index.html';
-                    return false;
-                }
-                
-                console.log('✅ Full access authenticated for role:', role);
-                return true;
-            } catch (error) {
-                console.error('Auth check error:', error);
-                window.location.href = 'login.html';
-                return false;
-            }
+  // Preserve reference to original renderVideos if we need revert
+  const originalRenderVideos = window.renderVideos;
+
+  function escapeHTML(s){ return (s||'').replace(/</g,'&lt;'); }
+  function truncate(s, n){ if(!s) return ''; return s.length>n ? s.slice(0,n-1)+'…' : s; }
+
+  window.renderVideos = function(list){
+    const pill = document.getElementById('countPill');
+    const grid = document.getElementById('videoGrid');
+    if(!grid) return;
+    pill && (pill.style.display='inline-flex', pill.textContent=list.length);
+    if(!list.length){
+      grid.innerHTML = '<div class="status">No videos found.</div>';
+      return;
+    }
+    const rows = list.map((v,i)=>{
+      const dateStr = v.recordingDate ? new Date(v.recordingDate).toLocaleString() : '';
+      const desc = v.__cleanDescription || '';
+      return `<tr data-vid="${i}">
+        <td class=\"thumb-cell\">${v.thumbnail ? `<img class=\"thumb-small\" src=\"${v.thumbnail}\">` : '<div class=\"no-thumb\">🎬</div>'}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(v.customerName||'')}\">${escapeHTML(v.customerName||'')}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(v.customerEmail||'')}\">${escapeHTML(v.customerEmail||'')}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(v.recordedBy?.displayName||'')}\">${escapeHTML(v.recordedBy?.displayName||'')}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(v.recordedBy?.email||'')}\">${escapeHTML(v.recordedBy?.email||'')}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(dateStr)}\">${escapeHTML(dateStr)}</td>
+        <td class=\"desc-col\"><div class=\"desc-text\" title=\"${escapeHTML(desc)}\">${escapeHTML(truncate(desc,220))}</div></td>
+        <td><button class=\"watch-btn\" data-watch-index=\"${i}\">▶ Watch</button></td>
+      </tr>`;
+    }).join('');
+
+    grid.innerHTML = `<div class=\"videos-table-wrapper\"><table class=\"videos-table\"><thead><tr>
+      <th>Thumb</th><th>Customer</th><th>Email</th><th>Recorded By</th><th>Recorder Email</th><th>Timestamp</th><th>Description</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+  };
+
+  // Delegate watch button clicks
+  document.addEventListener('click', e=>{
+    const btn = e.target.closest('button.watch-btn');
+    if(btn && btn.dataset.watchIndex){
+      const idx = parseInt(btn.dataset.watchIndex,10);
+      const v = (window.__videosCache||[])[idx];
+      if(v) {
+        if(typeof openVideoModal === 'function') openVideoModal(v); // if modal expects video obj
+        else if(typeof openVideoModalSafe === 'function') openVideoModalSafe(v);
+        else {
+          // fallback create minimal modal
+          alert('Modal function missing');
         }
-        
-        window.addEventListener('load', async () => {
-            if (await checkAuth()) {
-                loadVideos();
-            }
-        });
-
-        async function loadVideos() {
-            try {
-                console.log('🎬 Loading videos from Vimeo folder...');
-                
-                const response = await fetch('/api/folder-videos');
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                console.log('📹 Received videos data:', data);
-                
-                displayVideos(data.videos || []);
-                updateStats(data.videos || []);
-                
-            } catch (error) {
-                console.error('❌ Error loading videos:', error);
-                showError(`Failed to load videos: ${error.message}`);
-            }
-        }
-
-        function displayVideos(videos) {
-            const container = document.getElementById('videos-content');
-            
-            if (!videos || videos.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <p>No videos found in the folder.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const tableHTML = `
-                <table class="videos-table">
-                    <thead>
-                        <tr>
-                            <th>Thumbnail</th>
-                            <th>Video Details</th>
-                            <th>Description</th>
-                            <th>Created</th>
-                            <th>Stats</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${videos.map(video => createVideoRow(video)).join('')}
-                    </tbody>
-                </table>
-            `;
-            
-            container.innerHTML = tableHTML;
-        }
-
-        function createVideoRow(video) {
-            const thumbnail = video.pictures?.sizes?.find(size => size.width >= 200)?.link || 
-                             video.pictures?.sizes?.[0]?.link || 
-                             'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="60" fill="%23475569"><rect width="80" height="60"/><text x="40" y="35" font-family="Arial" font-size="12" fill="white" text-anchor="middle">No Image</text></svg>';
-            
-            const title = video.name || 'Untitled Video';
-            const description = video.description || 'No description available';
-            console.log('📝 Creating video row for', title);
-            console.log('📝 Full video object:', video);
-            console.log('📝 Video description:', description);
-            const createdDate = video.created_time ? new Date(video.created_time).toLocaleDateString() : 'Unknown';
-            const duration = formatDuration(video.duration || 0);
-            const views = video.stats?.plays || 0;
-            const likes = video.metadata?.connections?.likes?.total || 0;
-            const videoId = video.uri ? video.uri.split('/').pop() : '';
-            const vimeoUrl = `https://vimeo.com/${videoId}`;
-
-            return `
-                <tr>
-                    <td>
-                        <img src="${thumbnail}" alt="${title}" class="video-thumbnail" loading="lazy">
-                    </td>
-                    <td>
-                        <div class="video-title">${escapeHtml(title)}</div>
-                        <div style="color: #64748b; font-size: 0.85rem;">Duration: ${duration}</div>
-                    </td>
-                    <td>
-                        <div class="video-description">${escapeHtml(description)}</div>
-                    </td>
-                    <td>
-                        <div class="video-date">${createdDate}</div>
-                    </td>
-                    <td>
-                        <div class="video-stats">
-                            <div class="stat-row">
-                                <span class="stat-icon">👁️</span>
-                                <span>${views.toLocaleString()} views</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-icon">❤️</span>
-                                <span>${likes.toLocaleString()} likes</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="video-actions">
-                            <button class="action-btn btn-primary watch-video-btn" 
-                                    data-vimeo-url="${vimeoUrl}" 
-                                    data-video-title="${escapeHtml(title)}" 
-                                    data-video-description="${escapeHtml(description)}"
-                                    data-video-id="${videoId}"
-                                    data-video-created="${createdDate}">
-                                <span>🎬</span> Watch
-                            </button>
-                            <button class="action-btn btn-secondary" onclick="copyVideoLink('${vimeoUrl}')">
-                                <span>🔗</span> Copy Link
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }
-
-        function updateStats(videos) {
-            const totalVideos = videos.length;
-            const totalViews = videos.reduce((sum, video) => sum + (video.stats?.plays || 0), 0);
-            const totalDurationSeconds = videos.reduce((sum, video) => sum + (video.duration || 0), 0);
-            
-            document.getElementById('total-videos').textContent = totalVideos.toLocaleString();
-            document.getElementById('total-views').textContent = totalViews.toLocaleString();
-            document.getElementById('total-duration').textContent = formatDuration(totalDurationSeconds);
-        }
-
-        function formatDuration(seconds) {
-            if (!seconds) return '0:00';
-            
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const secs = seconds % 60;
-            
-            if (hours > 0) {
-                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            } else {
-                return `${minutes}:${secs.toString().padStart(2, '0')}`;
-            }
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function copyVideoLink(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                // Visual feedback for copy action
-                const button = event.target.closest('.action-btn');
-                const originalText = button.innerHTML;
-                button.innerHTML = '<span>✅</span> Copied!';
-                button.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-                
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                    button.style.background = '';
-                }, 2000);
-            }).catch(err => {
-                console.error('❌ Failed to copy link:', err);
-                alert('Failed to copy link to clipboard');
-            });
-        }
-
-        function showError(message) {
-            const container = document.getElementById('videos-content');
-            container.innerHTML = `
-                <div class="error">
-                    <p>${escapeHtml(message)}</p>
-                    <button class="action-btn btn-primary" onclick="loadVideos()" style="margin-top: 20px;">
-                        <span>🔄</span> Retry
-                    </button>
-                </div>
-            `;
-        }
-
-        // Debug function to test API endpoints
-        async function debugAPIs() {
-            console.log('🔍 Testing API endpoints...');
-            
-            try {
-                // Test folder-videos endpoint
-                const folderResponse = await fetch('/api/folder-videos');
-                const folderData = await folderResponse.json();
-                console.log('✅ /api/folder-videos works:', folderData.videos?.length || 0, 'videos');
-                
-                // Test if there are any user-specific calls
-                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                if currentUser.email) {
-                    console.log('👤 Current user:', currentUser.email);
-                }
-                
-            } catch (error) {
-                console.error('❌ API debugging failed:', error);
-            }
-        }
-        
-        // Call debug on page load
-        document.addEventListener('DOMContentLoaded', debugAPIs);
-
-        // Parse video description to extract metadata
-        function parseVideoDescription(description) {
-            console.log('🔍 Parsing description:', description);
-            const data = {
-                customerName: '',
-                customerEmail: '',
-                recordedBy: '',
-                recordedByEmail: '',
-                recordingDate: '',
-                additionalNotes: ''
-            };
-            
-            if (!description) {
-                console.log('⚠️ No description provided');
-                return data;
-            }
-            
-            // Parse existing format patterns using EXACT same regex as index.html
-            const customerNameMatch = description.match(/Customer:\s*([^\n\r]+)/i);
-            const customerEmailMatch = description.match(/Customer Email:\s*([^\n\r]+)/i);
-            const recordedByMatch = description.match(/Recorded By:\s*([^\n\r]+)/i); // Note: "Recorded By" not "Recorded by"
-            const recordedByEmailMatch = description.match(/Recorded By Email:\s*([^\n\r]+)/i);
-            const recordingDateMatch = description.match(/Recording Date:\s*([^\n\r]+)/i);
-            
-            if (customerNameMatch) data.customerName = customerNameMatch[1].trim();
-            if (customerEmailMatch) data.customerEmail = customerEmailMatch[1].trim();
-            if (recordedByMatch) data.recordedBy = recordedByMatch[1].trim();
-            if (recordedByEmailMatch) data.recordedByEmail = recordedByEmailMatch[1].trim();
-            if (recordingDateMatch) data.recordingDate = recordingDateMatch[1].trim();
-            
-            // Extract user notes using the EXACT same pattern as index.html
-            const userNotes = extractUserNotes(description);
-            data.additionalNotes = userNotes;
-            
-            console.log('📋 Parsed description data:', data);
-            return data;
-        }
-
-        // Video Modal Functions
-        // Open modal with either Vimeo link or blob URL
-        function openVideoModal(url, title, metadata = null) {
-          try {
-            const modal = document.getElementById('videoModal');
-            const inner = document.getElementById('videoModalInner');
-            inner.innerHTML = '';
-
-            const addIframe = (src) => {
-              const iframe = document.createElement('iframe');
-              iframe.src = src;
-              iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-              iframe.setAttribute('allowfullscreen','');
-              iframe.frameBorder = '0';
-              iframe.style.width='100%';
-              iframe.style.height='60vh';
-              iframe.style.background='#000';
-              iframe.addEventListener('load', () => {
-                console.log('✅ Vimeo iframe loaded');
-                iframe.style.visibility='visible';
-                iframe.style.opacity='1';
-              });
-              iframe.addEventListener('error', () => {
-                console.warn('⚠️ Iframe load error - opening in new tab');
-                window.open(src.replace('player.vimeo.com/video/','vimeo.com/'), '_blank');
-              });
-              inner.appendChild(iframe);
-            };
-
-            const addVideoTag = (src) => {
-              const v = document.createElement('video');
-              v.src = src;
-              v.controls = true;
-              v.autoplay = true;
-              v.playsInline = true;
-              v.muted = false;
-              v.style.width='100%';
-              v.style.height='60vh';
-              v.style.background='#000';
-              v.addEventListener('canplay', () => {
-                console.log('✅ HTML5 video can play');
-                const p=v.play(); if(p&&p.catch) p.catch(()=>{});
-              });
-              v.addEventListener('error', (e)=>{
-                console.error('❌ Video tag error', e);
-              });
-              inner.appendChild(v);
-            };
-
-            if (/vimeo\.com|player\.vimeo\.com/.test(url)) {
-              let id='';
-              const m1=url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-              const m2=url.match(/player\.vimeo\.com\/video\/(\d+)/);
-              if (m1) id=m1[1]; else if (m2) id=m2[1];
-              if (!id) { console.warn('No Vimeo ID parsed, opening externally'); window.open(url,'_blank'); return; }
-              const src = `https://player.vimeo.com/video/${id}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&muted=0&dnt=1`; 
-              console.log('🎥 Embedding Vimeo ID:', id, 'SRC:', src);
-              addIframe(src);
-            } else if (url && url.startsWith('blob:')) {
-              console.log('🎥 Using blob video');
-              addVideoTag(url);
-            } else if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) {
-              console.log('🎥 Using direct media file');
-              addVideoTag(url);
-            } else {
-              console.log('🌐 Unsupported format, opening new tab');
-              window.open(url,'_blank');
-              return;
-            }
-
-            // Metadata
-            const metadataSection = document.getElementById('videoMetadataSection');
-            if (metadata) {
-              const items = document.getElementById('metadataItems');
-              const desc = document.getElementById('metadataDescription');
-              let html='';
-              if (metadata.customerName) html+=`<div class="metadata-item">${escapeHtml(metadata.customerName)}</div>`;
-              if (metadata.customerEmail) html+=`<div class="metadata-item">${escapeHtml(metadata.customerEmail)}</div>`;
-              if (metadata.recordedBy) html+=`<div class="metadata-item">${escapeHtml(metadata.recordedBy)}</div>`;
-              if (metadata.recordedByEmail) html+=`<div class="metadata-item">${escapeHtml(metadata.recordedByEmail)}</div>`;
-              if (metadata.recordingDate) html+=`<div class="metadata-item">${escapeHtml(metadata.recordingDate)}</div>`;
-              items.innerHTML = html;
-              desc.innerHTML = escapeHtml(metadata.description||'').replace(/\n/g,'<br>');
-              metadataSection.style.display='flex';
-            } else {
-              metadataSection.style.display='none';
-            }
-
-            modal._ignoreClicks = true;
-            modal.classList.add('open');
-            modal.setAttribute('aria-hidden','false');
-            setTimeout(()=>{ modal._ignoreClicks=false; },50);
-            modal._previouslyFocused = document.activeElement;
-            const closeBtn = document.getElementById('videoModalClose');
-            if (closeBtn) closeBtn.focus();
-
-            // Diagnostic fallback: ensure height after render
-            setTimeout(()=>{
-              const iframe = inner.querySelector('iframe, video');
-              if (iframe) {
-                const rect = iframe.getBoundingClientRect();
-                console.log('🔎 Media element rect:', rect);
-                if (rect.height < 50) {
-                  console.warn('⚠️ Media height too small, forcing height');
-                    iframe.style.height='60vh';
-                }
-              }
-            }, 300);
-          } catch (e) {
-            console.error('openVideoModal fatal error', e);
-            window.open(url,'_blank');
-          }
-        }
-
-        function closeVideoModal() {
-            console.log('🚪 Closing video modal');
-            const modal = document.getElementById('videoModal');
-            if (!modal) return;
-            const inner = document.getElementById('videoModalInner');
-            // Pause and remove media
-            const el = inner.querySelector('video, iframe');
-            if (el) {
-                try {
-                    if (el.tagName.toLowerCase() === 'video') {
-                        el.pause();
-                        if (el.src && el.src.startsWith('blob:')) {
-                            URL.revokeObjectURL(el.src);
-                        }
-                    }
-                    // remove iframe src to stop playback
-                    if (el.tagName.toLowerCase() === 'iframe') {
-                        el.src = '';
-                    }
-                } catch (e) {
-                    console.warn('Error while cleaning media element', e);
-                }
-            }
-
-            inner.innerHTML = '';
-            modal.classList.remove('open');
-            modal.setAttribute('aria-hidden', 'true');
-
-            // restore focus
-            const previously = modal._previouslyFocused;
-            if (previously && previously.focus) previously.focus();
-            console.log('✅ Modal closed successfully');
-        }
-
-        // Close on overlay click (but not when clicking the modal content)
-        document.addEventListener('click', function(e) {
-            const modal = document.getElementById('videoModal');
-            if (!modal || !modal.classList.contains('open')) return;
-            // If the modal was just opened, ignore the originating click to avoid immediate close
-            if (modal._ignoreClicks) return;
-            const content = modal.querySelector('.video-modal-content');
-            if (!content.contains(e.target)) {
-                closeVideoModal();
-            }
-        });
-
-        // Close on close button
-        document.addEventListener('DOMContentLoaded', function() {
-            const closeBtn = document.getElementById('videoModalClose');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', closeVideoModal);
-                console.log('✅ Modal close button event listener added');
-            }
-        });
-
-        // Close on Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const modal = document.getElementById('videoModal');
-                if (modal && modal.classList.contains('open')) closeVideoModal();
-            }
-        });
-
-        // Event delegation for watch button clicks
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.watch-video-btn')) {
-                const btn = e.target.closest('.watch-video-btn');
-                const url = btn.dataset.vimeoUrl;
-                const title = btn.dataset.videoTitle;
-                const description = btn.dataset.videoDescription;
-                const videoId = btn.dataset.videoId;
-                const createdDate = btn.dataset.videoCreated;
-                
-                console.log('🎬 Watch button clicked with data:', { 
-                    url, 
-                    title, 
-                    description, 
-                    videoId,
-                    createdDate,
-                    descriptionLength: description ? description.length : 0
-                });
-                
-                // Create enhanced metadata object
-                const videoMetadata = {
-                    id: videoId,
-                    title: title,
-                    description: description,
-                    createdDate: createdDate,
-                    vimeoUrl: url
-                };
-                
-                openVideoModalWithMetadata(url, title, description, videoMetadata);
-            }
-        });
-
-        // Helper function to get current user info
-        function getCurrentUserInfo() {
-            // Try to get from global header if available
-            if (window.getCurrentUser && typeof window.getCurrentUser === 'function') {
-                const user = window.getCurrentUser();
-                return {
-                    displayName: user?.displayName || user?.name || 'Unknown User',
-                    email: user?.email || 'unknown@example.com'
-                };
-            }
-            
-            // Get current user from Supabase session or header
-            try {
-                const headerUser = document.querySelector('.user-info');
-                if (headerUser) {
-                    const userText = headerUser.textContent || headerUser.innerText || '';
-                    const parts = userText.trim().split(/\s+/);
-                    if (parts.length >= 2) {
-                        const email = parts[parts.length - 1];
-                        const name = parts.slice(0, -1).join(' ');
-                        if (email.includes('@')) {
-                            return { displayName: name, email: email };
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Could not get user from header:', e);
-            }
-            
-            // Fallback to hardcoded values
-            return {
-                displayName: 'John Bradshaw',
-                email: 'john@tpnlife.com'
-            };
-        }
-
-        // Helper function to extract user notes from description
-        function extractUserNotes(description) {
-            if (!description) return '';
-            
-            console.log('🔍 Extracting user notes from:', description);
-            
-            // Look for UserNotes field first
-            const userNotesMatch = description.match(/(?:Description|UserNotes):\s*([^\n\r]+)/i);
-            if (userNotesMatch) {
-                console.log('✅ Found UserNotes field:', userNotesMatch[1].trim());
-                return userNotesMatch[1].trim();
-            }
-            
-            // Find where structured metadata starts - be more specific about the delimiter
-            const structuredStart = description.search(/\n\s*---\s*RECORDING DETAILS\s*---/i);
-            
-            if (structuredStart > 0) {
-                // Take everything before the structured metadata delimiter
-                const notes = description.substring(0, structuredStart).trim();
-                console.log('✅ Found content before RECORDING DETAILS section:', notes);
-                return notes;
-            }
-            
-            // If no RECORDING DETAILS section, look for any --- delimiter
-            const genericStructuredStart = description.search(/\n\s*---/i);
-            if (genericStructuredStart > 0) {
-                const notes = description.substring(0, genericStructuredStart).trim();
-                console.log('✅ Found content before --- delimiter:', notes);
-                return notes;
-            }
-            
-            // If no structured section found, return cleaned description
-            let notes = description
-                .replace(/Customer:\s*[^\n\r]+/gi, '')
-                .replace(/Customer Email:\s*[^\n\r]+/gi, '')
-                .replace(/Recorded by:\s*[^\n\r]+/gi, '')
-                .replace(/Recorded By Email:\s*[^\n\r]+/gi, '')
-                .replace(/Recording Date:\s*[^\n\r]+/gi, '')
-                .replace(/\n\s*\n/g, '\n')
-                .replace(/^\s*\n+/g, '')
-                .replace(/\n+\s*$/g, '')
-                .trim();
-            
-            console.log('✅ Extracted notes after cleanup:', notes);
-            return notes;
-        }
-
-        // Wrapper function to handle metadata extraction and modal opening
-        function openVideoModalWithMetadata(url, title, description, videoMetadata = null) {
-            console.log('🎬 openVideoModalWithMetadata called with:', url, title, description);
-            const parsedMetadata = parseVideoDescription(description || '');
-            console.log('📋 Parsed metadata:', parsedMetadata);
-            
-            // Get current user info
-            const currentUser = getCurrentUserInfo();
-            
-            const metadata = {
-                customerName: parsedMetadata.customerName || title,
-                customerEmail: parsedMetadata.customerEmail,
-                recordedBy: parsedMetadata.recordedBy || currentUser.displayName,
-                recordedByEmail: parsedMetadata.recordedByEmail || currentUser.email,
-                recordingDate: parsedMetadata.recordingDate || (videoMetadata?.createdDate || new Date().toLocaleString()),
-                description: parsedMetadata.additionalNotes || 'No additional description available'
-            };
-            
-            console.log('📊 Final metadata object:', metadata);
-            console.log('📝 Description will show:', metadata.description);
-            openVideoModal(url, title, metadata);
-        }
-
-        // Fetch ALL recordings from folder API (not user-specific) - FIXED VERSION
-        async function fetchRecordings() {
-            try {
-                showLoading(true);
-                console.log('🔄 Fetching ALL recordings from folder...');
-                
-                const response = await fetch('/api/folder-videos');
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                const allVideos = result.videos || [];
-                
-                console.log('✅ Fetched ALL videos:', allVideos.length);
-                
-                // Transform folder videos to match the expected format
-                const recordings = allVideos.map(video => {
-                    const description = video.description || '';
-                    const customerEmailMatch = description.match(/Customer Email:\s*([^\n]+)/);
-                    const recordedByMatch = description.match(/Recorded By:\s*([^\n]+)/);
-                    const recordedByEmailMatch = description.match(/Recorded By Email:\s*([^\n]+)/);
-                    const recordingDateMatch = description.match(/Recording Date:\s*([^\n]+)/);
-                    
-                    // Extract main description (everything before metadata)
-                    const mainDescription = description.split('\n\nCustomer Email:')[0] || 'No description available';
-                    
-                    return {
-                        id: video.uri ? video.uri.split('/').pop() : 'unknown',
-                        customerName: video.name || 'Unknown Customer',
-                        customerEmail: customerEmailMatch ? customerEmailMatch[1].trim() : 'No email',
-                        recordedBy: recordedByMatch ? recordedByMatch[1].trim() : 'Unknown',
-                        recordedByEmail: recordedByEmailMatch ? recordedByEmailMatch[1].trim() : 'unknown@example.com',
-                        recordingDate: recordingDateMatch ? recordingDateMatch[1].trim() : video.created_time,
-                        description: mainDescription,
-                        vimeoLink: video.link || `https://vimeo.com/${video.uri ? video.uri.split('/').pop() : ''}`,
-                        thumbnail: video.pictures?.sizes?.[0]?.link || null,
-                        createdTime: video.created_time
-                    };
-                });
-                
-                console.log('✅ Transformed recordings:', recordings.length);
-                
-                displayRecordings(recordings);
-                updateStats(recordings);
-                
-            } catch (error) {
-                console.error('❌ Error fetching recordings:', error);
-                document.getElementById('recordingsContainer').innerHTML = 
-                    `<div class="error">Failed to load recordings: ${error.message}</div>`;
-            } finally {
-                showLoading(false);
-            }
-        }
-    </script>
+      }
+    }
+  });
+})();
+</script>
+<!-- Full-width table patch -->
+<script>
+(function(){
+  if(window.__videosFullWidthApplied) return; window.__videosFullWidthApplied = true;
+  const style = document.createElement('style');
+  style.textContent = `
+    main { max-width:none !important; width:100% !important; padding:0 10px 60px !important; }
+    .videos-table-wrapper { width:100%; overflow-x:auto; }
+    table.videos-table { min-width:1200px; }
+    /* Force previously hidden column to stay visible on small screens */
+    @media (max-width:800px){ table.videos-table th:nth-child(7), table.videos-table td:nth-child(7){ display:table-cell !important; } }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+<!-- End full-width table patch -->
+<!-- End table layout patch -->
 </body>
 </html>

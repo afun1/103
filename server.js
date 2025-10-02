@@ -3,6 +3,8 @@ const cors = require('cors');
 const { Vimeo } = require('@vimeo/vimeo');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 // const { simpleMoveEndpoint } = require('./simple-move-endpoint'); // Removed to prevent conflicts
 require('dotenv').config();
 
@@ -20,6 +22,28 @@ const vimeo = new Vimeo(
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY; // Using service key for server-side operations
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Configure multer for video uploads
+const upload = multer({
+  dest: process.env.UPLOAD_DIR || './uploads',
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 104857600 // 100MB default
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept video files
+    if (file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only video files are allowed'));
+    }
+  }
+});
+
+// Ensure upload directory exists
+const uploadDir = process.env.UPLOAD_DIR || './uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Middleware
 app.use(cors());
@@ -214,6 +238,98 @@ Recording Date: ${new Date().toLocaleString()}`;
             message: error.message
         });
     }
+});
+
+// Vimeo upload endpoint
+app.post('/api/upload-to-vimeo', upload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No video file provided' });
+    }
+
+    const { title, description, folderId } = req.body;
+    const videoPath = req.file.path;
+
+    console.log('Starting Vimeo upload:', { title, folderId });
+
+    // Create upload on Vimeo
+    const uploadResponse = await fetch('https://api.vimeo.com/me/videos', {
+      method: 'POST',
+      headers: {
+        'Authorization': `bearer ${process.env.VIMEO_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.vimeo.*+json;version=3.4'
+      },
+      body: JSON.stringify({
+        name: title,
+        description: description,
+        privacy: {
+          view: 'anybody',
+          embed: 'public'
+        },
+        folder_uri: `/folders/${folderId || process.env.VIMEO_FOLDER_ID}`
+      })
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('Vimeo upload creation failed:', errorText);
+      throw new Error(`Vimeo API error: ${uploadResponse.status}`);
+    }
+
+    const uploadData = await uploadResponse.json();
+    const uploadLink = uploadData.upload.upload_link;
+    const videoUri = uploadData.uri;
+
+    console.log('Upload link received, uploading video file...');
+
+    // Upload the actual video file
+    const fs = require('fs');
+    const videoBuffer = fs.readFileSync(videoPath);
+
+    const uploadFileResponse = await fetch(uploadLink, {
+      method: 'PATCH',
+      headers: {
+        'Tus-Resumable': '1.0.0',
+        'Upload-Offset': '0',
+        'Content-Type': 'application/offset+octet-stream'
+      },
+      body: videoBuffer
+    });
+
+    if (!uploadFileResponse.ok) {
+      console.error('Video file upload failed:', uploadFileResponse.status);
+      throw new Error(`Video upload failed: ${uploadFileResponse.status}`);
+    }
+
+    console.log('Video uploaded successfully:', videoUri);
+
+    // Clean up temporary file
+    fs.unlinkSync(videoPath);
+
+    res.json({
+      success: true,
+      videoUri: videoUri,
+      vimeoLink: `https://vimeo.com${videoUri.replace('/videos/', '/')}`
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    
+    // Clean up temp file if it exists
+    if (req.file && req.file.path) {
+      try {
+        require('fs').unlinkSync(req.file.path);
+      } catch (e) {
+        console.error('Failed to clean up temp file:', e);
+      }
+    }
+    
+    res.status(500).json({ 
+      error: 'Upload failed', 
+      details: error.message 
+    });
+  }
 });
 
 // Test endpoint to check environment variables
@@ -1424,4 +1540,5 @@ app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log('Environment:', process.env.NODE_ENV);
     console.log('🔧 PAGINATION FIX APPLIED: Backend now returns ALL user videos without artificial limits');
+    console.log('📹 101 EXCELLENT: Full working screen recorder with customer management!');
 });

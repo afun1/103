@@ -170,5 +170,205 @@
     <script>
         // ...existing code from original index (logic unchanged, backup copy)...
     </script>
+    <!-- Recording + Preview (with last frame freeze) -->
+<script>
+(function(){
+  if(window.__wk101RecorderFixed) return; window.__wk101RecorderFixed = true;
+  const btn = document.getElementById('recordButton');
+  const previewShell = document.querySelector('.preview-screen');
+  const audioSelect = document.getElementById('audioSource');
+  const metaForm = document.getElementById('metadataForm');
+
+  let recording = false, mediaRecorder, chunks = [];
+  let screenStream, micStream, mixedStream;
+  let videoEl, lastFrameData;
+
+  function ensureVideo(){
+    if(!videoEl){
+      videoEl = document.createElement('video');
+      videoEl.autoplay = true; videoEl.muted = true; videoEl.playsInline = true;
+      videoEl.style.cssText='width:100%;height:100%;object-fit:contain;';
+    }
+    if(previewShell && !previewShell.contains(videoEl)){
+      previewShell.innerHTML='';
+      previewShell.appendChild(videoEl);
+    }
+    return videoEl;
+  }
+  function captureLastFrame(){
+    try {
+      if(!videoEl || !videoEl.videoWidth) return false;
+      const c=document.createElement('canvas');
+      c.width=videoEl.videoWidth; c.height=videoEl.videoHeight;
+      c.getContext('2d').drawImage(videoEl,0,0,c.width,c.height);
+      lastFrameData = c.toDataURL('image/png');
+      return true;
+    } catch(e){ console.warn('Frame grab failed', e); return false; }
+  }
+  function showLastFrame(){
+    if(lastFrameData && previewShell){
+      previewShell.innerHTML = `<img src="${lastFrameData}" alt="Last Frame" style="width:100%;height:100%;object-fit:contain;">`;
+    }
+  }
+  async function buildStream(){
+    const mode = (audioSelect && audioSelect.value) || 'none';
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio: mode!=='mic' && mode!=='none' });
+    if(mode==='mic' || mode==='mixed') micStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    if(mode==='mixed' && micStream){
+      const ctx = new AudioContext();
+      const dest = ctx.createMediaStreamDestination();
+      const sysT = screenStream.getAudioTracks()[0]; if(sysT) ctx.createMediaStreamSource(new MediaStream([sysT])).connect(dest);
+      const micT = micStream.getAudioTracks()[0]; if(micT) ctx.createMediaStreamSource(new MediaStream([micT])).connect(dest);
+      mixedStream = new MediaStream([...screenStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+      return mixedStream;
+    }
+    if(mode==='mic' && micStream){
+      return new MediaStream([...screenStream.getVideoTracks(), ...micStream.getAudioTracks()]);
+    }
+    return screenStream;
+  }
+  function updateButton(){
+    if(!btn) return;
+    if(recording){ btn.textContent='⏹ Stop Recording'; btn.classList.add('recording'); }
+    else { btn.textContent='🔴 Start Recording'; btn.classList.remove('recording'); }
+  }
+  async function start(){
+    const stream = await buildStream();
+    ensureVideo().srcObject = stream;
+    let mime='video/webm';
+    if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mime='video/webm;codecs=vp9';
+    else if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mime='video/webm;codecs=vp8';
+    chunks=[];
+    mediaRecorder = new MediaRecorder(stream,{ mimeType:mime });
+    mediaRecorder.ondataavailable = e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    mediaRecorder.onstop = ()=>{
+      // If capture failed earlier, attempt one more (videoEl might still hold frame)
+      if(!lastFrameData) captureLastFrame();
+      showLastFrame();
+      const blob = new Blob(chunks,{ type:mime.split(';')[0] });
+      window.__lastRecordingBlob = blob;
+      if(metaForm) metaForm.style.display='block';
+    };
+    mediaRecorder.start();
+    recording = true; updateButton();
+  }
+  function stop(){
+    // Capture BEFORE stopping tracks to guarantee frame
+    if(!lastFrameData){
+      const ok = captureLastFrame();
+      if(!ok){
+        // attempt small delay if metadata not ready yet
+        if(videoEl && !videoEl.videoWidth){
+          try { const h = setTimeout(()=>{ captureLastFrame(); showLastFrame(); }, 120); } catch(e){}
+        }
+      }
+    }
+    recording=false; updateButton();
+    try { mediaRecorder && mediaRecorder.state!=='inactive' && mediaRecorder.stop(); } catch(e){}
+    [screenStream,micStream,mixedStream].forEach(s=> s && s.getTracks().forEach(t=>t.stop()));
+  }
+  window.handleRecordButtonClick = async function(){
+    if(recording){ stop(); return; }
+    lastFrameData = null; // reset
+    try { await start(); } catch(e){ console.error(e); recording=false; updateButton(); alert('Cannot start recording'); }
+  };
+  updateButton();
+})();
+</script>
+<!-- End Recording + Preview -->
+<!-- Existing Customer Intelligent Search -->
+<script>
+(function(){
+  if(window.__customerSearchInit) return; window.__customerSearchInit = true;
+  const existingForm = document.getElementById('existingCustomerForm');
+  const newForm = document.getElementById('newCustomerForm');
+  const commonFields = document.getElementById('commonFields');
+  const searchInput = document.getElementById('customerSearch');
+  const suggestions = document.getElementById('customerSuggestions');
+  let allCustomers = []; let filtered = []; let activeIndex = -1; let loading=false; let loaded=false; let debounceTimer;
+
+  function render(list){
+    if(!suggestions) return;
+    if(loading){ suggestions.innerHTML = '<div class="suggestion-item">Loading customers...</div>'; return; }
+    if(!list.length){ suggestions.innerHTML = '<div class="suggestion-item">No matches</div>'; return; }
+    suggestions.innerHTML = list.map((c,i)=>`<div class="suggestion-item${i===activeIndex?'" style="background:#555;"':'"'} data-idx="${i}"><div style="font-weight:600;">${escapeHtml(c.name||'(No Name)')}</div><small>${escapeHtml(c.email||'')}</small></div>`).join('');
+  }
+  function escapeHtml(t){ if(typeof t!=='string') return t; return t.replace(/[&<>"]/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[s])); }
+  function filter(q){
+    const term = q.trim().toLowerCase();
+    if(!term){ filtered = allCustomers.slice(0,150); activeIndex=-1; render(filtered); return; }
+    filtered = allCustomers.filter(c=> (c.name||'').toLowerCase().includes(term) || (c.email||'').toLowerCase().includes(term)).slice(0,150);
+    activeIndex = filtered.length?0:-1; render(filtered);
+  }
+  async function load(){
+    if(loading||loaded) return; loading=true; render([]);
+    try {
+      // Reuse existing backend aggregated customers endpoint if available else derive from videos
+      const resp = await fetch('/api/get-all-customers');
+      if(resp.ok){
+        const data = await resp.json();
+        allCustomers = (data||[]).map(c=>({ name:c.name||c.customerName||'', email:c.email||c.customerEmail||'' }))
+          .filter(c=>c.name||c.email);
+      } else {
+        // fallback: derive from folder videos (slower)
+        const vids = await (await fetch('/api/vimeo-folder/26555277')).json();
+        const map = new Map();
+        vids.forEach(v=>{
+          let name = v.customerName || v.name || ''; let email = v.customerEmail || '';
+          if(!email && v.description){ const m=v.description.match(/Customer Email:\s*(.*)/i); if(m) email=m[1].trim(); }
+          if(name||email){ const key=(email||name).toLowerCase(); if(!map.has(key)) map.set(key,{name,email}); }
+        });
+        allCustomers = [...map.values()];
+      }
+      allCustomers.sort((a,b)=> a.name.localeCompare(b.name));
+      loaded=true;
+    } catch(e){ console.error('Customer load failed', e); }
+    finally { loading=false; filter(searchInput.value||''); }
+  }
+  function select(index){
+    if(index<0||index>=filtered.length) return;
+    const c = filtered[index];
+    searchInput.value = `${c.name}${c.email?' ('+c.email+')':''}`;
+    activeIndex = index; render(filtered);
+    if(commonFields) commonFields.style.display='block';
+    window.__selectedCustomer = c;
+  }
+  function handleKey(e){
+    if(!filtered.length) return;
+    switch(e.key){
+      case 'ArrowDown': e.preventDefault(); activeIndex = (activeIndex+1)%filtered.length; render(filtered); break;
+      case 'ArrowUp': e.preventDefault(); activeIndex = (activeIndex-1+filtered.length)%filtered.length; render(filtered); break;
+      case 'Enter': if(activeIndex>-1){ e.preventDefault(); select(activeIndex);} break;
+    }
+  }
+  if(searchInput){
+    searchInput.addEventListener('focus', ()=>{ load(); filter(searchInput.value||''); });
+    searchInput.addEventListener('input', ()=>{ clearTimeout(debounceTimer); debounceTimer=setTimeout(()=>{ filter(searchInput.value||''); }, 150); });
+    searchInput.addEventListener('keydown', handleKey);
+  }
+  if(suggestions){
+    suggestions.addEventListener('click', e=>{
+      const item = e.target.closest('.suggestion-item');
+      if(!item) return;
+      const idx = parseInt(item.dataset.idx,10); select(idx);
+    });
+  }
+  // Replace toggleCustomerForm (if previously defined) with enhanced version
+  const originalToggle = window.toggleCustomerForm;
+  window.toggleCustomerForm = function(type){
+    if(type==='existing'){
+      existingForm.style.display='block'; newForm.style.display='none'; commonFields.style.display='block'; load(); filter(searchInput.value||'');
+    } else if(type==='new'){
+      newForm.style.display='block'; existingForm.style.display='none'; commonFields.style.display='block';
+    } else {
+      existingForm.style.display='none'; newForm.style.display='none'; commonFields.style.display='none';
+    }
+    if(typeof originalToggle==='function'){
+      try { originalToggle(type); } catch(_){ /* ignore */ }
+    }
+  };
+})();
+</script>
+<!-- End Existing Customer Intelligent Search -->
 </body>
 </html>
