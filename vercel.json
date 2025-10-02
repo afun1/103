@@ -1,17 +1,8 @@
 {
   "version": 2,
   "functions": {
-    "api/upload-vimeo.js": {
+    "api/index.js": {
       "maxDuration": 60
-    },
-    "api/search-customers.js": {
-      "maxDuration": 30
-    },
-    "api/test-env.js": {
-      "maxDuration": 10
-    },
-    "api/all-user-videos/[userEmail].js": {
-      "maxDuration": 30
     }
   },
   "builds": [
@@ -23,7 +14,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/api/index"
     },
     {
       "src": "/",
