@@ -10,7 +10,7 @@
     "api/test-env.js": {
       "maxDuration": 10
     },
-    "api/all-user-videos.js": {
+    "api/all-user-videos/[userEmail].js": {
       "maxDuration": 30
     }
   },
