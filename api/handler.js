@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Customer search endpoint
+        // Customer search endpoint - with real Vimeo integration
         if (pathname === '/api/search-customers') {
             if (req.method !== 'GET') {
                 return res.status(405).json({ error: 'Method not allowed' });
@@ -38,16 +38,81 @@ module.exports = async (req, res) => {
                 return res.json([]);
             }
 
-            // For now, return mock data to avoid Vimeo API issues
-            const mockCustomers = [
-                { name: 'John Doe', email: 'john@example.com', id: 'john_doe_john@example.com' },
-                { name: 'Jane Smith', email: 'jane@example.com', id: 'jane_smith_jane@example.com' }
-            ].filter(customer => 
-                customer.name.toLowerCase().includes(query.toLowerCase()) ||
-                customer.email.toLowerCase().includes(query.toLowerCase())
-            );
+            try {
+                const { Vimeo } = require('@vimeo/vimeo');
+                
+                const vimeo = new Vimeo(
+                    process.env.VIMEO_CLIENT_ID,
+                    process.env.VIMEO_CLIENT_SECRET,
+                    process.env.VIMEO_ACCESS_TOKEN
+                );
 
-            return res.json(mockCustomers);
+                // Search Vimeo videos for customer metadata
+                const searchResponse = await new Promise((resolve, reject) => {
+                    vimeo.request(
+                        {
+                            method: 'GET',
+                            path: `/me/folders/${process.env.VIMEO_FOLDER_ID}/videos`,
+                            query: {
+                                per_page: 100,
+                                fields: 'name,description,metadata.connections.comments.total'
+                            }
+                        },
+                        (error, body, statusCode, headers) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                resolve(body);
+                            }
+                        }
+                    );
+                });
+
+                // Extract customer data from video descriptions and titles
+                const customers = [];
+                const customerMap = new Map();
+                
+                if (searchResponse.data) {
+                    searchResponse.data.forEach(video => {
+                        const description = video.description || '';
+                        const title = video.name || '';
+                        
+                        // Extract customer info from description format
+                        const emailMatch = description.match(/Customer Email:\s*([^\n]+)/);
+                        
+                        if (emailMatch && title) {
+                            const name = title.trim();
+                            const email = emailMatch[1].trim();
+                            const key = `${name}_${email}`;
+                            
+                            // Check if this customer matches the search query
+                            const nameMatches = name.toLowerCase().includes(query.toLowerCase());
+                            const emailMatches = email.toLowerCase().includes(query.toLowerCase());
+                            const exactEmailMatch = email.toLowerCase() === query.toLowerCase();
+                            
+                            if (!customerMap.has(key) && (nameMatches || emailMatches)) {
+                                const customer = {
+                                    name,
+                                    email,
+                                    id: key,
+                                    exactEmailMatch
+                                };
+                                
+                                customerMap.set(key, customer);
+                                customers.push(customer);
+                            }
+                        }
+                    });
+                }
+                
+                // Sort by name and limit results
+                customers.sort((a, b) => a.name.localeCompare(b.name));
+                return res.json(customers.slice(0, 20));
+                
+            } catch (searchError) {
+                console.error('Customer search error:', searchError);
+                return res.status(500).json({ error: 'Search failed', message: searchError.message });
+            }
         }
 
         // Video upload endpoint - with real Vimeo integration
@@ -63,6 +128,14 @@ module.exports = async (req, res) => {
             }
 
             try {
+                // Validate environment variables first
+                if (!process.env.VIMEO_CLIENT_ID || !process.env.VIMEO_CLIENT_SECRET || !process.env.VIMEO_ACCESS_TOKEN || !process.env.VIMEO_FOLDER_ID) {
+                    return res.status(500).json({
+                        error: 'Missing Vimeo configuration',
+                        message: 'One or more Vimeo environment variables are not set'
+                    });
+                }
+
                 const { Vimeo } = require('@vimeo/vimeo');
                 const fs = require('fs');
                 const path = require('path');
@@ -167,7 +240,10 @@ Recording Date: ${new Date().toLocaleString()}`;
         // Default response for unknown endpoints
         return res.status(404).json({ 
             error: 'Endpoint not found',
-            available: ['/api/test-env', '/api/search-customers', '/api/upload-vimeo']
+            path: pathname,
+            method: req.method,
+            available: ['/api/test-env', '/api/search-customers', '/api/upload-vimeo'],
+            message: 'Check the path and method of your request'
         });
 
     } catch (error) {
