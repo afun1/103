@@ -278,3 +278,18 @@ app.use((error, req, res, next) => {
 
 // Export for Vercel
 module.exports = app;
+
+const path = require('path');
+const fs = require('fs');
+
+module.exports = (req, res) => {
+  try {
+    const filePath = path.join(__dirname, '../public/index.html');
+    const html = fs.readFileSync(filePath, 'utf8');
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(html);
+  } catch (error) {
+    console.error('Error serving index:', error);
+    res.status(500).json({ error: 'Failed to load page' });
+  }
+};
