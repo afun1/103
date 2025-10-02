@@ -4,9 +4,25 @@
     {
       "src": "public/**/*",
       "use": "@vercel/static"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/public/supersparky.png"
+    },
+    {
+      "src": "/supersparky.png",
+      "dest": "/public/supersparky.png"
+    },
     {
       "src": "/(.*)",
       "dest": "/public/$1"
