@@ -1,13 +1,25 @@
-const { Vimeo } = require('@vimeo/vimeo');
+// Initialize Vimeo client only when needed to avoid import issues
+let vimeo = null;
+
+function getVimeoClient() {
+    if (!vimeo) {
+        try {
+            const { Vimeo } = require('@vimeo/vimeo');
+            vimeo = new Vimeo(
+                process.env.VIMEO_CLIENT_ID,
+                process.env.VIMEO_CLIENT_SECRET,
+                process.env.VIMEO_ACCESS_TOKEN
+            );
+        } catch (error) {
+            console.error('Failed to initialize Vimeo client:', error);
+            throw new Error('Vimeo client initialization failed');
+        }
+    }
+    return vimeo;
+}
+
 const fs = require('fs');
 const path = require('path');
-
-// Initialize Vimeo client
-const vimeo = new Vimeo(
-    process.env.VIMEO_CLIENT_ID,
-    process.env.VIMEO_CLIENT_SECRET,
-    process.env.VIMEO_ACCESS_TOKEN
-);
 
 module.exports = async (req, res) => {
     // Enable CORS
@@ -24,6 +36,14 @@ module.exports = async (req, res) => {
     }
 
     try {
+        // Validate environment variables first
+        if (!process.env.VIMEO_CLIENT_ID || !process.env.VIMEO_CLIENT_SECRET || !process.env.VIMEO_ACCESS_TOKEN) {
+            return res.status(500).json({ 
+                error: 'Missing Vimeo configuration',
+                message: 'Vimeo environment variables not properly configured'
+            });
+        }
+
         const { videoData, title, description, customerData, recordedBy } = req.body;
 
         if (!videoData) {
@@ -58,8 +78,9 @@ Recorded By Email: ${recordedByEmail}
 Recording Date: ${new Date().toLocaleString()}`;
 
         // Upload to Vimeo using file path
+        const vimeoClient = getVimeoClient();
         const uploadResponse = await new Promise((resolve, reject) => {
-            vimeo.upload(
+            vimeoClient.upload(
                 tmpPath,
                 {
                     name: title,

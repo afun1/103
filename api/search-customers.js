@@ -1,11 +1,22 @@
-const { Vimeo } = require('@vimeo/vimeo');
+// Initialize Vimeo client only when needed
+let vimeo = null;
 
-// Initialize Vimeo client
-const vimeo = new Vimeo(
-    process.env.VIMEO_CLIENT_ID,
-    process.env.VIMEO_CLIENT_SECRET,
-    process.env.VIMEO_ACCESS_TOKEN
-);
+function getVimeoClient() {
+    if (!vimeo) {
+        try {
+            const { Vimeo } = require('@vimeo/vimeo');
+            vimeo = new Vimeo(
+                process.env.VIMEO_CLIENT_ID,
+                process.env.VIMEO_CLIENT_SECRET,
+                process.env.VIMEO_ACCESS_TOKEN
+            );
+        } catch (error) {
+            console.error('Failed to initialize Vimeo client:', error);
+            throw new Error('Vimeo client initialization failed');
+        }
+    }
+    return vimeo;
+}
 
 module.exports = async (req, res) => {
     // Enable CORS
@@ -22,6 +33,14 @@ module.exports = async (req, res) => {
     }
 
     try {
+        // Validate environment variables first
+        if (!process.env.VIMEO_CLIENT_ID || !process.env.VIMEO_CLIENT_SECRET || !process.env.VIMEO_ACCESS_TOKEN) {
+            return res.status(500).json({ 
+                error: 'Missing Vimeo configuration',
+                message: 'Vimeo environment variables not properly configured'
+            });
+        }
+
         const query = req.query.q;
         
         console.log('Search customers API called with query:', query);
@@ -31,8 +50,9 @@ module.exports = async (req, res) => {
         }
         
         // Search Vimeo videos for customer metadata
+        const vimeoClient = getVimeoClient();
         const searchResponse = await new Promise((resolve, reject) => {
-            vimeo.request(
+            vimeoClient.request(
                 {
                     method: 'GET',
                     path: `/me/folders/${process.env.VIMEO_FOLDER_ID}/videos`,
