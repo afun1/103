@@ -5,22 +5,36 @@
       "maxDuration": 30
     }
   },
-  "rewrites": [
+  "builds": [
     {
-      "source": "/",
-      "destination": "/api/index"
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
     },
     {
-      "source": "/login",
-      "destination": "/public/login.html"
+      "src": "/",
+      "dest": "/public/index.html"
     },
     {
-      "source": "/signup",
-      "destination": "/public/signup.html"
+      "src": "/login",
+      "dest": "/public/login.html"
     },
     {
-      "source": "/header",
-      "destination": "/public/header.html"
+      "src": "/signup",
+      "dest": "/public/signup.html"
+    },
+    {
+      "src": "/header",
+      "dest": "/public/header.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
     }
   ]
 }
