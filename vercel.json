@@ -1,14 +1,14 @@
 {
   "version": 2,
   "functions": {
-    "api/handler.js": {
-      "maxDuration": 30
+    "api/minimal.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "/api/handler"
+      "destination": "/api/minimal"
     }
   ]
 }
