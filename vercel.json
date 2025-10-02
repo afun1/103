@@ -9,6 +9,9 @@
     },
     "api/test-env.js": {
       "maxDuration": 10
+    },
+    "api/all-user-videos.js": {
+      "maxDuration": 30
     }
   },
   "builds": [
@@ -31,12 +34,23 @@
       "dest": "/public/supersparky.png"
     },
     {
-      "src": "/supersparky.png",
+      "src": "/supersparky.png", 
       "dest": "/public/supersparky.png"
     },
     {
       "src": "/(.*)",
       "dest": "/public/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     }
   ]
 }
