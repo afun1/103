@@ -1,0 +1,28 @@
+{
+  "name": "screencapture",
+  "version": "1.0.0",
+  "description": "Screen recording app",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build needed - static files'",
+    "start": "vercel dev"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "@vercel/node": "^3.0.0",
+    "axios": "^1.5.0",
+    "formidable": "^3.5.1"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "screen",
+    "recording",
+    "vimeo"
+  ],
+  "author": "",
+  "license": "ISC"
+}
