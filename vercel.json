@@ -1,21 +1,11 @@
 {
   "version": 2,
-  "name": "screencapture",
   "functions": {
     "api/**/*.js": {
       "runtime": "nodejs18.x"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/public/index.html"
     },
-    {
-      "source": "/(.*)",
-      "destination": "/public/$1"
+    "pages/api/**/*.js": {
+      "runtime": "nodejs18.x"
     }
-  ],
-  "buildCommand": "",
-  "outputDirectory": "public"
+  }
 }
