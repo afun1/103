@@ -1,17 +1,16 @@
 const { Vimeo } = require('@vimeo/vimeo');
-const fs = require('fs');
-const path = require('path');
 
-module.exports = async (req, res) => {
-    // CORS headers
+export default async function handler(req, res) {
+    // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     
     if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+        res.status(200).end();
+        return;
     }
-    
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -23,33 +22,28 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'No video data provided' });
         }
 
-        // Initialize Vimeo client with your environment variables
+        // Initialize Vimeo client
         const vimeo = new Vimeo(
             process.env.VIMEO_CLIENT_ID,
             process.env.VIMEO_CLIENT_SECRET,
             process.env.VIMEO_ACCESS_TOKEN
         );
 
-        // Convert base64 to buffer and save to Vercel's temp directory
+        // Convert base64 to buffer
         const videoBuffer = Buffer.from(videoData, 'base64');
-        const tmpPath = path.join('/tmp', `temp_video_${Date.now()}.webm`);
         
-        // Write buffer to temporary file
-        fs.writeFileSync(tmpPath, videoBuffer);
-
-        // Extract proper user information from recordedBy object
-        const recordedByName = recordedBy?.displayName || 'John Bradshaw';
-        const recordedByEmail = recordedBy?.email || 'john@tpnlife.com';
+        // For Vercel, we need to use streaming upload instead of temp files
+        const recordedByName = recordedBy?.displayName || 'User';
+        const recordedByEmail = recordedBy?.email || '';
         
         console.log('📊 Upload metadata:', {
             customerName: customerData.name,
             customerEmail: customerData.email,
             recordedByName,
             recordedByEmail,
-            videoSize: videoBuffer.length
+            description: description?.substring(0, 50) + '...'
         });
 
-        // Create structured description with all metadata
         const structuredDescription = `${description}
 
 Customer Email: ${customerData.email}
@@ -57,51 +51,66 @@ Recorded By: ${recordedByName}
 Recorded By Email: ${recordedByEmail}
 Recording Date: ${new Date().toLocaleString()}`;
 
-        // Upload to Vimeo using your existing folder ID
+        // Use Vimeo's streaming upload for Vercel
         const uploadResponse = await new Promise((resolve, reject) => {
-            vimeo.upload(
-                tmpPath,
+            // First create the video entry
+            vimeo.request(
                 {
-                    name: title,
-                    description: structuredDescription,
-                    folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
-                    privacy: {
-                        view: 'anybody',
-                        embed: 'public'
+                    method: 'POST',
+                    path: '/me/videos',
+                    data: {
+                        name: title,
+                        description: structuredDescription,
+                        folder_uri: `/me/folders/${process.env.VIMEO_FOLDER_ID}`,
+                        privacy: {
+                            view: 'anybody',
+                            embed: 'public'
+                        },
+                        upload: {
+                            approach: 'streaming',
+                            size: videoBuffer.length.toString()
+                        }
                     }
                 },
-                (uri) => {
-                    console.log('✅ Upload complete:', uri);
-                    // Clean up temporary file
-                    try {
-                        fs.unlinkSync(tmpPath);
-                    } catch (err) {
-                        console.log('Could not delete temp file:', err);
+                (error, body, statusCode, headers) => {
+                    if (error) {
+                        console.error('❌ Video creation error:', error);
+                        reject(error);
+                    } else {
+                        console.log('✅ Video entry created:', body.uri);
+                        
+                        // Now upload the video data
+                        const uploadLink = body.upload.upload_link;
+                        
+                        // Upload video buffer directly
+                        fetch(uploadLink, {
+                            method: 'PATCH',
+                            headers: {
+                                'Tus-Resumable': '1.0.0',
+                                'Upload-Offset': '0',
+                                'Content-Type': 'application/offset+octet-stream'
+                            },
+                            body: videoBuffer
+                        })
+                        .then(uploadRes => {
+                            if (!uploadRes.ok) {
+                                throw new Error(`Upload failed: ${uploadRes.status}`);
+                            }
+                            resolve({ uri: body.uri });
+                        })
+                        .catch(uploadError => {
+                            console.error('❌ Upload error:', uploadError);
+                            reject(uploadError);
+                        });
                     }
-                    resolve({ uri });
-                },
-                (bytesUploaded, bytesTotal) => {
-                    const percentage = (bytesUploaded / bytesTotal * 100).toFixed(2);
-                    console.log(`📈 Upload progress: ${percentage}%`);
-                },
-                (error) => {
-                    console.error('❌ Upload error:', error);
-                    // Clean up temporary file on error
-                    try {
-                        fs.unlinkSync(tmpPath);
-                    } catch (err) {
-                        console.log('Could not delete temp file:', err);
-                    }
-                    reject(error);
                 }
             );
         });
 
-        // Extract video ID and create public URL
         const videoId = uploadResponse.uri.split('/').pop();
         const vimeoUrl = `https://vimeo.com/${videoId}`;
         
-        console.log('🎉 Video uploaded successfully:', vimeoUrl);
+        console.log('✅ Video uploaded successfully:', vimeoUrl);
         
         res.json({
             success: true,
@@ -114,11 +123,10 @@ Recording Date: ${new Date().toLocaleString()}`;
         });
 
     } catch (error) {
-        console.error('❌ Upload failed:', error);
+        console.error('Upload error:', error);
         res.status(500).json({
             error: 'Upload failed',
-            message: error.message,
-            details: 'Check Vercel function logs for more information'
+            message: error.message
         });
     }
-};
+}

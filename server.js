@@ -651,22 +651,38 @@ app.get('/api/debug-all-videos', async (req, res) => {
         let page = 1;
         
         while (true) {
+            console.log(`📄 DEBUG: Fetching page ${page} from Vimeo folder...`);
+            
             const response = await new Promise((resolve, reject) => {
                 vimeo.request({
                     method: 'GET',
                     path: `/me/folders/${process.env.VIMEO_FOLDER_ID}/videos`,
                     query: { per_page: 100, page: page, fields: 'name,description,created_time' }
                 }, (error, body) => {
-                    if (error) reject(error);
-                    else resolve(body);
+                    if (error) {
+                        console.error(`❌ DEBUG: Vimeo API error on page ${page}:`, error);
+                        reject(error);
+                    } else {
+                        console.log(`✅ DEBUG: Page ${page}: found ${body.data?.length || 0} videos`);
+                        resolve(body);
+                    }
                 });
             });
             
             if (response.data && response.data.length > 0) {
                 allVideos = allVideos.concat(response.data);
-                if (response.data.length < 100) break;
+                console.log(`📊 DEBUG: Page ${page} added ${response.data.length} videos. Total so far: ${allVideos.length}`);
+                
+                // FIXED: Stop pagination when we get fewer than requested  
+                if (response.data.length < 100) {
+                    console.log(`🏁 DEBUG: Reached end of videos (page ${page} had ${response.data.length} videos)`);
+                    break;
+                }
                 page++;
-            } else break;
+            } else {
+                console.log(`🏁 DEBUG: No more videos found on page ${page}`);
+                break;
+            }
         }
         
         const debug = allVideos.map(video => {
@@ -704,49 +720,71 @@ app.get('/api/debug-all-videos', async (req, res) => {
     }
 });
 
-// NEW ENDPOINT - Get ALL user recordings without any limits
+// SIMPLE ENDPOINT - Get user videos from first page only (NO PAGINATION)
 app.get('/api/all-user-videos/:userEmail', async (req, res) => {
-    console.log('🚨🚨🚨 NEW ALL VIDEOS ENDPOINT HIT! 🚨🚨🚨');
+    console.log('🚨 SIMPLE ALL VIDEOS ENDPOINT HIT - NO PAGINATION! 🚨');
     
     try {
         const userEmail = req.params.userEmail;
-        console.log(`🎯 Getting ALL videos for user: ${userEmail}`);
+        console.log(`🎯 Getting FIRST PAGE ONLY for user: ${userEmail}`);
         
-        // Fetch ALL pages from Vimeo
+        // Get ALL videos from ALL pages using /me/videos
         let allVideos = [];
         let page = 1;
         
         while (true) {
+            console.log(`📄 Fetching page ${page} from /me/videos...`);
+            
             const response = await new Promise((resolve, reject) => {
                 vimeo.request({
                     method: 'GET',
-                    path: `/me/folders/${process.env.VIMEO_FOLDER_ID}/videos`,
-                    query: { per_page: 100, page: page, fields: 'name,description,created_time,link,uri,pictures.base_link' }
+                    path: '/me/videos',
+                    query: { per_page: 100, page: page, fields: 'name,description,created_time,link,uri,pictures.sizes,pictures.base_link' }
                 }, (error, body) => {
-                    if (error) reject(error);
-                    else resolve(body);
+                    if (error) {
+                        console.error(`❌ Vimeo API error on page ${page}:`, error);
+                        reject(error);
+                    } else {
+                        console.log(`✅ Found ${body.data?.length || 0} videos on page ${page}`);
+                        resolve(body);
+                    }
                 });
             });
             
             if (response.data && response.data.length > 0) {
                 allVideos = allVideos.concat(response.data);
-                if (response.data.length < 100) break;
+                console.log(`📊 Page ${page} added ${response.data.length} videos. Total so far: ${allVideos.length}`);
+                
+                // Stop when we get fewer than requested (end of results)
+                if (response.data.length < 100) {
+                    console.log(`🏁 Reached end of videos (page ${page} had ${response.data.length} videos)`);
+                    break;
+                }
                 page++;
-            } else break;
+            } else {
+                console.log(`🏁 No more videos found on page ${page}`);
+                break;
+            }
         }
         
-        console.log(`📊 Total videos from Vimeo: ${allVideos.length}`);
+        console.log(`📊 Got ${allVideos.length} total videos from ALL pages`);
         
-        // Filter for user
+        // Filter for user from ALL videos
         const userVideos = allVideos.filter(video => {
             const desc = video.description || '';
             const match = desc.match(/Recorded By Email:\s*([^\n]+)/);
-            return match && match[1].trim().toLowerCase() === userEmail.toLowerCase();
+            const isMatch = match && match[1].trim().toLowerCase() === userEmail.toLowerCase();
+            if (isMatch) {
+                console.log(`✅ Found matching video: ${video.name}`);
+            }
+            return isMatch;
         }).map(video => {
             const desc = video.description || '';
             const customerEmailMatch = desc.match(/Customer Email:\s*([^\n]+)/);
             const recordedByMatch = desc.match(/Recorded By:\s*([^\n]+)/);
             const recordingDateMatch = desc.match(/Recording Date:\s*([^\n]+)/);
+            const sizes = video.pictures?.sizes || [];
+            const preferred = sizes.find(s => s.width >= 320 && s.width <= 640) || sizes.find(s => s.width >= 300) || sizes[sizes.length - 1] || null;
             
             return {
                 id: video.uri.split('/').pop(),
@@ -757,109 +795,73 @@ app.get('/api/all-user-videos/:userEmail', async (req, res) => {
                 recordingDate: recordingDateMatch ? recordingDateMatch[1].trim() : video.created_time,
                 description: desc.split('\n\nCustomer Email:')[0].trim() || 'No description available',
                 vimeoLink: video.link,
-                thumbnail: video.pictures?.base_link || null,
+                thumbnail: preferred ? preferred.link : (video.pictures?.base_link || null),
                 createdTime: video.created_time
             };
         });
         
         userVideos.sort((a, b) => new Date(b.createdTime) - new Date(a.createdTime));
         
-        console.log(`✅ Returning ${userVideos.length} videos for ${userEmail}`);
+        console.log(`✅ Returning ${userVideos.length} videos for ${userEmail} (FIRST PAGE ONLY)`);
         res.json(userVideos);
         
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Failed to fetch recordings' });
+        console.error('❌ SIMPLE ERROR:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch recordings',
+            details: error.message
+        });
     }
 });
 
-// API endpoint to get user's recordings - RETURN ALL VIDEOS (NO PAGINATION)
+// SAFE endpoint - Get user recordings from first page only (NO PAGINATION)
 app.get('/api/user-recordings/:userEmail', async (req, res) => {
-    console.log('🚨 API ENDPOINT HIT - user-recordings called!');
+    console.log('🚨 SAFE USER RECORDINGS - FIRST PAGE ONLY!');
     
     try {
         const userEmail = req.params.userEmail;
-        
-        if (!userEmail) {
-            return res.status(400).json({ error: 'User email required' });
-        }
-        
-        console.log(`📊 Getting ALL videos for user: ${userEmail}`);
-        
-        // Get ALL videos from ALL pages of Vimeo folder
-        let allVideos = [];
-        let page = 1;
-        let hasMore = true;
-        
-        while (hasMore) {
-            const videosResponse = await new Promise((resolve, reject) => {
-                vimeo.request(
-                    {
-                        method: 'GET',
-                        path: `/me/folders/${process.env.VIMEO_FOLDER_ID}/videos`,
-                        query: {
-                            per_page: 100,
-                            page: page,
-                            fields: 'name,description,created_time,link,uri,pictures.base_link'
-                        }
-                    },
-                    (error, body, statusCode, headers) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(body);
-                        }
-                    }
-                );
+        if (!userEmail) return res.status(400).json({ error: 'User email required' });
+        console.log(`📊 Getting FIRST PAGE ONLY for user: ${userEmail}`);
+
+        const response = await new Promise((resolve, reject) => {
+            vimeo.request({
+                method: 'GET',
+                path: `/me/folders/${process.env.VIMEO_FOLDER_ID}/videos`,
+                query: { per_page: 100, page: 1, fields: 'name,description,created_time,link,uri,pictures.sizes,pictures.base_link' }
+            }, (error, body) => {
+                if (error) { console.error('❌ Vimeo API error:', error); reject(error); }
+                else { console.log(`✅ Found ${body.data?.length || 0} videos on first page`); resolve(body); }
             });
-            
-            if (videosResponse.data && videosResponse.data.length > 0) {
-                allVideos = allVideos.concat(videosResponse.data);
-                page++;
-                hasMore = videosResponse.data.length === 100;
-            } else {
-                hasMore = false;
-            }
-        }
-        
-        console.log(`📊 Fetched ${allVideos.length} total videos from Vimeo`);
-        
-        // Filter for user's videos
-        const userVideos = [];
-        
-        allVideos.forEach(video => {
+        });
+
+        const userVideos = (response.data || []).filter(video => {
             const description = video.description || '';
             const recordedByEmailMatch = description.match(/Recorded By Email:\s*([^\n]+)/);
+            return recordedByEmailMatch && recordedByEmailMatch[1].trim().toLowerCase() === userEmail.toLowerCase();
+        }).map(video => {
+            const description = video.description || '';
             const customerEmailMatch = description.match(/Customer Email:\s*([^\n]+)/);
             const recordedByMatch = description.match(/Recorded By:\s*([^\n]+)/);
             const recordingDateMatch = description.match(/Recording Date:\s*([^\n]+)/);
-            
-            if (recordedByEmailMatch && recordedByEmailMatch[1].trim().toLowerCase() === userEmail.toLowerCase()) {
-                const mainDescription = description.split('\n\nCustomer Email:')[0].trim();
-                
-                userVideos.push({
-                    id: video.uri.split('/').pop(),
-                    customerName: video.name || 'Unknown Customer',
-                    customerEmail: customerEmailMatch ? customerEmailMatch[1].trim() : 'No email',
-                    recordedBy: recordedByMatch ? recordedByMatch[1].trim() : 'Unknown',
-                    recordedByEmail: recordedByEmailMatch[1].trim(),
-                    recordingDate: recordingDateMatch ? recordingDateMatch[1].trim() : video.created_time,
-                    description: mainDescription || 'No description available',
-                    vimeoLink: video.link,
-                    thumbnail: video.pictures?.base_link || null,
-                    createdTime: video.created_time
-                });
-            }
+            const sizes = video.pictures?.sizes || [];
+            const preferred = sizes.find(s => s.width >= 320) || sizes[sizes.length - 1] || null;
+            return {
+                id: video.uri.split('/').pop(),
+                customerName: video.name || 'Unknown Customer',
+                customerEmail: customerEmailMatch ? customerEmailMatch[1].trim() : 'No email',
+                recordedBy: recordedByMatch ? recordedByMatch[1].trim() : 'Unknown',
+                recordedByEmail: userEmail,
+                recordingDate: recordingDateMatch ? recordingDateMatch[1].trim() : video.created_time,
+                description: description.split('\n\nCustomer Email:')[0].trim() || 'No description available',
+                vimeoLink: video.link,
+                thumbnail: preferred ? preferred.link : (video.pictures?.base_link || null),
+                createdTime: video.created_time
+            };
         });
-        
-        // Sort by newest first
+
         userVideos.sort((a, b) => new Date(b.createdTime) - new Date(a.createdTime));
-        
-        console.log(`✅ Returning ALL ${userVideos.length} videos for ${userEmail} - NO LIMITS!`);
-        
-        // Return EVERYTHING - no pagination at all
+        console.log(`✅ Returning ${userVideos.length} videos for ${userEmail} (FIRST 100 ONLY - NO PAGINATION)`);
         res.json(userVideos);
-        
     } catch (error) {
         console.error('Error fetching user recordings:', error);
         res.status(500).json({ error: 'Failed to fetch recordings' });
@@ -891,46 +893,30 @@ app.get('/api/vimeo-config', (req, res) => {
 // Get video file details and playable URLs
 app.get('/api/video-details/:videoId', async (req, res) => {
     const { videoId } = req.params;
-    
     try {
         console.log(`🎬 Getting video details for: ${videoId}`);
-        
-        // Get video details from Vimeo
         const videoResponse = await new Promise((resolve, reject) => {
             vimeo.request({
                 method: 'GET',
                 path: `/videos/${videoId}`,
-                query: {
-                    fields: 'uri,name,description,privacy,embed,files,player_embed_url'
-                }
-            }, (error, body, statusCode, headers) => {
-                if (error) {
-                    console.error('❌ Vimeo API error:', error);
-                    reject(error);
-                } else {
-                    console.log('✅ Video details retrieved');
-                    resolve(body);
-                }
+                query: { fields: 'uri,name,description,privacy,embed,files,player_embed_url,pictures.sizes,pictures.base_link' }
+            }, (error, body) => {
+                if (error) { console.error('❌ Vimeo API error:', error); reject(error); }
+                else { console.log('✅ Video details retrieved'); resolve(body); }
             });
         });
-        
-        console.log('📹 Video privacy settings:', videoResponse.privacy);
-        console.log('📹 Video embed settings:', videoResponse.embed);
-        console.log('📹 Available files:', videoResponse.files?.length || 0);
-        
+        const sizes = videoResponse.pictures?.sizes || [];
+        const preferred = sizes.find(s => s.width >= 640) || sizes[sizes.length - 1] || null;
         res.json({
             video: videoResponse,
             embedAllowed: videoResponse.embed?.html !== null,
             files: videoResponse.files || [],
-            playerUrl: videoResponse.player_embed_url
+            playerUrl: videoResponse.player_embed_url,
+            thumbnail: preferred ? preferred.link : (videoResponse.pictures?.base_link || null)
         });
-        
     } catch (error) {
         console.error('❌ Error getting video details:', error);
-        res.status(500).json({ 
-            error: 'Failed to get video details',
-            message: error.message 
-        });
+        res.status(500).json({ error: 'Failed to get video details', message: error.message });
     }
 });
 
@@ -1169,8 +1155,8 @@ app.get('/api/folder-videos', async (req, res) => {
             if (response.data && response.data.length > 0) {
                 allVideos = allVideos.concat(response.data);
                 
-                // Check if there are more pages
-                if (response.data.length < perPage || !response.paging?.next) {
+                // FIXED: Simple pagination - stop when fewer than requested
+                if (response.data.length < perPage) {
                     hasMore = false;
                 } else {
                     page++;

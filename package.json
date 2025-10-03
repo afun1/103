@@ -1,19 +1,21 @@
 {
-  "name": "sparky-screen-recorder",
+  "name": "screencapture",
   "version": "1.0.0",
-  "description": "Screen recording application with Vimeo and Supabase integration",
+  "description": "101 Excellent Screen Recorder with Vimeo Integration for Vercel",
+  "main": "api/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vercel dev",
+    "build": "echo 'No build needed for static files'",
+    "vercel-build": "echo 'Vercel build complete'",
+    "start": "vercel dev"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.58.0",
-    "@vimeo/vimeo": "^3.0.3",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "multer": "^1.4.5-lts.1"
+    "@vimeo/vimeo": "^2.1.1",
+    "@supabase/supabase-js": "^2.38.0"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "author": "Sparky Screen Recorder",
+  "license": "MIT"
 }
