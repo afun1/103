@@ -15,5 +15,7 @@
       "source": "/(.*)",
       "destination": "/public/$1"
     }
-  ]
+  ],
+  "buildCommand": "",
+  "outputDirectory": "public"
 }

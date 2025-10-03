@@ -1,6 +1,6 @@
-const { Vimeo } = require('@vimeo/vimeo');
+import { Vimeo } from '@vimeo/vimeo';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -89,4 +89,4 @@ module.exports = async (req, res) => {
         console.error('❌ Error:', error);
         res.status(500).json({ error: 'Failed to fetch recordings' });
     }
-};
+}
