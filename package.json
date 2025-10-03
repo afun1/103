@@ -1,7 +1,7 @@
 {
   "name": "screencapture",
   "version": "1.0.0",
-  "description": "Screen recording app",
+  "description": "Professional screen recorder with system audio support",
   "main": "index.js",
   "scripts": {
     "dev": "vercel dev",
@@ -9,20 +9,13 @@
     "start": "vercel dev"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
-    "@vercel/node": "^3.0.0",
+    "@vercel/node": "^3.0.7",
     "axios": "^1.5.0",
     "formidable": "^3.5.1"
   },
-  "devDependencies": {},
-  "keywords": [
-    "screen",
-    "recording",
-    "vimeo"
-  ],
-  "author": "",
   "license": "ISC"
 }
