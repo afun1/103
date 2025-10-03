@@ -618,28 +618,28 @@
     }
     
     if(mode==='system' && screenStream.getAudioTracks().length > 0){
-      audioContext = new AudioContext();
-      const dest = audioContext.createMediaStreamDestination();
-      
-      // Create gain node for system audio
-      systemGainNode = audioContext.createGain();
-      
-      // Create analyzer and connect it AFTER gain node
-      systemAnalyzer = audioContext.createAnalyser();
-      systemAnalyzer.fftSize = 512;
-      systemAnalyzer.smoothingTimeConstant = 0.8;
-      systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
-      
+      // For system audio only, don't use Web Audio API - just pass through directly
+      // This prevents audio loss issues with system audio capture
       const sysT = screenStream.getAudioTracks()[0];
+      
+      // Set up analyzer for meters without affecting the actual recording stream
       if(sysT) {
-        const sysSource = audioContext.createMediaStreamSource(new MediaStream([sysT]));
-        // Connect: Source → Gain → Analyzer → Destination
-        sysSource.connect(systemGainNode);
-        systemGainNode.connect(systemAnalyzer);
-        systemGainNode.connect(dest);
+        try {
+          audioContext = new AudioContext();
+          const sysSource = audioContext.createMediaStreamSource(new MediaStream([sysT]));
+          systemAnalyzer = audioContext.createAnalyser();
+          systemAnalyzer.fftSize = 512;
+          systemAnalyzer.smoothingTimeConstant = 0.8;
+          systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
+          sysSource.connect(systemAnalyzer);
+          // Don't connect to destination - just use for analysis
+        } catch(e) {
+          console.log('Audio analysis setup failed, continuing without meters:', e);
+        }
       }
       
-      return new MediaStream([...screenStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+      // Return the original screen stream with system audio intact
+      return screenStream;
     }
     
     return screenStream;
