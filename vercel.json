@@ -1,13 +1,14 @@
 {
   "version": 2,
+  "name": "screencapture",
   "builds": [
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
     {
       "src": "api/**/*.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "public/**/*",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -22,15 +23,12 @@
   ],
   "functions": {
     "api/**/*.js": {
-      "maxDuration": 60
+      "maxDuration": 30
     }
   },
   "env": {
-    "VIMEO_CLIENT_ID": "@vimeo_client_id",
-    "VIMEO_CLIENT_SECRET": "@vimeo_client_secret",
     "VIMEO_ACCESS_TOKEN": "@vimeo_access_token",
-    "VIMEO_FOLDER_ID": "@vimeo_folder_id",
-    "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_SERVICE_KEY": "@supabase_service_key"
+    "VIMEO_CLIENT_ID": "@vimeo_client_id",
+    "VIMEO_CLIENT_SECRET": "@vimeo_client_secret"
   }
 }

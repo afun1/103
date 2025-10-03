@@ -1,21 +1,28 @@
 {
-  "name": "screencapture",
-  "version": "1.0.0",
-  "description": "101 Excellent Screen Recorder with Vimeo Integration for Vercel",
-  "main": "api/index.js",
+  "name": "sparky-screen-recorder",
+  "version": "2.0.0",
+  "description": "Professional screen recorder with Vimeo integration and customer management",
+  "main": "index.js",
   "scripts": {
     "dev": "vercel dev",
-    "build": "echo 'No build needed for static files'",
-    "vercel-build": "echo 'Vercel build complete'",
-    "start": "vercel dev"
+    "build": "echo 'Build complete'",
+    "start": "node server.js",
+    "deploy": "vercel --prod"
   },
+  "keywords": [
+    "screen-recording",
+    "vimeo",
+    "customer-management",
+    "video-upload"
+  ],
   "dependencies": {
-    "@vimeo/vimeo": "^2.1.1",
-    "@supabase/supabase-js": "^2.38.0"
+    "axios": "^1.6.0",
+    "form-data": "^4.0.0"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "author": "Sparky Screen Recorder",
-  "license": "MIT"
+  }
 }
