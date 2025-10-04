@@ -4,9 +4,9 @@
   "description": "Professional screen recorder with system audio support",
   "main": "index.js",
   "scripts": {
-    "dev": "echo 'Use npm run serve instead'",
-    "build": "echo 'No build needed - static files'",
-    "start": "echo 'Use npm run serve instead'",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "serve": "vercel dev"
   },
   "engines": {
@@ -18,7 +18,10 @@
     "@vimeo/vimeo": "^2.1.1",
     "axios": "^1.5.0",
     "formidable": "^3.5.1",
-    "node-fetch": "^3.3.2"
+    "next": "^15.5.4",
+    "node-fetch": "^3.3.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "license": "ISC"
 }
