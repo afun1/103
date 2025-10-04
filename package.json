@@ -4,9 +4,10 @@
   "description": "Professional screen recorder with system audio support",
   "main": "index.js",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "echo 'Use npm run serve instead'",
     "build": "echo 'No build needed - static files'",
-    "start": "vercel dev"
+    "start": "echo 'Use npm run serve instead'",
+    "serve": "vercel dev"
   },
   "engines": {
     "node": "22.x"
