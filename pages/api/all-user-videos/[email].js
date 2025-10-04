@@ -1,3 +1,4 @@
+// Fixed API endpoint for user videos
 export default async function handler(req, res) {
   const { email } = req.query;
   
