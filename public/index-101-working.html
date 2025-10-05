@@ -1,0 +1,150 @@
+<!-- filepath: c:\sr927c\public\index-101-working.html -->
+<!-- 🎉 101 WORKING VERSION - 32 videos with thumbnails! 🎉 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparky Screen Recorder - 101 Working Version</title>
+    <!-- NOTE: This is the 101 WORKING version with 32 videos and thumbnails! -->
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e2852; color:#333; min-height:100vh; }
+        .container { width:100%; min-height:100vh; display:flex; flex-direction:column; }
+        .header-container { width:100%; height:80px; position:sticky; top:0; z-index:1000; }
+        .main-content { flex:1; display:flex; flex-direction:column; align-items:center; gap:30px; padding:20px; }
+        .preview-section { width:100%; display:flex; justify-content:center; }
+        .preview-screen { width:66%; aspect-ratio:16/9; border:10px solid #333; border-radius:8px; background:#666; display:flex; align-items:center; justify-content:center; color:#666; font-size:18px; position:relative; overflow:hidden; }
+        .controls-section { width:66%; background:#666; border:10px solid #333; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.1); display:flex; gap:40px; }
+        .controls-left { flex:1; }
+        .controls-title { font-size:20px; font-weight:700; margin-bottom:20px; color:#fff; }
+        .record-button-section { width:100%; display:flex; justify-content:center; margin:10px 0; }
+        .record-button { padding:15px 40px; border:2px solid #0f5132; border-radius:12px; font-size:18px; font-weight:700; cursor:pointer; color:#fff; background:linear-gradient(180deg,#198754 0%,#0f5132 100%); box-shadow:0 4px 8px rgba(0,0,0,0.3); transition:all .3s ease; min-width:200px; }
+        @keyframes greenGlow {0%{box-shadow:0 0 20px rgba(34,197,94,1),0 0 40px rgba(34,197,94,.8),0 0 60px rgba(34,197,94,.6),0 4px 8px rgba(34,197,94,.4),inset 0 1px 0 rgba(255,255,255,.3);}100%{box-shadow:0 0 30px rgba(34,197,94,1),0 0 50px rgba(34,197,94,.9),0 0 80px rgba(34,197,94,.7),0 6px 12px rgba(34,197,94,.5),inset 0 1px 0 rgba(255,255,255,.4);}}
+        .record-button:hover { transform:translateY(-2px); box-shadow:0 0 15px rgba(34,197,94,.6),0 0 25px rgba(34,197,94,.3),0 6px 12px rgba(0,0,0,.4); background:linear-gradient(180deg,#20c997 0%,#198754 100%); border-color:rgba(34,197,94,.7); }
+        .record-button.lighting-up { color:#1e40af; background:linear-gradient(180deg,#86efac 0%,#15803d 100%); border-color:rgba(34,197,94,.9); animation:greenGlow 2s ease-in-out infinite alternate; }
+        @keyframes redGlow {0%{box-shadow:0 0 20px rgba(220,38,38,1),0 0 40px rgba(220,38,38,.8),0 0 60px rgba(220,38,38,.6),0 4px 8px rgba(220,38,38,.4),inset 0 1px 0 rgba(255,255,255,.3);}100%{box-shadow:0 0 30px rgba(220,38,38,1),0 0 50px rgba(220,38,38,.9),0 0 80px rgba(220,38,38,.7),0 6px 12px rgba(220,38,38,.5),inset 0 1px 0 rgba(255,255,255,.4);}}
+        .record-button.recording { color:#000; background:linear-gradient(180deg,#fca5a5 0%,#dc2626 100%); border-color:rgba(220,38,38,.9); animation:redGlow 1s ease-in-out infinite alternate; }
+        .metadata-form { width:66%; margin:20px 0; }
+        .form-container { background:#666; border:10px solid #333; border-radius:12px; padding:30px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+        .form-title { font-size:24px; font-weight:700; color:#fff; text-align:center; margin-bottom:30px; }
+        .radio-group { display:flex; gap:30px; justify-content:center; margin-bottom:30px; }
+        .radio-option { display:flex; align-items:center; cursor:pointer; color:#fff; font-size:16px; font-weight:600; }
+        .radio-option input { display:none; }
+        .radio-custom { width:20px; height:20px; border:2px solid #ccc; border-radius:50%; margin-right:10px; position:relative; background:#fff; }
+        .radio-option input:checked + .radio-custom { border-color:#4CAF50; }
+        .radio-option input:checked + .radio-custom::after { content:''; width:10px; height:10px; background:#4CAF50; border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+        .form-label { display:block; color:#fff; font-weight:600; margin:8px 0 8px; font-size:14px; }
+        .form-label.required::after { content:' *'; color:#ff4444; }
+        .form-input, .search-input, .form-textarea { width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; font-size:16px; background:#fff; }
+        .form-textarea { resize:vertical; min-height:100px; }
+        .confirm-button { background:linear-gradient(180deg,#4CAF50 0%,#45a049 100%); color:#fff; border:none; padding:15px 40px; border-radius:8px; font-size:18px; font-weight:700; cursor:pointer; transition:.3s; min-width:200px; }
+        .confirm-button:hover { transform:translateY(-2px); box-shadow:0 6px 12px rgba(76,175,80,.4); }
+        #userVideoGrid h2 { color:#fff; }
+        .video-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:20000; padding:24px; padding-top: 80px; }
+        .video-modal-overlay.open { display:flex; }
+        .video-modal-content { width:100%; max-width:1200px; background:#000; border-radius:10px; overflow:hidden; position:relative; }
+        .video-modal-close { position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.06); color:#fff; border:none; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; }
+        .video-modal-body video, .video-modal-body iframe { width:100%; height:70vh; max-height:80vh; background:#000; display:block; }
+        .video-metadata-section { width:100%; background:#1a1a1a; display:flex; border-top:1px solid #333; }
+        .video-metadata-left { width:33%; background:#2a2a2a; padding:20px; border-right:1px solid #333; }
+        .video-metadata-right { width:67%; padding:20px; background:#1a1a1a; }
+        .metadata-item { color:#e2e8f0; font-size:14px; line-height:1.4; margin-bottom:8px; word-wrap:break-word; word-break:break-word; }
+        .metadata-description { color:#cbd5e1; font-size:14px; line-height:1.5; word-wrap:break-word; word-break:break-word; white-space: pre-wrap; max-height:30vh; overflow-y:auto; }
+        .search-container { position: relative; }
+        .suggestions-dropdown { position: absolute; width: 100%; background: #444; border: 1px solid #888; border-radius: 0 0 6px 6px; z-index: 10; max-height: 250px; overflow-y: auto; }
+        .suggestion-item { padding: 12px 15px; cursor: pointer; color: #fff; border-bottom: 1px solid #555; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #555; }
+        .suggestion-item small { color: #bbb; }
+        #videoGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 20px; }
+        @media (max-width:1200px){ #videoGrid { grid-template-columns: repeat(3,1fr);} }
+        @media (max-width:900px){ #videoGrid { grid-template-columns: repeat(2,1fr);} }
+        @media (max-width:600px){ #videoGrid { grid-template-columns: repeat(1,1fr);} }
+        @media (max-width:888px){ .controls-section { width:85%; padding:18px;} .controls-left > div:first-child > div { flex-direction:column !important; gap:12px !important; align-items:center !important;} .controls-left > div:first-child > div > label { margin-left:0 !important; text-align:center;} }
+        @media (max-width:768px){ .controls-section { width:90%; padding:15px;} .controls-left > div:first-child > div { flex-direction:column !important; gap:15px !important; align-items:center !important;} .controls-left > div:first-child > div > label { margin-left:0 !important; text-align:center;} .audio-meters > div { flex-direction:column !important; gap:15px !important;} .preview-screen { width:90%; } .metadata-form { width:90%; } }
+        @media (max-width:480px){ .controls-section { width:95%; padding:10px;} .controls-left > div:first-child > div { gap:10px !important;} .audio-meters > div > div { flex-direction:column !important; gap:8px !important; align-items:center !important;} .audio-meters > div > div > div:first-child { gap:5px !important;} .audio-meter-compact { width:60px !important;} .preview-screen { width:95%; } .metadata-form { width:95%; } .main-content { gap:20px; padding:10px;} }
+        @media (max-width:416px){ #audioProcessingControls { flex-direction:column; align-items:stretch !important; gap:15px !important;} #systemGainControl,#micGainControl { justify-content:center; border-left:none !important; padding-left:0 !important; flex-wrap:wrap;} }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container"></div>
+        <div class="main-content">
+            <div class="preview-section"><div class="preview-screen"><img src="Sparky-AItp.gif" alt="Sparky AI" style="max-width:200px;max-height:200px;object-fit:contain;"></div></div>
+            <div class="record-button-section" id="recordButtonSection"><button class="record-button" id="recordButton" onclick="handleRecordButtonClick()">🔴 Start Recording</button></div>
+            
+            <!-- PERFECT VIDEO GRID WITH THUMBNAILS - 101 WORKING VERSION -->
+            <div id="userVideoGrid" style="width:100%;max-width:1200px;margin:30px auto 0;padding:0 20px;">
+                <div style="background:#333;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:24px;border:2px solid #555;">
+                    <h2 style="margin:0 0 20px;color:#fff;font-size:24px;font-weight:600;display:flex;align-items:center;gap:10px;justify-content:center;">
+                        <span>📹</span>My Recordings
+                        <span id="videoCountBadge" style="background:#4CAF50;color:#fff;padding:4px 12px;border-radius:16px;font-size:14px;font-weight:500;">32</span>
+                    </h2>
+                    <div id="videoGrid">
+                        <div style="grid-column:1 / -1;display:flex;justify-content:center;align-items:center;height:100px;color:#ccc;font-size:16px;">Loading your recordings...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="global-header.js"></script>
+    
+    <!-- 101 WORKING VERSION - ALL JAVASCRIPT FOR THUMBNAILS AND PAGINATION -->
+    <script>
+    (function(){
+      if(window.__cleanVideosInit) return; window.__cleanVideosInit = true;
+
+      function renderMyRecordings(videos){
+        const grid = document.getElementById('videoGrid');
+        const badge = document.getElementById('videoCountBadge');
+        if(!grid) return;
+        badge && (badge.textContent = videos.length);
+        if(!videos.length){
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ccc;padding:40px;">No recordings found.</div>';
+          return;
+        }
+        window.__videoItemsCache = videos;
+        grid.innerHTML = videos.map((v,i)=>{
+          const safeDesc = (v.__cleanDescription||'').replace(/</g,'&lt;');
+          return `
+          <div class="user-video-card" data-video-index="${i}" style="background:#222c44;border:1px solid #2f3b55;border-radius:12px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;">
+            <div style="position:relative;aspect-ratio:16/9;background:#111;">${v.thumbnail ? `<img src="${v.thumbnail}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : '<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#555;font-size:34px;\'>🎬</div>'}</div>
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+              <div style="color:#fff;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.customerName || ''}</div>
+              <div style="color:#b5b5b5;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.customerEmail || ''}</div>
+              <div style="color:#8dd28d;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.recordedBy.displayName || ''}</div>
+                <div style="color:#6fbf6f;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.recordedBy.email || ''}</div>
+              <div style="color:#999;font-size:10px;">${v.recordingDate ? new Date(v.recordingDate).toLocaleString() : ''}</div>
+              ${safeDesc ? `<div style=\"margin-top:4px;color:#cfd6e2;font-size:11px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;\">${safeDesc}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      // Load videos with working pagination
+      async function loadUserVideos(email){
+        const grid = document.getElementById('videoGrid');
+        if(!grid) return;
+        grid.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;height:110px;color:#bbb;">Loading your recordings...</div>';
+        try {
+          const resp = await fetch(`/api/all-user-videos/${encodeURIComponent(email)}`);
+          if(!resp.ok) throw new Error('HTTP '+resp.status);
+          const raw = await resp.json();
+          renderMyRecordings(raw);
+        } catch(e){
+          console.error(e);
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#f66;padding:40px;">Failed to load recordings.</div>';
+        }
+      }
+
+      document.addEventListener('profileLoaded', e=>{
+        const email = e.detail?.email; 
+        if(email) loadUserVideos(email);
+      });
+    })();
+    </script>
+    
+    <!-- 🎉 101 WORKING VERSION COMPLETE 🎉 -->
+</body>
+</html>

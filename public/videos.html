@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>My Videos</title>
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0f182f; color:#fff; }
+  main { max-width:1400px; margin:70px auto 60px; padding:0 24px; }
+  h1 { font-size:28px; margin:0 0 20px; display:flex; align-items:center; gap:10px; font-weight:600; }
+  #videosToolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:0 0 16px; }
+  #videoGrid { display:grid; gap:18px; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+  .video-card { background:#222c44; border:1px solid #2f3b55; border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; transition:box-shadow .18s,transform .18s; }
+  .video-card:hover { box-shadow:0 6px 18px -4px rgba(0,0,0,.6); transform:translateY(-4px); }
+  .thumb { position:relative; aspect-ratio:16/9; background:#111; }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .badge-date { position:absolute; bottom:6px; left:6px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; padding:3px 7px; border-radius:4px; letter-spacing:.3px; }
+  .meta { padding:10px 12px 12px; display:flex; flex-direction:column; gap:4px; }
+  .line-1 { font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .line-2,.line-3,.line-4,.line-5 { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#b6c2d6; }
+  .line-3 { color:#8dd28d; }
+  .line-4 { color:#6fbf6f; font-size:10px; }
+  .line-5 { color:#999; font-size:10px; }
+  .desc { margin-top:2px; color:#cfd6e2; font-size:11px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; }
+  .status { text-align:center; color:#b0b8c6; padding:40px 10px; grid-column:1/-1; }
+  .pill { background:#1f2c48; border:1px solid #2e3d5a; padding:4px 10px; border-radius:30px; font-size:12px; display:inline-flex; align-items:center; gap:6px; }
+  button.refresh { background:#2563eb; border:none; color:#fff; font-weight:600; padding:10px 18px; border-radius:8px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 10px -2px rgba(0,0,0,.4); }
+  button.refresh:hover { background:#1d4ed8; }
+  button.refresh:active { background:#1e40af; }
+  input#searchBox { background:#1b2540; border:1px solid #2f3b55; border-radius:8px; padding:10px 12px; font-size:14px; color:#fff; width:260px; }
+  input#searchBox:focus { outline:2px solid #2563eb; }
+  .user-video-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:flex-start; justify-content:center; z-index:50000; padding:24px 20px 40px; overflow:auto; }
+  .modal-frame { width:100%; max-width:1150px; background:#0f0f0f; border:1px solid #2a2a2a; border-radius:12px; overflow:hidden; position:relative; box-shadow:0 10px 30px rgba(0,0,0,.45); }
+  .modal-close { position:absolute; top:10px; right:10px; width:44px; height:44px; border:none; border-radius:50%; background:#dc2626; color:#fff; font-size:22px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px rgba(0,0,0,.4); }
+  .modal-close:hover { background:#ef4444; }
+  .modal-video { aspect-ratio:16/9; background:#111; }
+  .modal-sections { display:flex; flex-wrap:wrap; border-top:1px solid #1f1f1f; }
+  .modal-left { flex:1 1 260px; padding:18px 22px; border-right:1px solid #1f1f1f; min-width:240px; display:flex; flex-direction:column; gap:8px; }
+  .modal-left div { font-size:13px; color:#e2e8f0; line-height:1.25; word-break:break-word; }
+  .modal-desc { flex:3 1 400px; padding:18px 0 18px 22px; max-height:260px; overflow:auto; color:#ccc; font-size:13px; line-height:1.4; white-space:pre-wrap; word-break:break-word; margin-right:20px; }
+  @media (max-width:900px){ .modal-left { border-right:none; border-bottom:1px solid #1f1f1f; } .modal-desc { margin-right:0; } }
+
+  /* Table layout styles */
+  .videos-table-wrapper { width:100%; overflow-x:auto; }
+  table.videos-table { width:100%; border-collapse:collapse; font-size:13px; background:#1b2540; }
+  table.videos-table thead { background:#24324f; }
+  table.videos-table th { padding:10px 10px; text-align:left; font-weight:600; color:#dce6f5; font-size:12px; border-bottom:1px solid #334362; white-space:nowrap; }
+  table.videos-table td { padding:8px 10px; border-bottom:1px solid #2b3a56; vertical-align:top; color:#e5ecf7; }
+  table.videos-table tbody tr:hover { background:#22314d; }
+  .thumb-cell { width:70px; }
+  .thumb-small { width:68px; height:38px; object-fit:cover; border-radius:4px; background:#111; display:block; }
+  .no-thumb { width:68px; height:38px; display:flex; align-items:center; justify-content:center; background:#111; color:#555; font-size:18px; border-radius:4px; }
+  .nowrap { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+  .desc-col { max-width:260px; }
+  .desc-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3; color:#c6d2e4; }
+  button.watch-btn { background:#2563eb; border:none; color:#fff; font-weight:600; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 6px -1px rgba(0,0,0,.5); }
+  button.watch-btn:hover { background:#1d4ed8; }
+  button.watch-btn:active { background:#1e40af; }
+  @media (max-width:800px){ table.videos-table th:nth-child(7), table.videos-table td:nth-child(7){ display:none; } }
+</style>
+</head>
+<body>
+  <script src="global-header.js"></script>
+  <main>
+    <h1>📼 My Vimeo Videos <span id="countPill" class="pill" style="display:none;">0</span></h1>
+    <div id="videosToolbar">
+      <input id="searchBox" placeholder="Search (customer, email, recorder, desc)..." />
+      <button class="refresh" id="refreshBtn" type="button">🔄 Refresh</button>
+      <span style="font-size:12px;color:#8ca0c0;">Auto-loads after login</span>
+    </div>
+    <div id="videoGrid"><div class="status">Waiting for profile...</div></div>
+  </main>
+
+<script>
+// Folder-wide public Vimeo load patch
+(function(){
+  if(window.__folderVideosPatched) return; window.__folderVideosPatched = true;
+  const FOLDER_ID = '26555277'; // Vimeo folder id
+  const grid = document.getElementById('videoGrid');
+  const pill = document.getElementById('countPill');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const searchBox = document.getElementById('searchBox');
+
+  // Reuse existing normalization utilities if present
+  const normalizeList = window.normalizeList || (v=>v);
+  let allFolderCache = [];
+  let loadingFolder = false;
+
+  async function fetchFolderVideos(){
+    if(loadingFolder) return; loadingFolder = true;
+    if(grid) grid.innerHTML = '<div class="status">Loading folder videos...</div>';
+    try {
+      // Expect a backend endpoint that proxies Vimeo folder (implement separately)
+      // e.g. /api/vimeo-folder/26555277 returning array of { thumbnail, customerName, customerEmail, description, vimeoLink, recordingDate, recordedBy{displayName,email} }
+      const resp = await fetch(`/api/vimeo-folder/${FOLDER_ID}`);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const data = await resp.json();
+      allFolderCache = normalizeList(data);
+      window.__videosCache = allFolderCache; // keep for existing render logic
+      if(typeof renderVideos === 'function') renderVideos(allFolderCache);
+      else grid.innerHTML = '<div class="status" style="color:#f66;">Render function missing.</div>';
+    } catch(err){
+      console.error('Folder fetch failed', err);
+      grid.innerHTML = '<div class="status" style="color:#f66;">Failed to load folder videos. Ensure /api/vimeo-folder/'+FOLDER_ID+' is implemented.</div>';
+    } finally { loadingFolder = false; }
+  }
+
+  // Override refresh button to use folder fetch
+  if(refreshBtn){
+    refreshBtn.addEventListener('click', ()=> fetchFolderVideos());
+  }
+
+  // Remove dependency on profileLoaded for this page; auto-fetch folder
+  document.addEventListener('DOMContentLoaded', fetchFolderVideos);
+
+  // Override search to filter folder cache
+  if(searchBox){
+    const origFilter = window.filterVideos;
+    window.filterVideos = function(term){
+      term = (term||'').toLowerCase();
+      if(!term){ if(typeof renderVideos==='function') renderVideos(allFolderCache); return; }
+      const filtered = allFolderCache.filter(v=>{
+        const blob = [v.customerName,v.customerEmail,v.recordedBy?.displayName,v.recordedBy?.email,v.__cleanDescription,v.description].join('\n').toLowerCase();
+        return blob.includes(term);
+      });
+      if(typeof renderVideos==='function') renderVideos(filtered);
+    };
+    searchBox.addEventListener('input', e=> window.filterVideos(e.target.value));
+  }
+})();
+</script>
+<script>
+// Normalization & fetch
+let __videosCache = [];
+let __loading = false;
+
+function splitDescription(desc){
+  if(!desc) return { userPart:'', detailsPart:'' };
+  const marker = /---\s*RECORDING DETAILS\s*---/i;
+  const idx = desc.search(marker);
+  if(idx === -1) return { userPart: desc.trim(), detailsPart:'' };
+  const before = desc.slice(0, idx).trim();
+  const after = desc.slice(idx).replace(marker,'').trim();
+  return { userPart: before, detailsPart: after };
+}
+function extractDetailsMap(detailsPart){
+  const map={}; if(!detailsPart) return map;
+  detailsPart.split(/\n+/).forEach(line=>{ const t=line.trim(); if(!t) return; const m=t.match(/^([A-Za-z ]+):\s*(.+)$/); if(m){ const key=m[1].toLowerCase().replace(/\s+/g,'_'); if(!(key in map)) map[key]=m[2].trim(); }}); return map; }
+function normalizeVideo(v, profile){
+  if(!v) return v; if(!v.recordedBy) v.recordedBy={};
+  const {userPart, detailsPart} = splitDescription(v.description||'');
+  const info = extractDetailsMap(detailsPart);
+  if(!v.customerName && info.customer) v.customerName = info.customer;
+  if(!v.customerEmail && info.customer_email) v.customerEmail = info.customer_email;
+  const nameCandidates=[v.recordedBy.displayName, v.recordedByName, info.recorded_by, profile.displayName, profile.email].filter(Boolean);
+  const emailCandidates=[v.recordedBy.email, v.recordedByEmail, info.recorded_by_email, profile.email].filter(Boolean);
+  v.recordedBy.displayName = nameCandidates[0] || 'Unknown';
+  v.recordedBy.email = emailCandidates[0] || '';
+  v.__cleanDescription = userPart;
+  return v;
+}
+function normalizeList(list){
+  const prof = window.headerUserProfile || {};
+  return (list||[]).map(v=>normalizeVideo(v, prof));
+}
+
+async function fetchUserVideos(email){
+  if(__loading) return; __loading=true;
+  const grid = document.getElementById('videoGrid');
+  grid.innerHTML = '<div class="status">Loading videos...</div>';
+  try {
+    const resp = await fetch(`/api/all-user-videos/${encodeURIComponent(email)}`);
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data = await resp.json();
+    __videosCache = normalizeList(data);
+    renderVideos(__videosCache);
+  } catch(err){
+    console.error('Video fetch failed', err);
+    grid.innerHTML = '<div class="status" style="color:#f66;">Failed to load videos.</div>';
+  } finally { __loading=false; }
+}
+
+function renderVideos(list){
+  const grid = document.getElementById('videoGrid');
+  const pill = document.getElementById('countPill');
+  pill.style.display='inline-flex'; pill.textContent=list.length;
+  if(!list.length){ grid.innerHTML = '<div class="status">No videos found.</div>'; return; }
+  grid.innerHTML = list.map((v,i)=>{
+    const safeDesc = (v.__cleanDescription||'').replace(/</g,'&lt;');
+    return `
+      <div class="video-card" data-vid="${i}">
+        <div class="thumb">${v.thumbnail ? `<img src="${v.thumbnail}">` : '<div style=\'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#555;font-size:36px;\'>🎬</div>'}
+          <div class="badge-date">${v.recordingDate ? new Date(v.recordingDate).toLocaleDateString() : ''}</div>
+        </div>
+        <div class="meta">
+          <div class="line-1">${v.customerName||''}</div>
+            <div class="line-2">${v.customerEmail||''}</div>
+            <div class="line-3">${v.recordedBy.displayName||''}</div>
+            <div class="line-4">${v.recordedBy.email||''}</div>
+            <div class="line-5">${v.recordingDate? new Date(v.recordingDate).toLocaleString():''}</div>
+            ${safeDesc? `<div class=\"desc\">${safeDesc}</div>`:''}
+        </div>
+      </div>`; }).join('');
+}
+
+function filterVideos(term){
+  term = term.trim().toLowerCase();
+  if(!term) return renderVideos(__videosCache);
+  const filtered = __videosCache.filter(v=>{
+    const blob = [v.customerName,v.customerEmail,v.recordedBy?.displayName,v.recordedBy?.email,v.__cleanDescription].join('\n').toLowerCase();
+    return blob.includes(term);
+  });
+  renderVideos(filtered);
+}
+
+// Modal
+function openVideoModal(video){
+  document.querySelectorAll('.user-video-modal-overlay').forEach(e=>e.remove());
+  const overlay = document.createElement('div');
+  overlay.className='user-video-modal-overlay';
+  const safeDesc = (video.__cleanDescription||'').replace(/</g,'&lt;') || 'No description provided.';
+  overlay.innerHTML = `
+    <div class="modal-frame">
+      <button class="modal-close" aria-label="Close">×</button>
+      <div class="modal-video">${video.vimeoLink ? `<iframe src="${video.vimeoLink.replace('vimeo.com','player.vimeo.com/video')}" style="width:100%;height:100%;border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>`:'<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#555;\'>No Link</div>'}</div>
+      <div class="modal-sections">
+        <div class="modal-left">
+          <div>${video.customerName||''}</div>
+          <div>${video.customerEmail||''}</div>
+          <div>${video.recordedBy?.displayName||''}</div>
+          <div>${video.recordedBy?.email||''}</div>
+          <div>${video.recordingDate? new Date(video.recordingDate).toLocaleString():''}</div>
+        </div>
+        <div class="modal-desc">${safeDesc}</div>
+      </div>
+    </div>`;
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+  overlay.querySelector('.modal-close').addEventListener('click',()=> overlay.remove());
+  document.body.appendChild(overlay);
+}
+
+document.addEventListener('click', e=>{
+  const card = e.target.closest('.video-card');
+  if(card && card.dataset.vid){
+    const v = __videosCache[card.dataset.vid];
+    if(v) openVideoModal(v);
+  }
+});
+
+// Events
+const searchBox = document.getElementById('searchBox');
+searchBox.addEventListener('input', e=> filterVideos(e.target.value));
+document.getElementById('refreshBtn').addEventListener('click', ()=>{
+  if(window.headerUserProfile?.email) fetchUserVideos(window.headerUserProfile.email);
+});
+
+document.addEventListener('profileLoaded', e=>{
+  const email = e.detail?.email; if(email) fetchUserVideos(email);
+});
+</script>
+<!-- Table layout patch -->
+<script>
+(function(){
+  if(window.__videosTableApplied) return; window.__videosTableApplied = true;
+
+  // Inject table styles
+  const style = document.createElement('style');
+  style.textContent = `
+    .videos-table-wrapper { width:100%; overflow-x:auto; }
+    table.videos-table { width:100%; border-collapse:collapse; font-size:13px; background:#1b2540; }
+    table.videos-table thead { background:#24324f; }
+    table.videos-table th { padding:10px 10px; text-align:left; font-weight:600; color:#dce6f5; font-size:12px; border-bottom:1px solid #334362; white-space:nowrap; }
+    table.videos-table td { padding:8px 10px; border-bottom:1px solid #2b3a56; vertical-align:top; color:#e5ecf7; }
+    table.videos-table tbody tr:hover { background:#22314d; }
+    .thumb-cell { width:70px; }
+    .thumb-small { width:68px; height:38px; object-fit:cover; border-radius:4px; background:#111; display:block; }
+    .no-thumb { width:68px; height:38px; display:flex; align-items:center; justify-content:center; background:#111; color:#555; font-size:18px; border-radius:4px; }
+    .nowrap { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+    .desc-col { max-width:260px; }
+    .desc-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3; color:#c6d2e4; }
+    button.watch-btn { background:#2563eb; border:none; color:#fff; font-weight:600; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 6px -1px rgba(0,0,0,.5); }
+    button.watch-btn:hover { background:#1d4ed8; }
+    button.watch-btn:active { background:#1e40af; }
+    @media (max-width:800px){ table.videos-table th:nth-child(7), table.videos-table td:nth-child(7){ display:none; } }
+  `;
+  document.head.appendChild(style);
+
+  // Preserve reference to original renderVideos if we need revert
+  const originalRenderVideos = window.renderVideos;
+
+  function escapeHTML(s){ return (s||'').replace(/</g,'&lt;'); }
+  function truncate(s, n){ if(!s) return ''; return s.length>n ? s.slice(0,n-1)+'…' : s; }
+
+  window.renderVideos = function(list){
+    const pill = document.getElementById('countPill');
+    const grid = document.getElementById('videoGrid');
+    if(!grid) return;
+    pill && (pill.style.display='inline-flex', pill.textContent=list.length);
+    if(!list.length){
+      grid.innerHTML = '<div class="status">No videos found.</div>';
+      return;
+    }
+    const rows = list.map((v,i)=>{
+      const dateStr = v.recordingDate ? new Date(v.recordingDate).toLocaleString() : '';
+      const desc = v.__cleanDescription || '';
+      return `<tr data-vid="${i}">
+        <td class=\"thumb-cell\">${v.thumbnail ? `<img class=\"thumb-small\" src=\"${v.thumbnail}\">` : '<div class=\"no-thumb\">🎬</div>'}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(v.customerName||'')}\">${escapeHTML(v.customerName||'')}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(v.customerEmail||'')}\">${escapeHTML(v.customerEmail||'')}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(v.recordedBy?.displayName||'')}\">${escapeHTML(v.recordedBy?.displayName||'')}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(v.recordedBy?.email||'')}\">${escapeHTML(v.recordedBy?.email||'')}</td>
+        <td class=\"nowrap\" title=\"${escapeHTML(dateStr)}\">${escapeHTML(dateStr)}</td>
+        <td class=\"desc-col\"><div class=\"desc-text\" title=\"${escapeHTML(desc)}\">${escapeHTML(truncate(desc,220))}</div></td>
+        <td><button class=\"watch-btn\" data-watch-index=\"${i}\">▶ Watch</button></td>
+      </tr>`;
+    }).join('');
+
+    grid.innerHTML = `<div class=\"videos-table-wrapper\"><table class=\"videos-table\"><thead><tr>
+      <th>Thumb</th><th>Customer</th><th>Email</th><th>Recorded By</th><th>Recorder Email</th><th>Timestamp</th><th>Description</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+  };
+
+  // Delegate watch button clicks
+  document.addEventListener('click', e=>{
+    const btn = e.target.closest('button.watch-btn');
+    if(btn && btn.dataset.watchIndex){
+      const idx = parseInt(btn.dataset.watchIndex,10);
+      const v = (window.__videosCache||[])[idx];
+      if(v) {
+        if(typeof openVideoModal === 'function') openVideoModal(v); // if modal expects video obj
+        else if(typeof openVideoModalSafe === 'function') openVideoModalSafe(v);
+        else {
+          // fallback create minimal modal
+          alert('Modal function missing');
+        }
+      }
+    }
+  });
+})();
+</script>
+<!-- Full-width table patch -->
+<script>
+(function(){
+  if(window.__videosFullWidthApplied) return; window.__videosFullWidthApplied = true;
+  const style = document.createElement('style');
+  style.textContent = `
+    main { max-width:none !important; width:100% !important; padding:0 10px 60px !important; }
+    .videos-table-wrapper { width:100%; overflow-x:auto; }
+    table.videos-table { min-width:1200px; }
+    /* Force previously hidden column to stay visible on small screens */
+    @media (max-width:800px){ table.videos-table th:nth-child(7), table.videos-table td:nth-child(7){ display:table-cell !important; } }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+<!-- End full-width table patch -->
+<!-- End table layout patch -->
+</body>
+</html>

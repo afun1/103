@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Recorder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f2f5 0%, #e8eaed 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-container {
+            width: 100%;
+            height: 80px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .preview-section {
+            width: 66%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-screen {
+            width: 100%;
+            height: 500px;
+            border: 10px solid #333;
+            border-radius: 8px;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-placeholder {
+            text-align: center;
+            color: #666;
+        }
+
+        .controls-section {
+            width: 34%;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .controls-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .control-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .record-button {
+            background: linear-gradient(180deg, #ff6b6b 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+        }
+
+        .record-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(220, 38, 38, 0.4);
+        }
+
+        .stop-button {
+            background: linear-gradient(180deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            box-shadow: 0 4px 8px rgba(75, 85, 99, 0.3);
+        }
+
+        .stop-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(75, 85, 99, 0.4);
+        }
+
+        .pause-button {
+            background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            box-shadow: 0 4px 8px rgba(217, 119, 6, 0.3);
+        }
+
+        .pause-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(217, 119, 6, 0.4);
+        }
+
+        .status-indicator {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .status-ready {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-recording {
+            background: #fef2f2;
+            color: #dc2626;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .settings-section {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .setting-select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <iframe src="header.html" width="100%" height="80" frameborder="0"></iframe>
+        </div>
+        
+        <div class="main-content">
+            <div class="preview-section">
+                <div class="preview-screen">
+                    <div class="preview-placeholder">
+                        <h3>Screen Preview</h3>
+                        <p>Recording preview will appear here</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls-section">
+                <h2 class="controls-title">Recording Controls</h2>
+                
+                <div class="status-indicator status-ready" id="status">
+                    Ready to Record
+                </div>
+                
+                <div class="control-group">
+                    <button class="control-button record-button" onclick="startRecording()">
+                        🔴 Start Recording
+                    </button>
+                    <button class="control-button pause-button" onclick="pauseRecording()">
+                        ⏸️ Pause Recording
+                    </button>
+                    <button class="control-button stop-button" onclick="stopRecording()">
+                        ⏹️ Stop Recording
+                    </button>
+                </div>
+                
+                <div class="settings-section">
+                    <h3 style="margin-bottom: 15px; color: #374151;">Settings</h3>
+                    
+                    <div class="setting-item">
+                        <label class="control-label">Quality:</label>
+                        <select class="setting-select" id="quality">
+                            <option value="720p">720p HD</option>
+                            <option value="1080p" selected>1080p Full HD</option>
+                            <option value="4k">4K Ultra HD</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="control-label">Frame Rate:</label>
+                        <select class="setting-select" id="framerate">
+                            <option value="30">30 FPS</option>
+                            <option value="60" selected>60 FPS</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="control-label">Audio:</label>
+                        <select class="setting-select" id="audio">
+                            <option value="system">System Audio</option>
+                            <option value="microphone">Microphone</option>
+                            <option value="both" selected>Both</option>
+                            <option value="none">No Audio</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+        let isPaused = false;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+
+        function updateStatus(message, className) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status-indicator ${className}`;
+        }
+
+        async function startRecording() {
+            try {
+                if (isRecording) return;
+                
+                // Request screen capture
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        mediaSource: 'screen'
+                    },
+                    audio: true
+                });
+                
+                // Update preview
+                const previewScreen = document.querySelector('.preview-screen');
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.muted = true;
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'contain';
+                
+                previewScreen.innerHTML = '';
+                previewScreen.appendChild(video);
+                
+                // Set up MediaRecorder
+                mediaRecorder = new MediaRecorder(stream);
+                recordedChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Create download link
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `screen-recording-${new Date().toISOString().slice(0, 19)}.webm`;
+                    a.click();
+                    
+                    // Reset preview
+                    previewScreen.innerHTML = `
+                        <div class="preview-placeholder">
+                            <h3>Screen Preview</h3>
+                            <p>Recording preview will appear here</p>
+                        </div>
+                    `;
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                updateStatus('🔴 Recording...', 'status-recording');
+                
+            } catch (err) {
+                console.error('Error starting recording:', err);
+                updateStatus('Error: Could not start recording', 'status-ready');
+            }
+        }
+
+        function pauseRecording() {
+            if (!isRecording || !mediaRecorder) return;
+            
+            if (isPaused) {
+                mediaRecorder.resume();
+                updateStatus('🔴 Recording...', 'status-recording');
+                isPaused = false;
+            } else {
+                mediaRecorder.pause();
+                updateStatus('⏸️ Recording Paused', 'status-ready');
+                isPaused = true;
+            }
+        }
+
+        function stopRecording() {
+            if (!isRecording || !mediaRecorder) return;
+            
+            mediaRecorder.stop();
+            isRecording = false;
+            isPaused = false;
+            updateStatus('Processing recording...', 'status-ready');
+            
+            // Stop all tracks
+            if (mediaRecorder.stream) {
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+            
+            setTimeout(() => {
+                updateStatus('Ready to Record', 'status-ready');
+            }, 2000);
+        }
+
+        // Handle iframe communication
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'resizeIframe') {
+                // Handle iframe resize if needed
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1581 @@
+<!-- Backup copy of index.html created on request. Label: 101 Working List -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparky Screen Recorder - Professional Edition</title>
+    <!-- NOTE: Fresh deployment with optimized performance -->
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e2852; color:#333; min-height:100vh; }
+        .container { width:100%; min-height:100vh; display:flex; flex-direction:column; }
+        .header-container { width:100%; height:80px; position:sticky; top:0; z-index:1000; }
+        .main-content { flex:1; display:flex; flex-direction:column; align-items:center; gap:30px; padding:20px; }
+        .preview-section { width:100%; display:flex; justify-content:center; }
+        .preview-screen { width:66%; aspect-ratio:16/9; border:10px solid #333; border-radius:8px; background:#666; display:flex; align-items:center; justify-content:center; color:#666; font-size:18px; position:relative; overflow:hidden; }
+        .controls-section { width:66%; background:#666; border:10px solid #333; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.1); display:flex; gap:40px; }
+        .controls-left { flex:1; }
+        .controls-title { font-size:20px; font-weight:700; margin-bottom:20px; color:#fff; }
+        .record-button-section { width:100%; display:flex; justify-content:center; margin:10px 0; }
+        .record-button { padding:15px 40px; border:2px solid #0f5132; border-radius:12px; font-size:18px; font-weight:700; cursor:pointer; color:#fff; background:linear-gradient(180deg,#198754 0%,#0f5132 100%); box-shadow:0 4px 8px rgba(0,0,0,0.3); transition:all .3s ease; min-width:200px; }
+        @keyframes greenGlow {0%{box-shadow:0 0 20px rgba(34,197,94,1),0 0 40px rgba(34,197,94,.8),0 0 60px rgba(34,197,94,.6),0 4px 8px rgba(34,197,94,.4),inset 0 1px 0 rgba(255,255,255,.3);}100%{box-shadow:0 0 30px rgba(34,197,94,1),0 0 50px rgba(34,197,94,.9),0 0 80px rgba(34,197,94,.7),0 6px 12px rgba(34,197,94,.5),inset 0 1px 0 rgba(255,255,255,.4);}}
+        .record-button:hover { transform:translateY(-2px); box-shadow:0 0 15px rgba(34,197,94,.6),0 0 25px rgba(34,197,94,.3),0 6px 12px rgba(0,0,0,.4); background:linear-gradient(180deg,#20c997 0%,#198754 100%); border-color:rgba(34,197,94,.7); }
+        .record-button.lighting-up { color:#1e40af; background:linear-gradient(180deg,#86efac 0%,#15803d 100%); border-color:rgba(34,197,94,.9); animation:greenGlow 2s ease-in-out infinite alternate; }
+        @keyframes redGlow {0%{box-shadow:0 0 20px rgba(220,38,38,1),0 0 40px rgba(220,38,38,.8),0 0 60px rgba(220,38,38,.6),0 4px 8px rgba(220,38,38,.4),inset 0 1px 0 rgba(255,255,255,.3);}100%{box-shadow:0 0 30px rgba(220,38,38,1),0 0 50px rgba(220,38,38,.9),0 0 80px rgba(220,38,38,.7),0 6px 12px rgba(220,38,38,.5),inset 0 1px 0 rgba(255,255,255,.4);}}
+        .record-button.recording { color:#000; background:linear-gradient(180deg,#fca5a5 0%,#dc2626 100%); border-color:rgba(220,38,38,.9); animation:redGlow 1s ease-in-out infinite alternate; }
+        .metadata-form { width:66%; margin:20px 0; }
+        .form-container { background:#666; border:10px solid #333; border-radius:12px; padding:30px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+        .form-title { font-size:24px; font-weight:700; color:#fff; text-align:center; margin-bottom:30px; }
+        .radio-group { display:flex; gap:30px; justify-content:center; margin-bottom:30px; }
+        .radio-option { display:flex; align-items:center; cursor:pointer; color:#fff; font-size:16px; font-weight:600; }
+        .radio-option input { display:none; }
+        .radio-custom { width:20px; height:20px; border:2px solid #ccc; border-radius:50%; margin-right:10px; position:relative; background:#fff; }
+        .radio-option input:checked + .radio-custom { border-color:#4CAF50; }
+        .radio-option input:checked + .radio-custom::after { content:''; width:10px; height:10px; background:#4CAF50; border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+        .form-label { display:block; color:#fff; font-weight:600; margin:8px 0 8px; font-size:14px; }
+        .form-label.required::after { content:' *'; color:#ff4444; }
+        .form-input, .search-input, .form-textarea { width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; font-size:16px; background:#fff; }
+        .form-textarea { resize:vertical; min-height:100px; }
+  .confirm-button { background:linear-gradient(180deg,#4CAF50 0%,#45a049 100%); color:#fff; border:none; padding:15px 40px; border-radius:8px; font-size:18px; font-weight:700; cursor:pointer; transition:.3s; min-width:200px; }
+        .confirm-button:hover { transform:translateY(-2px); box-shadow:0 6px 12px rgba(76,175,80,.4); }
+        #userVideoGrid h2 { color:#fff; }
+        .video-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:20000; padding:24px; padding-top: 80px; }
+        .video-modal-overlay.open { display:flex; }
+        .video-modal-content { width:100%; max-width:1200px; background:#000; border-radius:10px; overflow:hidden; position:relative; }
+        .video-modal-close { position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.06); color:#fff; border:none; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; }
+        .video-modal-body video, .video-modal-body iframe { width:100%; height:70vh; max-height:80vh; background:#000; display:block; }
+        .video-metadata-section { width:100%; background:#1a1a1a; display:flex; border-top:1px solid #333; }
+        .video-metadata-left { width:33%; background:#2a2a2a; padding:20px; border-right:1px solid #333; }
+        .video-metadata-right { width:67%; padding:20px; background:#1a1a1a; }
+        .metadata-item { color:#e2e8f0; font-size:14px; line-height:1.4; margin-bottom:8px; word-wrap:break-word; word-break:break-word; }
+        .metadata-description { color:#cbd5e1; font-size:14px; line-height:1.5; word-wrap:break-word; word-break:break-word; white-space: pre-wrap; max-height:30vh; overflow-y:auto; }
+        .search-container { position: relative; }
+        .suggestions-dropdown { position: absolute; width: 100%; background: #444; border: 1px solid #888; border-radius: 0 0 6px 6px; z-index: 10; max-height: 250px; overflow-y: auto; }
+        .suggestion-item { padding: 12px 15px; cursor: pointer; color: #fff; border-bottom: 1px solid #555; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #555; }
+        .suggestion-item small { color: #bbb; }
+        #videoGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 20px; }
+        @media (max-width:1200px){ #videoGrid { grid-template-columns: repeat(3,1fr);} }
+        @media (max-width:900px){ #videoGrid { grid-template-columns: repeat(2,1fr);} }
+        @media (max-width:600px){ #videoGrid { grid-template-columns: repeat(1,1fr);} }
+        @media (max-width:888px){ .controls-section { width:85%; padding:18px;} .controls-left > div:first-child > div { flex-direction:column !important; gap:12px !important; align-items:center !important;} .controls-left > div:first-child > div > label { margin-left:0 !important; text-align:center;} }
+        @media (max-width:768px){ .controls-section { width:90%; padding:15px;} .controls-left > div:first-child > div { flex-direction:column !important; gap:15px !important; align-items:center !important;} .controls-left > div:first-child > div > label { margin-left:0 !important; text-align:center;} .audio-meters > div { flex-direction:column !important; gap:15px !important;} .preview-screen { width:90%; } .metadata-form { width:90%; } }
+        @media (max-width:480px){ .controls-section { width:95%; padding:10px;} .controls-left > div:first-child > div { gap:10px !important;} .audio-meters > div > div { flex-direction:column !important; gap:8px !important; align-items:center !important;} .audio-meters > div > div > div:first-child { gap:5px !important;} .audio-meter-compact { width:60px !important;} .preview-screen { width:95%; } .metadata-form { width:95%; } .main-content { gap:20px; padding:10px;} }
+        @media (max-width:416px){ #audioProcessingControls { flex-direction:column; align-items:stretch !important; gap:15px !important;} #systemGainControl,#micGainControl { justify-content:center; border-left:none !important; padding-left:0 !important; flex-wrap:wrap;} }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container"></div>
+        <div class="main-content">
+            <div class="preview-section"><div class="preview-screen"><img src="Sparky-AItp.gif" alt="Sparky AI" style="max-width:200px;max-height:200px;object-fit:contain;"></div></div>
+            <div class="record-button-section" id="recordButtonSection"><button class="record-button" id="recordButton" onclick="handleRecordButtonClick()">🔴 Start Recording</button></div>
+            <div class="metadata-form" id="metadataForm" style="display:none;">
+                <div class="form-container">
+                    <h2 class="form-title">Recording Complete - Add Details</h2>
+                    <div class="radio-group">
+                        <label class="radio-option"><input type="radio" name="customerType" value="existing" onchange="toggleCustomerForm('existing')"><span class="radio-custom"></span>Existing Customer</label>
+                        <label class="radio-option"><input type="radio" name="customerType" value="new" onchange="toggleCustomerForm('new')"><span class="radio-custom"></span>New Customer</label>
+                    </div>
+                    <div id="existingCustomerForm" class="customer-form" style="display:none;">
+                        <div style="display:flex;justify-content:center;">
+                            <div class="search-container" style="width:50%;">
+                                <label class="form-label">Search Customer</label>
+                                <input type="text" id="customerSearch" placeholder="Type name or email..." class="search-input">
+                                <div id="customerSuggestions" class="suggestions-dropdown"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="newCustomerForm" class="customer-form" style="display:none;">
+                        <div class="form-row" style="display:flex; gap:20px; justify-content:center;">
+                            <div style="flex:0 1 50%;"><label class="form-label required">First Name</label><input type="text" id="firstName" required class="form-input"></div>
+                            <div style="flex:0 1 50%;"><label class="form-label required">Last Name</label><input type="text" id="lastName" required class="form-input"></div>
+                        </div>
+                        <label class="form-label required">Email</label>
+                        <input type="email" id="email" required class="form-input">
+                    </div>
+                    <div id="commonFields" style="display:none;">
+                        <label class="form-label">Description (Optional)</label>
+                        <textarea id="description" class="form-textarea" placeholder="Add any additional notes..." maxlength="5000"></textarea>
+                    </div>
+                    <div style="text-align:center;margin-top:30px;">
+                        <button class="confirm-button" onclick="confirmUpload()">📤 Confirm Upload</button>
+                    </div>
+                </div>
+            </div>
+            <div class="controls-section" id="controlsSection">
+                <div class="controls-left">
+                    <div style="display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px;">
+                        <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">Audio Source:</label>
+                        <select id="audioSource" class="setting-select" style="padding:2px 6px;font-size:12px;height:24px;">
+                            <option value="none" selected>No Audio</option>
+                            <option value="system">System Audio</option>
+                            <option value="mic">Microphone</option>
+                            <option value="mixed">System + Mic</option>
+                        </select>
+                        <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">Video Settings:</label>
+                        <select class="setting-select" style="padding:2px 6px;font-size:12px;height:24px;" id="quality">
+                            <option value="480p" selected>480p SD</option>
+                            <option value="720p">720p HD</option>
+                            <option value="1080p">1080p Full HD</option>
+                            <option value="4k">4K Ultra HD</option>
+                        </select>
+                        <select class="setting-select" style="padding:2px 6px;font-size:12px;height:24px;" id="framerate">
+                            <option value="30">30 FPS</option>
+                            <option value="60" selected>60 FPS</option>
+                        </select>
+                    </div>
+                    <div id="audioProcessingControls" style="display:none; justify-content:center; align-items:center; gap: 12px; flex-wrap: wrap; border-top: 1px solid #888; padding-top: 15px;">
+                        <div id="systemGainControl" style="display:none; align-items:center; gap: 8px; border-left: 2px solid #aaa; padding-left: 8px;">
+                            <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">System:</label>
+                            <input id="systemGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+                            <span id="systemGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+                            <div id="masterGainControl" style="display:flex;align-items:center;gap:6px; border-left: 2px solid #4CAF50; padding-left: 8px;">
+                                <div style="font-size:11px;color:#ccc;">Out:</div>
+                                <div style="width:100px;height:10px;background:#1b1b1b;border:1px solid #444;border-radius:5px;overflow:hidden;position:relative;">
+                                    <div id="outputMeterFill" style="height:100%;width:0%;background:#4caf50;transition:width .1s linear;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="micGainControl" style="display:none; align-items:center; gap: 8px; border-left: 2px solid #aaa; padding-left: 8px;">
+                            <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">Mic:</label>
+                            <input id="micGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+                            <span id="micGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <div style="font-size:11px;color:#ccc;">In:</div>
+                                <div style="width:60px;height:10px;background:#1b1b1b;border:1px solid #444;border-radius:5px;overflow:hidden;position:relative;">
+                                    <div id="micMeterFill" style="height:100%;width:0%;background:#4caf50;transition:width .1s linear;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="userVideoGrid" style="width:100%;max-width:1200px;margin:30px auto 0;padding:0 20px;">
+                <div style="background:#333;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:24px;border:2px solid #555;">
+                    <h2 style="margin:0 0 20px;color:#fff;font-size:24px;font-weight:600;display:flex;align-items:center;gap:10px;justify-content:center;">
+                        <span>📹</span>My Recordings
+                        <span id="videoCountBadge" style="background:#4CAF50;color:#fff;padding:4px 12px;border-radius:16px;font-size:14px;font-weight:500;">0</span>
+                    </h2>
+                    <div id="videoGrid">
+                        <div style="grid-column:1 / -1;display:flex;justify-content:center;align-items:center;height:100px;color:#ccc;font-size:16px;">Loading your recordings...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="global-header.js"></script>
+    <script>
+        // ...existing code from original index (logic unchanged, backup copy)...
+    </script>
+    <!-- Clean user video fetch/reset logic -->
+<script>
+(function(){
+  if(window.__cleanVideosInit) return; window.__cleanVideosInit = true;
+
+  const METADATA_LINE_REGEX = /^(Customer(?: Email)?|Recorded By(?: Email)?|Recording Date):\s*(.*)$/i;
+  const METADATA_KEY_MAP = {
+    'customer': 'customerName',
+    'customer email': 'customerEmail',
+    'recorded by': 'recordedBy',
+    'recorded by email': 'recordedByEmail',
+    'recording date': 'recordingDate'
+  };
+
+  function convertVimeoLinkToPlayer(link){
+    if(!link) return '';
+    if(link.includes('player.vimeo.com')) return link;
+
+    const hashed = link.match(/vimeo\.com\/(\d+)\/([a-z0-9]+)/i);
+    if(hashed){
+      return `https://player.vimeo.com/video/${hashed[1]}?h=${hashed[2]}`;
+    }
+
+    const numeric = link.match(/vimeo\.com\/(\d+)/i);
+    if(numeric){
+      return `https://player.vimeo.com/video/${numeric[1]}`;
+    }
+
+    return '';
+  }
+
+  function getPlayerEmbedUrl(video){
+    if(!video) return '';
+    const direct = video.playerEmbedUrl || video.player_embed_url;
+    if(direct) return direct;
+    return convertVimeoLinkToPlayer(video.vimeoLink || video.link || '');
+  }
+
+  function stripMetadataText(desc){
+    let text = (desc || '').replace(/\r\n/g, '\n');
+    if(!text.trim()) return '';
+
+    const markerIdx = text.search(/---\s*RECORDING DETAILS\s*---/i);
+    if(markerIdx !== -1){
+      text = text.slice(0, markerIdx);
+    }
+
+    const filtered = text
+      .split('\n')
+      .filter(line => !METADATA_LINE_REGEX.test(line.trim()));
+
+    return filtered.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  }
+
+  function collectMetadata(desc){
+    const seen = new Set();
+    const lines = [];
+    const map = {};
+    (desc || '').replace(/\r\n/g,'\n').split('\n').forEach(line => {
+      const match = line.trim().match(METADATA_LINE_REGEX);
+      if(!match) return;
+      const label = match[1];
+      const lower = label.toLowerCase();
+      if(seen.has(lower)) return;
+      seen.add(lower);
+      const value = (match[2] || '').trim();
+      lines.push(`${label}: ${value}`.trim());
+      const key = METADATA_KEY_MAP[lower];
+      if(key && !(key in map)) map[key] = value;
+    });
+    return { lines, map };
+  }
+
+  function splitDescription(desc){
+    const clean = stripMetadataText(desc);
+    const { lines, map } = collectMetadata(desc);
+    return {
+      userPart: clean,
+      detailsPart: lines.join('\n'),
+      metaMap: map
+    };
+  }
+
+  function normalizeVideo(v, profile){
+    const nv = { ...v };
+    const rawDesc = v.rawDescription ?? v.description ?? '';
+    const { userPart, metaMap } = splitDescription(rawDesc);
+    const combinedMeta = { ...metaMap, ...(v.metadata || {}) };
+    const profileName = profile?.displayName || '';
+    const profileEmail = profile?.email || '';
+
+    nv.vimeoLink = nv.vimeoLink || v.vimeoLink || v.link || '';
+    nv.customerName = nv.customerName || nv.name || combinedMeta.customerName || '';
+    nv.customerEmail = nv.customerEmail || combinedMeta.customerEmail || '';
+
+    const recordedByName = (nv.recordedBy && nv.recordedBy.displayName) || combinedMeta.recordedBy || profileName;
+    const recordedByEmail = (nv.recordedBy && nv.recordedBy.email) || combinedMeta.recordedByEmail || profileEmail;
+    nv.recordedBy = { displayName: recordedByName || '', email: recordedByEmail || '' };
+
+    nv.recordingDate = nv.recordingDate || combinedMeta.recordingDate || v.recordingDate || '';
+    nv.__cleanDescription = userPart || (v.description || '');
+    nv.description = nv.description || nv.__cleanDescription;
+    nv.playerEmbedUrl = nv.playerEmbedUrl || getPlayerEmbedUrl(nv);
+    return nv;
+  }
+  function normalizeList(list){
+    const prof = window.headerUserProfile || {};
+    return (list||[]).map(v=>normalizeVideo(v, prof));
+  }
+
+  async function loadUserVideos(email){
+    const grid = document.getElementById('videoGrid');
+    if(!grid) return;
+    grid.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;height:110px;color:#bbb;">Loading your recordings...</div>';
+    try {
+      const resp = await fetch(`/api/all-user-videos/${encodeURIComponent(email)}`);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const raw = await resp.json();
+      const vids = normalizeList(raw);
+      renderMyRecordings(vids);
+    } catch(e){
+      console.error(e);
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#f66;padding:40px;">Failed to load recordings.</div>';
+    }
+  }
+
+  function renderMyRecordings(videos){
+    const grid = document.getElementById('videoGrid');
+    const badge = document.getElementById('videoCountBadge');
+    if(!grid) return;
+    badge && (badge.textContent = videos.length);
+    if(!videos.length){
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ccc;padding:40px;">No recordings found.</div>';
+      return;
+    }
+    window.__videoItemsCache = videos;
+    grid.innerHTML = videos.map((v,i)=>{
+      const safeDesc = (v.__cleanDescription||'').replace(/</g,'&lt;');
+      return `
+      <div class="user-video-card" data-video-index="${i}" style="background:#222c44;border:1px solid #2f3b55;border-radius:12px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;">
+        <div style="position:relative;aspect-ratio:16/9;background:#111;">${v.thumbnail ? `<img src="${v.thumbnail}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : '<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#555;font-size:34px;\'>🎬</div>'}</div>
+        <div style="padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+          <div style="color:#fff;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.customerName || ''}</div>
+          <div style="color:#b5b5b5;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.customerEmail || ''}</div>
+          <div style="color:#8dd28d;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.recordedBy.displayName || ''}</div>
+            <div style="color:#6fbf6f;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.recordedBy.email || ''}</div>
+          <div style="color:#999;font-size:10px;">${v.recordingDate ? new Date(v.recordingDate).toLocaleString() : ''}</div>
+          ${safeDesc ? `<div style=\"margin-top:4px;color:#cfd6e2;font-size:11px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;\">${safeDesc}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function openVideoModal(video){
+    document.querySelectorAll('.user-video-modal-overlay').forEach(o=>o.remove());
+    const overlay = document.createElement('div');
+    overlay.className='user-video-modal-overlay';
+    overlay.style.cssText='position:fixed;left:0;right:0;top:50px;bottom:0;background:rgba(0,0,0,.6);z-index:50000;display:flex;align-items:flex-start;justify-content:center;padding:24px 20px;overflow:auto;';
+    const safeDesc = (video.__cleanDescription||'').replace(/</g,'&lt;') || 'No description provided.';
+    const baseEmbed = getPlayerEmbedUrl(video);
+    const embedUrl = baseEmbed ? (baseEmbed.includes('?') ? `${baseEmbed}&autoplay=1` : `${baseEmbed}?autoplay=1`) : '';
+    overlay.innerHTML = `
+      <div style="width:100%;max-width:1100px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.45);">
+        <button style="position:absolute;top:10px;right:10px;width:44px;height:44px;border:none;border-radius:50%;background:#dc2626;color:#fff;font-size:22px;font-weight:600;cursor:pointer;">×</button>
+        <div style="aspect-ratio:16/9;background:#111;">${embedUrl ? `<iframe src="${embedUrl}" style="width:100%;height:100%;border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>`:'<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#666;\'>No Link</div>'}</div>
+        <div style="display:flex;flex-wrap:wrap;border-top:1px solid #1f1f1f;">
+          <div style="flex:1 1 260px;padding:18px 22px;border-right:1px solid #1f1f1f;min-width:240px;display:flex;flex-direction:column;gap:6px;">
+            <div style="color:#fff;font-size:14px;">${video.customerName||''}</div>
+            <div style="color:#d1d5db;font-size:12px;word-break:break-all;">${video.customerEmail||''}</div>
+            <div style="color:#8dd28d;font-size:12px;">${video.recordedBy?.displayName||''}</div>
+            <div style="color:#6fbf6f;font-size:11px;word-break:break-all;">${video.recordedBy?.email||''}</div>
+            <div style="color:#999;font-size:11px;">${video.recordingDate ? new Date(video.recordingDate).toLocaleString() : ''}</div>
+          </div>
+          <div style="flex:3 1 400px;padding:18px 22px;max-height:260px;overflow:auto;color:#ccc;font-size:13px;line-height:1.4;white-space:pre-wrap;word-break:break-word;">${safeDesc}</div>
+        </div>
+      </div>`;
+    overlay.addEventListener('click', e=>{ if(e.target===overlay || e.target.tagName==='BUTTON') overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+
+  document.addEventListener('click', e=>{
+    const card = e.target.closest('.user-video-card');
+    if(card && card.dataset.videoIndex){
+      const idx = parseInt(card.dataset.videoIndex,10);
+      const video = (window.__videoItemsCache||[])[idx];
+      if(video) openVideoModal(video);
+    }
+  });
+
+  document.addEventListener('profileLoaded', e=>{
+    const email = e.detail?.email; if(email) loadUserVideos(email);
+  });
+})();
+</script>
+<!-- End clean user video fetch/reset logic -->
+<!-- Recording + Preview (with last frame freeze) -->
+<script>
+(function(){
+  if(window.__wk101RecorderFixed) return; window.__wk101RecorderFixed = true;
+  const btn = document.getElementById('recordButton');
+  const previewShell = document.querySelector('.preview-screen');
+  const audioSelect = document.getElementById('audioSource');
+  const metaForm = document.getElementById('metadataForm');
+  const qualitySelect = document.getElementById('quality');
+  const framerateSelect = document.getElementById('framerate');
+
+  const SETTINGS_STORAGE_KEY = 'sparky-recorder-settings';
+  let recorderSettings = loadRecorderSettings();
+
+  function hasOption(select, value){
+    if(!select || value === undefined || value === null) return false;
+    return Array.from(select.options || []).some(opt => opt.value === value);
+  }
+
+  function loadRecorderSettings(){
+    if(typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage ? window.localStorage.getItem(SETTINGS_STORAGE_KEY) : null;
+      if(!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch(err){
+      console.warn('Recorder settings load failed', err);
+      return {};
+    }
+  }
+
+  function saveRecorderSettings(update){
+    if(typeof window === 'undefined') return;
+    const next = { ...recorderSettings };
+    Object.entries(update || {}).forEach(([key, value]) => {
+      if(value === undefined) return;
+      next[key] = value;
+    });
+    recorderSettings = next;
+    try {
+      if(window.localStorage) {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(recorderSettings));
+      }
+    } catch(err){
+      console.warn('Recorder settings persist failed', err);
+    }
+  }
+
+  function applyRecorderSettings(){
+    const { audioSource, quality, framerate } = recorderSettings;
+    if(audioSelect && hasOption(audioSelect, audioSource)) {
+      audioSelect.value = audioSource;
+    }
+    if(qualitySelect && hasOption(qualitySelect, quality)) {
+      qualitySelect.value = quality;
+    }
+    if(framerateSelect && hasOption(framerateSelect, framerate)) {
+      framerateSelect.value = framerate;
+    }
+  }
+
+  let recording = false, mediaRecorder, chunks = [];
+  let screenStream, micStream, mixedStream;
+  let videoEl, lastFrameData;
+
+  function ensureVideo(){
+    if(!videoEl){
+      videoEl = document.createElement('video');
+      videoEl.autoplay = true; videoEl.muted = true; videoEl.playsInline = true;
+      videoEl.style.cssText='width:100%;height:100%;object-fit:contain;';
+    }
+    if(previewShell && !previewShell.contains(videoEl)){
+      previewShell.innerHTML='';
+      previewShell.appendChild(videoEl);
+    }
+    return videoEl;
+  }
+  function captureLastFrame(){
+    try {
+      if(!videoEl || !videoEl.videoWidth) return false;
+      const c=document.createElement('canvas');
+      c.width=videoEl.videoWidth; c.height=videoEl.videoHeight;
+      c.getContext('2d').drawImage(videoEl,0,0,c.width,c.height);
+      lastFrameData = c.toDataURL('image/png');
+      return true;
+    } catch(e){ console.warn('Frame grab failed', e); return false; }
+  }
+  function showLastFrame(){
+    if(lastFrameData && previewShell){
+      previewShell.innerHTML = `<img src="${lastFrameData}" alt="Last Frame" style="width:100%;height:100%;object-fit:contain;">`;
+    }
+  }
+  
+  // Real audio level detection with gain control
+  let meterInterval;
+  let audioContext, systemAnalyzer, micAnalyzer;
+  let systemDataArray, micDataArray;
+  let systemGainNode, micGainNode;
+  
+  function startAudioMeters(){
+    const mode = (audioSelect && audioSelect.value) || 'none';
+    if(mode === 'none') return;
+    
+    try {
+      // Analyzers should already be set up by buildStream with proper gain node connections
+      if(systemAnalyzer && systemDataArray) {
+        console.log('System audio analyzer ready');
+      }
+      
+      if(micAnalyzer && micDataArray) {
+        console.log('Mic audio analyzer ready');
+      }
+      
+      // Update meters in real-time
+      meterInterval = setInterval(() => {
+        updateMeterLevels();
+      }, 50); // Update every 50ms for smooth animation
+      
+    } catch(e) {
+      console.log('Audio analysis not available, using visual feedback only');
+      // Fallback to visual feedback without real audio levels
+      const outMeter = document.getElementById('outputMeterFill');
+      const micMeter = document.getElementById('micMeterFill');
+      
+      meterInterval = setInterval(() => {
+        if(mode === 'system' || mode === 'mixed'){
+          if(outMeter) outMeter.style.width = (10 + Math.random() * 30) + '%';
+        }
+        if(mode === 'mic' || mode === 'mixed'){
+          if(micMeter) micMeter.style.width = (5 + Math.random() * 25) + '%';
+        }
+      }, 100);
+    }
+  }
+  
+  function updateMeterLevels() {
+    const outMeter = document.getElementById('outputMeterFill');
+    const micMeter = document.getElementById('micMeterFill');
+    const recordingOutMeter = document.getElementById('recordingOutputMeter');
+    const recordingMicMeter = document.getElementById('recordingMicMeter');
+    
+    // Update system audio meter
+    if(systemAnalyzer && systemDataArray) {
+      systemAnalyzer.getByteFrequencyData(systemDataArray);
+      const systemLevel = getAudioLevel(systemDataArray);
+      
+      // Update preview meter (when not recording)
+      if(outMeter) {
+        outMeter.style.width = systemLevel + '%';
+      }
+      
+      // Update recording meter (when recording)
+      if(recordingOutMeter) {
+        recordingOutMeter.style.width = systemLevel + '%';
+      }
+    }
+    
+    // Update mic audio meter
+    if(micAnalyzer && micDataArray) {
+      micAnalyzer.getByteFrequencyData(micDataArray);
+      const micLevel = getAudioLevel(micDataArray);
+      
+      // Update preview meter (when not recording)
+      if(micMeter) {
+        micMeter.style.width = micLevel + '%';
+      }
+      
+      // Update recording meter (when recording)
+      if(recordingMicMeter) {
+        recordingMicMeter.style.width = micLevel + '%';
+      }
+    }
+  }
+  
+  function getAudioLevel(dataArray) {
+    let sum = 0;
+    let max = 0;
+    for(let i = 0; i < dataArray.length; i++) {
+      sum += dataArray[i];
+      if(dataArray[i] > max) max = dataArray[i];
+    }
+    const average = sum / dataArray.length;
+    
+    // Use both average and peak for better responsiveness
+    const level = Math.max(average * 0.7, max * 0.3);
+    
+    // Convert to percentage with better scaling
+    const percentage = Math.min(100, (level / 255) * 100);
+    
+    // Add minimum threshold to show some activity
+    return percentage > 2 ? percentage : (Math.random() * 5);
+  }
+  
+  function stopAudioMeters(){
+    if(meterInterval) {
+      clearInterval(meterInterval);
+      meterInterval = null;
+    }
+    
+    // Clean up preview streams
+    if(window.__previewStreams) {
+      const { tempScreenStream, tempMicStream } = window.__previewStreams;
+      if(tempScreenStream) tempScreenStream.getTracks().forEach(track => track.stop());
+      if(tempMicStream) tempMicStream.getTracks().forEach(track => track.stop());
+      window.__previewStreams = null;
+    }
+    
+    // Clean up audio analysis
+    if(audioContext) {
+      audioContext.close();
+      audioContext = null;
+    }
+    systemAnalyzer = null;
+    micAnalyzer = null;
+    systemDataArray = null;
+    micDataArray = null;
+    systemGainNode = null;
+    micGainNode = null;
+    
+    // Reset meters
+    const outMeter = document.getElementById('outputMeterFill');
+    const micMeter = document.getElementById('micMeterFill');
+    if(outMeter) outMeter.style.width = '0%';
+    if(micMeter) micMeter.style.width = '0%';
+  }
+  
+  // Preview meters before recording starts
+  async function startPreviewMeters(){
+    const mode = (audioSelect && audioSelect.value) || 'none';
+    if(mode === 'none') return;
+    
+    try {
+      // Get temporary streams for preview
+      let tempScreenStream, tempMicStream;
+      
+      if(mode === 'system' || mode === 'mixed') {
+        try {
+          tempScreenStream = await navigator.mediaDevices.getDisplayMedia({ 
+            video: false, 
+            audio: true 
+          });
+        } catch(e) {
+          console.log('System audio preview failed:', e);
+        }
+      }
+      
+      if(mode === 'mic' || mode === 'mixed') {
+        try {
+          tempMicStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: true 
+          });
+        } catch(e) {
+          console.log('Mic audio preview failed:', e);
+        }
+      }
+      
+      // Setup audio analysis for preview
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      if(tempScreenStream && tempScreenStream.getAudioTracks().length > 0) {
+        try {
+          const systemSource = audioContext.createMediaStreamSource(tempScreenStream);
+          systemAnalyzer = audioContext.createAnalyser();
+          systemAnalyzer.fftSize = 512;
+          systemAnalyzer.smoothingTimeConstant = 0.8;
+          systemSource.connect(systemAnalyzer);
+          systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
+          console.log('System audio preview setup successful');
+        } catch(e) {
+          console.log('System audio preview analyzer failed:', e);
+        }
+      }
+      
+      if(tempMicStream && tempMicStream.getAudioTracks().length > 0) {
+        try {
+          const micSource = audioContext.createMediaStreamSource(tempMicStream);
+          micAnalyzer = audioContext.createAnalyser();
+          micAnalyzer.fftSize = 512;
+          micAnalyzer.smoothingTimeConstant = 0.8;
+          micSource.connect(micAnalyzer);
+          micDataArray = new Uint8Array(micAnalyzer.frequencyBinCount);
+          console.log('Mic audio preview setup successful');
+        } catch(e) {
+          console.log('Mic audio preview analyzer failed:', e);
+        }
+      }
+      
+      // Start meter updates
+      meterInterval = setInterval(() => {
+        updateMeterLevels();
+      }, 50);
+      
+      // Store temp streams for cleanup
+      window.__previewStreams = { tempScreenStream, tempMicStream };
+      
+    } catch(e) {
+      console.log('Preview meters failed, using fallback:', e);
+      // Fallback to animated meters
+      const outMeter = document.getElementById('outputMeterFill');
+      const micMeter = document.getElementById('micMeterFill');
+      
+      meterInterval = setInterval(() => {
+        if(mode === 'system' || mode === 'mixed'){
+          if(outMeter) outMeter.style.width = (5 + Math.random() * 20) + '%';
+        }
+        if(mode === 'mic' || mode === 'mixed'){
+          if(micMeter) micMeter.style.width = (3 + Math.random() * 15) + '%';
+        }
+      }, 150);
+    }
+  }
+  async function buildStream(){
+    const mode = (audioSelect && audioSelect.value) || 'none';
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio: mode!=='mic' && mode!=='none' });
+    if(mode==='mic' || mode==='mixed') micStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    
+    if(mode==='mixed' && micStream){
+      audioContext = new AudioContext();
+      const dest = audioContext.createMediaStreamDestination();
+      
+      // Create gain nodes for real-time control
+      systemGainNode = audioContext.createGain();
+      micGainNode = audioContext.createGain();
+      
+      // Create analyzers and connect them AFTER gain nodes
+      systemAnalyzer = audioContext.createAnalyser();
+      micAnalyzer = audioContext.createAnalyser();
+      systemAnalyzer.fftSize = 512;
+      micAnalyzer.fftSize = 512;
+      systemAnalyzer.smoothingTimeConstant = 0.8;
+      micAnalyzer.smoothingTimeConstant = 0.8;
+      systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
+      micDataArray = new Uint8Array(micAnalyzer.frequencyBinCount);
+      
+      const sysT = screenStream.getAudioTracks()[0]; 
+      if(sysT) {
+        const sysSource = audioContext.createMediaStreamSource(new MediaStream([sysT]));
+        // Connect: Source → Gain → Analyzer → Destination
+        sysSource.connect(systemGainNode);
+        systemGainNode.connect(systemAnalyzer);
+        systemGainNode.connect(dest);
+      }
+      
+      const micT = micStream.getAudioTracks()[0]; 
+      if(micT) {
+        const micSource = audioContext.createMediaStreamSource(new MediaStream([micT]));
+        // Connect: Source → Gain → Analyzer → Destination
+        micSource.connect(micGainNode);
+        micGainNode.connect(micAnalyzer);
+        micGainNode.connect(dest);
+      }
+      
+      mixedStream = new MediaStream([...screenStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+      return mixedStream;
+    }
+    
+    if(mode==='mic' && micStream){
+      audioContext = new AudioContext();
+      const dest = audioContext.createMediaStreamDestination();
+      
+      // Create gain node for mic
+      micGainNode = audioContext.createGain();
+      
+      // Create analyzer and connect it AFTER gain node
+      micAnalyzer = audioContext.createAnalyser();
+      micAnalyzer.fftSize = 512;
+      micAnalyzer.smoothingTimeConstant = 0.8;
+      micDataArray = new Uint8Array(micAnalyzer.frequencyBinCount);
+      
+      const micT = micStream.getAudioTracks()[0];
+      if(micT) {
+        const micSource = audioContext.createMediaStreamSource(new MediaStream([micT]));
+        // Connect: Source → Gain → Analyzer → Destination
+        micSource.connect(micGainNode);
+        micGainNode.connect(micAnalyzer);
+        micGainNode.connect(dest);
+      }
+      
+      return new MediaStream([...screenStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    }
+    
+    if(mode==='system' && screenStream.getAudioTracks().length > 0){
+      // For system audio only, don't use Web Audio API - just pass through directly
+      // This prevents audio loss issues with system audio capture
+      const sysT = screenStream.getAudioTracks()[0];
+      
+      // Set up analyzer for meters without affecting the actual recording stream
+      if(sysT) {
+        try {
+          audioContext = new AudioContext();
+          const sysSource = audioContext.createMediaStreamSource(new MediaStream([sysT]));
+          systemAnalyzer = audioContext.createAnalyser();
+          systemAnalyzer.fftSize = 512;
+          systemAnalyzer.smoothingTimeConstant = 0.8;
+          systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
+          sysSource.connect(systemAnalyzer);
+          // Don't connect to destination - just use for analysis
+        } catch(e) {
+          console.log('Audio analysis setup failed, continuing without meters:', e);
+        }
+      }
+      
+      // Return the original screen stream with system audio intact
+      return screenStream;
+    }
+    
+    return screenStream;
+  }
+  function updateButton(){
+    if(!btn) return;
+    if(recording){ btn.textContent='⏹ Stop Recording'; btn.classList.add('recording'); }
+    else { btn.textContent='🔴 Start Recording'; btn.classList.remove('recording'); }
+  }
+  
+  function updateUI(){
+    const controlsSection = document.getElementById('controlsSection');
+    const audioUI = document.getElementById('audioProcessingControls');
+    const audioSelect = document.getElementById('audioSource');
+    const recordingAudioMeters = document.getElementById('recordingAudioMeters');
+    
+    if(recording){
+      // Hide controls during recording
+      if(controlsSection) controlsSection.style.display = 'none';
+      
+      // Show recording audio meters between preview and stop button
+      const mode = (audioSelect && audioSelect.value) || 'none';
+      if(mode !== 'none') {
+        showRecordingAudioMeters(mode);
+      }
+    } else {
+      // Show controls when not recording
+      if(controlsSection) controlsSection.style.display = 'flex';
+      
+      // Hide recording audio meters
+      if(recordingAudioMeters) {
+        recordingAudioMeters.remove();
+      }
+      
+      // Show/hide audio controls based on audio source selection
+      updateAudioControls();
+      
+      // Reset audio UI positioning when not recording
+      if(audioUI) {
+        audioUI.style.position = '';
+        audioUI.style.top = '';
+        audioUI.style.left = '';
+        audioUI.style.transform = '';
+        audioUI.style.background = '';
+        audioUI.style.padding = '';
+        audioUI.style.borderRadius = '';
+        audioUI.style.border = '';
+        audioUI.style.zIndex = '';
+        audioUI.style.boxShadow = '';
+      }
+    }
+  }
+  
+  function showRecordingAudioMeters(mode) {
+    // Remove any existing recording meters
+    const existing = document.getElementById('recordingAudioMeters');
+    if(existing) existing.remove();
+    
+    // Create recording audio meters container - same width as preview screen
+    const metersContainer = document.createElement('div');
+    metersContainer.id = 'recordingAudioMeters';
+    metersContainer.style.cssText = 'width:66%; background:#666; border:10px solid #333; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin:0 auto;';
+    
+    let metersHTML = '';
+    
+    if(mode === 'system') {
+      metersHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="color:#fff; font-size:14px; font-weight:600;">System:</label>
+            <input id="recordingSystemGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+            <span id="recordingSystemGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; border-left:2px solid #4CAF50; padding-left:8px;">
+            <span style="color:#ccc; font-size:11px;">Out:</span>
+            <div style="width:200px; height:12px; background:#1b1b1b; border:1px solid #444; border-radius:6px; overflow:hidden; position:relative;">
+              <div id="recordingOutputMeter" style="height:100%; width:0%; background:#4caf50; transition:width .1s linear;"></div>
+            </div>
+          </div>
+        </div>`;
+    } else if(mode === 'mic') {
+      metersHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="color:#fff; font-size:14px; font-weight:600;">Mic:</label>
+            <input id="recordingMicGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+            <span id="recordingMicGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="color:#ccc; font-size:11px;">In:</span>
+            <div style="width:150px; height:12px; background:#1b1b1b; border:1px solid #444; border-radius:6px; overflow:hidden; position:relative;">
+              <div id="recordingMicMeter" style="height:100%; width:0%; background:#4caf50; transition:width .1s linear;"></div>
+            </div>
+          </div>
+        </div>`;
+    } else if(mode === 'mixed') {
+      metersHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; border-top:1px solid #888; padding-top:15px;">
+          <div style="display:flex; align-items:center; gap:8px; border-left:2px solid #aaa; padding-left:8px;">
+            <label style="color:#fff; font-size:14px; font-weight:600;">System:</label>
+            <input id="recordingSystemGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+            <span id="recordingSystemGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+            <div style="display:flex; align-items:center; gap:6px; border-left:2px solid #4CAF50; padding-left:8px;">
+              <span style="color:#ccc; font-size:11px;">Out:</span>
+              <div style="width:100px; height:10px; background:#1b1b1b; border:1px solid #444; border-radius:5px; overflow:hidden; position:relative;">
+                <div id="recordingOutputMeter" style="height:100%; width:0%; background:#4caf50; transition:width .1s linear;"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; border-left:2px solid #aaa; padding-left:8px;">
+            <label style="color:#fff; font-size:14px; font-weight:600;">Mic:</label>
+            <input id="recordingMicGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+            <span id="recordingMicGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span style="color:#ccc; font-size:11px;">In:</span>
+              <div style="width:60px; height:10px; background:#1b1b1b; border:1px solid #444; border-radius:5px; overflow:hidden; position:relative;">
+                <div id="recordingMicMeter" style="height:100%; width:0%; background:#4caf50; transition:width .1s linear;"></div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+    
+    metersContainer.innerHTML = metersHTML;
+    
+    // Insert between preview and record button
+    const recordButtonSection = document.getElementById('recordButtonSection');
+    if(recordButtonSection) {
+      recordButtonSection.parentNode.insertBefore(metersContainer, recordButtonSection);
+    }
+    
+    // Add event handlers for recording gain sliders
+    const recordingSysSlider = document.getElementById('recordingSystemGainSlider');
+    const recordingSysVal = document.getElementById('recordingSystemGainValue');
+    const recordingMicSlider = document.getElementById('recordingMicGainSlider');
+    const recordingMicVal = document.getElementById('recordingMicGainValue');
+    
+    if(recordingSysSlider && recordingSysVal) {
+      recordingSysVal.textContent = parseFloat(recordingSysSlider.value).toFixed(1) + 'x';
+      recordingSysSlider.addEventListener('input', () => {
+        const gainValue = parseFloat(recordingSysSlider.value);
+        recordingSysVal.textContent = gainValue.toFixed(1) + 'x';
+        // Apply gain in real-time
+        if(systemGainNode) {
+          systemGainNode.gain.setValueAtTime(gainValue, audioContext.currentTime);
+          console.log('System gain set to:', gainValue);
+        } else {
+          console.log('System gain node not available');
+        }
+      });
+    }
+    
+    if(recordingMicSlider && recordingMicVal) {
+      recordingMicVal.textContent = parseFloat(recordingMicSlider.value).toFixed(1) + 'x';
+      recordingMicSlider.addEventListener('input', () => {
+        const gainValue = parseFloat(recordingMicSlider.value);
+        recordingMicVal.textContent = gainValue.toFixed(1) + 'x';
+        // Apply gain in real-time
+        if(micGainNode) {
+          micGainNode.gain.setValueAtTime(gainValue, audioContext.currentTime);
+          console.log('Mic gain set to:', gainValue);
+        } else {
+          console.log('Mic gain node not available');
+        }
+      });
+    }
+  }
+  
+  function updateAudioControls(){
+    const audioSelect = document.getElementById('audioSource');
+    const audioUI = document.getElementById('audioProcessingControls');
+    const sysGainWrap = document.getElementById('systemGainControl');
+    const micGainWrap = document.getElementById('micGainControl');
+    
+    if(!audioSelect || !audioUI) return;
+    
+    const mode = audioSelect.value;
+    
+    // Stop any existing preview meters
+    stopAudioMeters();
+    
+    if(mode === 'none') {
+      audioUI.style.display = 'none';
+      if(sysGainWrap) sysGainWrap.style.display = 'none';
+      if(micGainWrap) micGainWrap.style.display = 'none';
+    } else {
+      // Always show audio controls when audio source is selected
+      audioUI.style.display = 'flex';
+      
+      // Show appropriate controls based on mode
+      if(mode === 'system') {
+        if(sysGainWrap) sysGainWrap.style.display = 'flex';
+        if(micGainWrap) micGainWrap.style.display = 'none';
+      } else if(mode === 'mic') {
+        if(sysGainWrap) sysGainWrap.style.display = 'none';
+        if(micGainWrap) micGainWrap.style.display = 'flex';
+      } else if(mode === 'mixed') {
+        if(sysGainWrap) sysGainWrap.style.display = 'flex';
+        if(micGainWrap) micGainWrap.style.display = 'flex';
+      }
+      
+      // Start preview meters when not recording
+      if(!recording) {
+        startPreviewMeters();
+      }
+    }
+  }
+  async function start(){
+    const stream = await buildStream();
+    
+    // Immediately show video preview
+    const video = ensureVideo();
+    video.srcObject = stream;
+    
+    // Force immediate playback
+    try {
+      await video.play();
+    } catch(e) {
+      // Autoplay might be blocked, but that's ok
+      console.log('Autoplay blocked, video will play when user interacts');
+    }
+    
+    let mime='video/webm';
+    if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mime='video/webm;codecs=vp9';
+    else if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mime='video/webm;codecs=vp8';
+    chunks=[];
+    mediaRecorder = new MediaRecorder(stream,{ mimeType:mime });
+    mediaRecorder.ondataavailable = e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    mediaRecorder.onstop = ()=>{
+      // If capture failed earlier, attempt one more (videoEl might still hold frame)
+      if(!lastFrameData) captureLastFrame();
+      showLastFrame();
+      const blob = new Blob(chunks,{ type:mime.split(';')[0] });
+      window.__lastRecordingBlob = blob;
+      
+      // Hide everything except metadata form
+      const controlsSection = document.getElementById('controlsSection');
+      const recordButtonSection = document.getElementById('recordButtonSection');
+      const userVideoGrid = document.getElementById('userVideoGrid');
+      
+      if(controlsSection) controlsSection.style.display = 'none';
+      if(recordButtonSection) recordButtonSection.style.display = 'none';
+      if(userVideoGrid) userVideoGrid.style.display = 'none';
+      
+      if(metaForm) metaForm.style.display='block';
+    };
+    mediaRecorder.start();
+    recording = true; 
+    updateButton();
+    updateUI();
+    startAudioMeters();
+  }
+  function stop(){
+    // Capture BEFORE stopping tracks to guarantee frame
+    if(!lastFrameData){
+      const ok = captureLastFrame();
+      if(!ok){
+        // attempt small delay if metadata not ready yet
+        if(videoEl && !videoEl.videoWidth){
+          try { const h = setTimeout(()=>{ captureLastFrame(); showLastFrame(); }, 120); } catch(e){}
+        }
+      }
+    }
+    recording=false; 
+    updateButton();
+    updateUI();
+    stopAudioMeters();
+    try { mediaRecorder && mediaRecorder.state!=='inactive' && mediaRecorder.stop(); } catch(e){}
+    [screenStream,micStream,mixedStream].forEach(s=> s && s.getTracks().forEach(t=>t.stop()));
+  }
+  window.handleRecordButtonClick = async function(){
+    if(recording){ stop(); return; }
+    lastFrameData = null; // reset
+    try { await start(); } catch(e){ console.error(e); recording=false; updateButton(); updateUI(); alert('Cannot start recording'); }
+  };
+  
+  // Function to restore UI after upload
+  window.restoreRecorderUI = function(){
+    const controlsSection = document.getElementById('controlsSection');
+    const recordButtonSection = document.getElementById('recordButtonSection');
+    const userVideoGrid = document.getElementById('userVideoGrid');
+    const metaForm = document.getElementById('metadataForm');
+    
+    if(controlsSection) controlsSection.style.display = 'flex';
+    if(recordButtonSection) recordButtonSection.style.display = 'flex';
+    if(userVideoGrid) userVideoGrid.style.display = 'block';
+    if(metaForm) metaForm.style.display = 'none';
+    
+    // Reset any form selections
+    const radios = document.querySelectorAll('input[name="customerType"]');
+    radios.forEach(r => r.checked = false);
+    
+    const forms = document.querySelectorAll('.customer-form');
+    forms.forEach(f => f.style.display = 'none');
+    
+    const commonFields = document.getElementById('commonFields');
+    if(commonFields) commonFields.style.display = 'none';
+  };
+  
+
+  function handleAudioSourceChange(){
+    saveRecorderSettings({ audioSource: audioSelect ? audioSelect.value : undefined });
+    updateAudioControls();
+  }
+
+  // Add audio source change handler
+  if(audioSelect) {
+    audioSelect.addEventListener('change', handleAudioSourceChange);
+  }
+
+  if(qualitySelect) {
+    qualitySelect.addEventListener('change', () => {
+      saveRecorderSettings({ quality: qualitySelect.value });
+    });
+  }
+
+  if(framerateSelect) {
+    framerateSelect.addEventListener('change', () => {
+      saveRecorderSettings({ framerate: framerateSelect.value });
+    });
+  }
+  
+  // Expose updateAudioControls globally for localStorage restoration
+  window.updateAudioControls = updateAudioControls;
+  
+  // Initialize slider value displays
+  const sysSlider = document.getElementById('systemGainSlider');
+  const micSlider = document.getElementById('micGainSlider');
+  const sysVal = document.getElementById('systemGainValue');
+  const micVal = document.getElementById('micGainValue');
+  
+  if(sysSlider && sysVal) {
+    sysVal.textContent = parseFloat(sysSlider.value).toFixed(1) + 'x';
+    sysSlider.addEventListener('input', () => {
+      sysVal.textContent = parseFloat(sysSlider.value).toFixed(1) + 'x';
+    });
+  }
+  
+  if(micSlider && micVal) {
+    micVal.textContent = parseFloat(micSlider.value).toFixed(1) + 'x';
+    micSlider.addEventListener('input', () => {
+      micVal.textContent = parseFloat(micSlider.value).toFixed(1) + 'x';
+    });
+  }
+  
+  applyRecorderSettings();
+  updateButton();
+  updateUI();
+  handleAudioSourceChange();
+  saveRecorderSettings({
+    audioSource: audioSelect ? audioSelect.value : undefined,
+    quality: qualitySelect ? qualitySelect.value : undefined,
+    framerate: framerateSelect ? framerateSelect.value : undefined
+  });
+})();
+</script>
+<!-- End Recording + Preview -->
+<script>
+(function(){
+  if(window.__customerSearchMainInit) return; window.__customerSearchMainInit = true;
+  const existingForm = document.getElementById('existingCustomerForm');
+  const newForm = document.getElementById('newCustomerForm');
+  const commonFields = document.getElementById('commonFields');
+  const searchInput = document.getElementById('customerSearch');
+  const suggestionsEl = document.getElementById('customerSuggestions');
+  let allCustomers = []; let loaded=false; let loading=false; let filtered=[]; let activeIndex=-1; let debounce;
+
+  function escapeHtml(t){ if(typeof t!=='string') return t; return t.replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[s])); }
+  function render(){
+    if(!suggestionsEl) return;
+    
+    if(loading){ 
+      suggestionsEl.innerHTML='<div class="suggestion-item">Loading customers...</div>'; 
+      suggestionsEl.style.display='block';
+      return; 
+    }
+    
+    if(!filtered.length){ 
+      suggestionsEl.innerHTML='<div class="suggestion-item">No customers found</div>'; 
+      suggestionsEl.style.display='block';
+      return; 
+    }
+    
+    suggestionsEl.innerHTML = filtered.map((c,i)=>`<div class="suggestion-item" data-idx="${i}" style="${i===activeIndex?'background:#555;':''}"><strong>${escapeHtml(c.name||'(No Name)')}</strong><br><small>${escapeHtml(c.email||'')}</small></div>`).join('');
+    suggestionsEl.style.display='block';
+  }
+  function applyFilter(q){
+    const term = (q||'').trim().toLowerCase();
+    if(!term){ filtered = allCustomers.slice(0,150); activeIndex=-1; render(); return; }
+    filtered = allCustomers.filter(c=> (c.name||'').toLowerCase().includes(term) || (c.email||'').toLowerCase().includes(term)).slice(0,150);
+    activeIndex = filtered.length?0:-1; render();
+  }
+  async function loadAll(){
+    if(loaded || loading) return; loading=true; render();
+    
+    // Try to load from both sources and merge
+    let customers = [];
+    
+    // Load from Vimeo folder first (more reliable)
+    try {
+      const vidsResp = await fetch('/api/vimeo-folder/26555277');
+      if(vidsResp.ok){
+        const vids = await vidsResp.json();
+        const map = new Map();
+        vids.forEach(v => {
+          let name = v.customerName || v.name || '';
+          let email = v.customerEmail || '';
+          
+          // Extract email from description if not in main fields
+          if(!email && v.description){ 
+            const emailMatch = v.description.match(/Customer Email:\s*([^\n\r]+)/i); 
+            if(emailMatch) email = emailMatch[1].trim(); 
+          }
+          
+          if(name && email){ 
+            const key = email.toLowerCase();
+            if(!map.has(key)) {
+              map.set(key, { name: name.trim(), email: email.trim() });
+            }
+          }
+        });
+        customers = [...map.values()];
+        console.log('Loaded', customers.length, 'customers from Vimeo');
+      }
+    } catch(e) {
+      console.log('Vimeo customer load failed:', e);
+    }
+    
+    // Also try dedicated customer endpoint
+    try {
+      const resp = await fetch('/api/get-all-customers');
+      if(resp.ok){ 
+        const data = await resp.json();
+        const customerMap = new Map(customers.map(c => [c.email.toLowerCase(), c]));
+        
+        (data || []).forEach(c => {
+          const name = c.name || c.customerName || '';
+          const email = c.email || c.customerEmail || '';
+          if(name && email && !customerMap.has(email.toLowerCase())) {
+            customerMap.set(email.toLowerCase(), { name: name.trim(), email: email.trim() });
+          }
+        });
+        
+        customers = [...customerMap.values()];
+        console.log('Total customers after merge:', customers.length);
+      }
+    } catch(e) {
+      console.log('Customer API load failed:', e);
+    }
+    
+    allCustomers = customers.filter(c => c.name && c.email);
+    allCustomers.sort((a,b) => a.name.localeCompare(b.name));
+    
+    loaded = true; 
+    loading = false; 
+    applyFilter(searchInput && searchInput.value || '');
+  }
+  function select(idx){ 
+    if(idx<0||idx>=filtered.length) return; 
+    const c=filtered[idx]; 
+    searchInput.value = c.name + (c.email? ' ('+c.email+')':''); 
+    activeIndex=idx; 
+    
+    // Close dropdown immediately
+    suggestionsEl.innerHTML=''; 
+    suggestionsEl.style.display='none';
+    
+    commonFields.style.display='block'; 
+    window.__selectedCustomer=c; 
+    
+    // Show extra fields when customer is selected
+    const extraFields = document.getElementById('existingExtraFields');
+    if(extraFields) extraFields.style.display='block';
+    
+    // Auto-populate the extra fields
+    const nameParts = (c.name||'').trim().split(/\s+/);
+    const first = nameParts.shift()||'';
+    const last = nameParts.join(' ')||'';
+    const ef = document.getElementById('existingFirstName');
+    const el = document.getElementById('existingLastName');
+    const ee = document.getElementById('existingEmail');
+    if(ef) ef.value = first;
+    if(el) el.value = last;
+    if(ee) ee.value = c.email||'';
+  }
+  function keyHandler(e){ if(!filtered.length) return; switch(e.key){ case 'ArrowDown': e.preventDefault(); activeIndex=(activeIndex+1)%filtered.length; render(); break; case 'ArrowUp': e.preventDefault(); activeIndex=(activeIndex-1+filtered.length)%filtered.length; render(); break; case 'Enter': if(activeIndex>-1){ e.preventDefault(); select(activeIndex);} break; case 'Escape': suggestionsEl.innerHTML=''; break; }}
+
+  if(searchInput){
+    searchInput.addEventListener('focus', ()=>{ loadAll(); applyFilter(searchInput.value); });
+    searchInput.addEventListener('input', ()=>{ clearTimeout(debounce); debounce=setTimeout(()=>{ applyFilter(searchInput.value); },140); });
+    searchInput.addEventListener('keydown', keyHandler);
+  }
+  if(suggestionsEl){
+    suggestionsEl.addEventListener('mousedown', e=>{ const item=e.target.closest('.suggestion-item'); if(!item) return; const idx=parseInt(item.dataset.idx,10); select(idx); });
+  }
+  const originalToggle = window.toggleCustomerForm;
+  window.toggleCustomerForm = function(type){
+    if(type==='existing'){
+      existingForm.style.display='block'; newForm.style.display='none'; commonFields.style.display='block'; 
+      loadAll(); applyFilter(searchInput.value);
+      // Hide extra fields initially until customer is selected
+      const extraFields = document.getElementById('existingExtraFields');
+      if(extraFields) extraFields.style.display='none';
+    } else if(type==='new'){
+      newForm.style.display='block'; existingForm.style.display='none'; commonFields.style.display='block';
+    } else { 
+      existingForm.style.display='none'; newForm.style.display='none'; commonFields.style.display='none'; 
+      // Also hide extra fields when hiding forms
+      const extraFields = document.getElementById('existingExtraFields');
+      if(extraFields) extraFields.style.display='none';
+    }
+    if(typeof originalToggle==='function'){ try { originalToggle(type); } catch(_){} }
+  };
+})();
+</script>
+<!-- Enhancements: customer detail fields, last-frame persistence, confirm upload -->
+<script>
+(function(){
+  if(window.__uploadEnhancementsInit) return; window.__uploadEnhancementsInit = true;
+  const folderId = '26555277';
+  const metaForm = document.getElementById('metadataForm');
+  const existingForm = document.getElementById('existingCustomerForm');
+  const newForm = document.getElementById('newCustomerForm');
+  const commonFields = document.getElementById('commonFields');
+  const recordBtn = document.getElementById('recordButton');
+  let lastFrameDataRef = null; // mirror of last frame from recorder scripts
+
+  // Inject extra fields for existing customer (first, last, email)
+  if(existingForm && !document.getElementById('existingExtraFields')){
+    const wrap = document.createElement('div');
+    wrap.id='existingExtraFields';
+    wrap.style.cssText='display:none;margin-top:18px;';
+    wrap.innerHTML = `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+        <div style="flex:1 1 160px;min-width:160px;">
+          <label class="form-label required">First Name</label>
+          <input type="text" id="existingFirstName" class="form-input" required>
+        </div>
+        <div style="flex:1 1 160px;min-width:160px;">
+          <label class="form-label required">Last Name</label>
+          <input type="text" id="existingLastName" class="form-input" required>
+        </div>
+        <div style="flex:1 1 240px;min-width:200px;">
+          <label class="form-label required">Customer Email</label>
+          <input type="email" id="existingEmail" class="form-input" required>
+        </div>
+      </div>`;
+    existingForm.appendChild(wrap);
+  }
+
+  // Customer selection is now handled directly in the search script's select() function
+
+  // Persist last frame reference by observing preview container changes
+  const previewShell = document.querySelector('.preview-screen');
+  const observer = new MutationObserver(()=>{
+    const img = previewShell && previewShell.querySelector('img');
+    if(img && img.src.startsWith('data:image/png')){ lastFrameDataRef = img.src; }
+  });
+  if(previewShell){ observer.observe(previewShell,{ childList:true, subtree:false }); }
+
+  function getRecordedBy(){
+    const prof = window.headerUserProfile || window.getCurrentUser?.() || {};
+    return { name: prof.displayName || 'User', email: prof.email || '' };
+  }
+
+  function currentTimestamp(){ return new Date().toLocaleString(); }
+
+  function gatherFormData(){
+    const type = (document.querySelector('input[name="customerType"]:checked')||{}).value;
+    let first='', last='', email='';
+    if(type==='existing'){
+      first = document.getElementById('existingFirstName')?.value.trim() || '';
+      last = document.getElementById('existingLastName')?.value.trim() || '';
+      email = document.getElementById('existingEmail')?.value.trim() || '';
+    } else if(type==='new'){
+      first = document.getElementById('firstName')?.value.trim() || '';
+      last = document.getElementById('lastName')?.value.trim() || '';
+      email = document.getElementById('email')?.value.trim() || '';
+    }
+    const desc = document.getElementById('description')?.value || '';
+    return { type, first, last, email, desc };
+  }
+
+  function validate(data){
+    if(!data.type){ alert('Select customer type.'); return false; }
+    if(!data.first){ alert('First name required'); return false; }
+    if(!data.last){ alert('Last name required'); return false; }
+    if(!data.email){ alert('Email required'); return false; }
+    if(!window.__lastRecordingBlob){ alert('No recorded video found.'); return false; }
+    return true;
+  }
+
+  async function uploadToVimeo(payload){
+    if (typeof window.uploadToVimeo !== 'function') {
+      throw new Error('Upload pipeline not initialized');
+    }
+    return window.uploadToVimeo(payload);
+  }
+
+  window.confirmUpload = async function(){
+    const btn = document.querySelector('.confirm-button');
+    if(btn) { btn.disabled = true; btn.textContent='⏳ Uploading...'; }
+    try {
+      const formData = gatherFormData();
+      if(!validate(formData)) { if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; } return; }
+      const recordedByInfo = getRecordedBy();
+      const customerName = (formData.first + ' ' + formData.last).trim();
+      const dateStr = currentTimestamp();
+      const userDescription = formData.desc.trim();
+      const fullDescription = userDescription || '';
+      const result = await uploadToVimeo({
+        title: customerName,
+        description: fullDescription,
+        customerEmail: formData.email,
+        recordedBy: recordedByInfo.name,
+        recordedByEmail: recordedByInfo.email,
+        recordingDate: dateStr
+      });
+      // Success UI - fully reset recorder to start screen
+      alert('✅ Uploaded successfully to Vimeo!');
+      
+      // Complete reset to start screen
+      setTimeout(() => {
+        if(window.restoreRecorderUI) window.restoreRecorderUI();
+        
+        // Reset video preview to Sparky logo
+        const previewShell = document.querySelector('.preview-screen');
+        if(previewShell) {
+          previewShell.innerHTML = '<img src="Sparky-AItp.gif" alt="Sparky AI" style="max-width:200px;max-height:200px;object-fit:contain;">';
+        }
+        
+        // Reset record button
+        if(recordBtn){ 
+          recordBtn.textContent='🔴 Start Recording'; 
+          recordBtn.classList.remove('recording'); 
+        }
+        
+        // Clear any stored video data
+        window.__lastRecordingBlob = null;
+        
+        // Reset form fields
+        const firstNameField = document.getElementById('firstName');
+        const lastNameField = document.getElementById('lastName');
+        const emailField = document.getElementById('email');
+        const existingFirstName = document.getElementById('existingFirstName');
+        const existingLastName = document.getElementById('existingLastName');
+        const existingEmail = document.getElementById('existingEmail');
+        const descriptionField = document.getElementById('description');
+        const customerSearch = document.getElementById('customerSearch');
+        
+        if(firstNameField) firstNameField.value = '';
+        if(lastNameField) lastNameField.value = '';
+        if(emailField) emailField.value = '';
+        if(existingFirstName) existingFirstName.value = '';
+        if(existingLastName) existingLastName.value = '';
+        if(existingEmail) existingEmail.value = '';
+        if(descriptionField) descriptionField.value = '';
+        if(customerSearch) customerSearch.value = '';
+        
+        // Clear customer selection
+        window.__selectedCustomer = null;
+        
+        // Refresh user videos if profile known
+        const email = (window.headerUserProfile||{}).email; 
+        if(email){ 
+          document.dispatchEvent(new CustomEvent('profileLoaded',{detail:{email}})); 
+        }
+        
+        console.log('📹 Recorder fully reset to start screen');
+      }, 500); // Small delay to show success message first
+    } catch(e){
+      console.error(e);
+      alert('Upload error: '+ e.message);
+    } finally {
+      const btn2 = document.querySelector('.confirm-button');
+      if(btn2){ btn2.disabled=false; btn2.textContent='📤 Confirm Upload'; }
+    }
+  };
+
+  // Use MutationObserver instead of innerHTML override to prevent blocking
+  function protectLastFrame(){
+    if(!previewShell || !lastFrameDataRef) return;
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if(mutation.type === 'childList' && previewShell.children.length === 0){
+          // Only restore if preview is empty and we have a frame
+          const img = document.createElement('img');
+          img.src = lastFrameDataRef;
+          img.alt = 'Last Frame';
+          img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+          previewShell.appendChild(img);
+        }
+      });
+    });
+    observer.observe(previewShell, { childList: true });
+    return observer;
+  }
+})();
+</script>
+<!-- tus for resumable uploads -->
+<script src="https://unpkg.com/tus-js-client@2.3.1/dist/tus.min.js"></script>
+<script>
+(function(){
+  if (window.__tusUploadPatched) return; window.__tusUploadPatched = true;
+
+  async function readMeta(overrides = {}){
+    const v = id => (document.getElementById(id)?.value || '').trim();
+    const nameJoin = (a,b) => [v(a), v(b)].filter(Boolean).join(' ').trim();
+    const baseMeta = {
+      title: v('videoTitle') || v('title') || v('recordingTitle') || `Recording ${new Date().toLocaleString()}`,
+      description: v('notes') || v('description') || '',
+      customerName: v('customerName') || nameJoin('customer_first','customer_last') || '',
+      customerEmail: v('customerEmail') || '',
+      recordedBy: v('recorderName') || v('userName') || '',
+      recordedByEmail: v('recorderEmail') || v('userEmail') || '',
+      folderId: v('folderId') || '26555277'
+    };
+    return { ...baseMeta, ...overrides };
+  }
+
+  function resolveBlob(){
+    const c = [
+      window.finalBlob,
+      window.videoBlob,
+      window.recordedBlob,
+      window.__recordedBlob,
+      window.lastRecordedBlob,
+      window.__lastRecordingBlob
+    ].filter(Boolean);
+    if (c.length) return c[0];
+    if (Array.isArray(window.recordedChunks) && window.recordedChunks.length){
+      return new Blob(window.recordedChunks, { type: 'video/webm' });
+    }
+    return null;
+  }
+
+  // Override to client-side resumable upload
+  window.uploadToVimeo = async function(overrides = {}){
+    const blob = resolveBlob();
+    if (!blob) { alert('No recording found to upload.'); return; }
+    const meta = await readMeta(overrides);
+
+    // 1) Ask server for Vimeo TUS upload link (small JSON only)
+    const initResp = await fetch('/api/upload-vimeo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: meta.title,
+        size: blob.size,
+        description: meta.description,
+        customerName: meta.customerName,
+        customerEmail: meta.customerEmail,
+        recordedBy: meta.recordedBy,
+        recordedByEmail: meta.recordedByEmail,
+        folderId: meta.folderId
+      })
+    });
+    if (!initResp.ok){
+      const t = await initResp.text();
+      console.error('Init upload failed:', t);
+      alert('Failed to initialize upload');
+      return;
+    }
+    const { uploadLink, videoUri } = await initResp.json();
+
+    // 2) Upload directly to Vimeo via tus
+    await new Promise((resolve, reject) => {
+      const uploader = new tus.Upload(blob, {
+        uploadUrl: uploadLink,
+        metadata: {
+          filename: (meta.title || 'recording') + '.webm',
+          filetype: blob.type || 'video/webm'
+        },
+        onError: err => { console.error('TUS error', err); reject(err); },
+        onProgress: (sent, total) => {
+          const pct = total ? Math.floor(sent/total*100) : 0;
+          if (window.updateUploadProgress) window.updateUploadProgress(pct);
+        },
+        onSuccess: () => { resolve(); }
+      });
+      uploader.start();
+    });
+
+    // 3) Finalize metadata + move to folder
+    const fin = await fetch('/api/finalize-vimeo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        videoUri,
+        title: meta.title,
+        description: meta.description,
+        customerName: meta.customerName,
+        customerEmail: meta.customerEmail,
+        recordedBy: meta.recordedBy,
+        recordedByEmail: meta.recordedByEmail,
+        folderId: meta.folderId
+      })
+    });
+    if (!fin.ok){
+      console.warn('Finalize returned non-200:', await fin.text());
+    }
+
+    if (window.onUploadComplete) window.onUploadComplete();
+    console.log('✅ Upload complete');
+  };
+})();
+</script>
+</body>
+</html>

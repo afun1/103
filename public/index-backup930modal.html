@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparky Screen Recorder</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e2852; color:#333; min-height:100vh; }
+        .container { width:100%; min-height:100vh; display:flex; flex-direction:column; }
+        .header-container { width:100%; height:80px; position:sticky; top:0; z-index:1000; }
+        .main-content { flex:1; display:flex; flex-direction:column; align-items:center; gap:30px; padding:20px; }
+        .preview-section { width:100%; display:flex; justify-content:center; }
+        .preview-screen { width:66%; aspect-ratio:16/9; border:10px solid #333; border-radius:8px; background:#666; display:flex; align-items:center; justify-content:center; color:#666; font-size:18px; position:relative; overflow:hidden; }
+        .controls-section { width:66%; background:#666; border:10px solid #333; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.1); display:flex; gap:40px; }
+        .controls-left { flex:0 0 75%; }
+        .controls-right { flex:0 0 25%; display:flex; flex-direction:column; align-items:center; }
+        .controls-title { font-size:20px; font-weight:700; margin-bottom:20px; color:#fff; }
+        .record-button-section { width:100%; display:flex; justify-content:center; margin:10px 0; }
+        .record-button { padding:15px 40px; border:2px solid #0f5132; border-radius:12px; font-size:18px; font-weight:700; cursor:pointer; color:#fff; background:linear-gradient(180deg,#198754 0%,#0f5132 100%); box-shadow:0 4px 8px rgba(0,0,0,0.3); transition:all .3s ease; min-width:200px; }
+        @keyframes greenGlow {0%{box-shadow:0 0 20px rgba(34,197,94,1),0 0 40px rgba(34,197,94,.8),0 0 60px rgba(34,197,94,.6),0 4px 8px rgba(34,197,94,.4),inset 0 1px 0 rgba(255,255,255,.3);}100%{box-shadow:0 0 30px rgba(34,197,94,1),0 0 50px rgba(34,197,94,.9),0 0 80px rgba(34,197,94,.7),0 6px 12px rgba(34,197,94,.5),inset 0 1px 0 rgba(255,255,255,.4);}}
+        .record-button:hover { transform:translateY(-2px); box-shadow:0 0 15px rgba(34,197,94,.6),0 0 25px rgba(34,197,94,.3),0 6px 12px rgba(0,0,0,.4); background:linear-gradient(180deg,#20c997 0%,#198754 100%); border-color:rgba(34,197,94,.7); }
+        .record-button.lighting-up { color:#1e40af; background:linear-gradient(180deg,#86efac 0%,#15803d 100%); border-color:rgba(34,197,94,.9); animation:greenGlow 2s ease-in-out infinite alternate; }
+        @keyframes redGlow {0%{box-shadow:0 0 20px rgba(220,38,38,1),0 0 40px rgba(220,38,38,.8),0 0 60px rgba(220,38,38,.6),0 4px 8px rgba(220,38,38,.4),inset 0 1px 0 rgba(255,255,255,.3);}100%{box-shadow:0 0 30px rgba(220,38,38,1),0 0 50px rgba(220,38,38,.9),0 0 80px rgba(220,38,38,.7),0 6px 12px rgba(220,38,38,.5),inset 0 1px 0 rgba(255,255,255,.4);}}
+        .record-button.recording { color:#000; background:linear-gradient(180deg,#fca5a5 0%,#dc2626 100%); border-color:rgba(220,38,38,.9); animation:redGlow 1s ease-in-out infinite alternate; }
+        .metadata-form { width:66%; margin:20px 0; }
+        .form-container { background:#666; border:10px solid #333; border-radius:12px; padding:30px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+        .form-title { font-size:24px; font-weight:700; color:#fff; text-align:center; margin-bottom:30px; }
+        .radio-group { display:flex; gap:30px; justify-content:center; margin-bottom:30px; }
+        .radio-option { display:flex; align-items:center; cursor:pointer; color:#fff; font-size:16px; font-weight:600; }
+        .radio-option input { display:none; }
+        .radio-custom { width:20px; height:20px; border:2px solid #ccc; border-radius:50%; margin-right:10px; position:relative; background:#fff; }
+        .radio-option input:checked + .radio-custom { border-color:#4CAF50; }
+        .radio-option input:checked + .radio-custom::after { content:''; width:10px; height:10px; background:#4CAF50; border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+        .form-label { display:block; color:#fff; font-weight:600; margin:8px 0 8px; font-size:14px; }
+        .form-label.required::after { content:' *'; color:#ff4444; }
+        .form-input, .search-input, .form-textarea { width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; font-size:16px; background:#fff; }
+        .form-textarea { resize:vertical; min-height:100px; }
+        .confirm-button { background:linear-gradient(180deg,#4CAF50 0%,#45a049 100%); color:#fff; border:none; padding:15px 40px; border-radius:8px; font-size:18px; font-weight:700; cursor:pointer; transition:.3s; min-width:200px; }
+        .confirm-button:hover { transform:translateY(-2px); box-shadow:0 6px 12px rgba(76,175,80,.4); }
+        #userVideoGrid h2 { color:#fff; }
+        .video-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:20000; padding:24px; }
+        .video-modal-overlay.open { display:flex; }
+        .video-modal-content { width:100%; max-width:1200px; background:#000; border-radius:10px; overflow:hidden; position:relative; }
+        .video-modal-close { position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.06); color:#fff; border:none; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; }
+        .video-modal-body video, .video-modal-body iframe { width:100%; height:70vh; max-height:80vh; background:#000; display:block; }
+        .video-metadata-section { width:100%; background:#1a1a1a; display:flex; border-top:1px solid #333; }
+        .video-metadata-left { width:33%; background:#2a2a2a; padding:20px; border-right:1px solid #333; }
+        .video-metadata-right { width:67%; padding:20px; background:#1a1a1a; }
+        .metadata-item { color:#e2e8f0; font-size:14px; line-height:1.4; margin-bottom:8px; word-wrap:break-word; word-break:break-word; }
+        .metadata-description { color:#cbd5e1; font-size:14px; line-height:1.5; word-wrap:break-word; word-break:break-word; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="preview-section">
+                <div class="preview-screen">
+                    <img src="Sparky-AItp.gif" alt="Sparky AI" style="max-width:200px;max-height:200px;object-fit:contain;">
+                </div>
+            </div>
+            <div class="record-button-section" id="recordButtonSection">
+                <button class="record-button" id="recordButton" onclick="toggleRecording()">🔴 Start Recording</button>
+            </div>
+            <div class="metadata-form" id="metadataForm" style="display:none;">
+                <div class="form-container">
+                    <h2 class="form-title">Recording Complete - Add Details</h2>
+                    <div class="radio-group">
+                        <label class="radio-option"><input type="radio" name="customerType" value="existing" onchange="toggleCustomerForm('existing')"><span class="radio-custom"></span>Existing Customer</label>
+                        <label class="radio-option"><input type="radio" name="customerType" value="new" onchange="toggleCustomerForm('new')"><span class="radio-custom"></span>New Customer</label>
+                    </div>
+                    <div id="existingCustomerForm" class="customer-form" style="display:none;">
+                        <div class="search-container">
+                            <label class="form-label">Search Customer</label>
+                            <input type="text" id="customerSearch" placeholder="Type name or email..." oninput="searchCustomers()" class="search-input">
+                            <div id="customerSuggestions" class="suggestions-dropdown"></div>
+                        </div>
+                    </div>
+                    <div id="newCustomerForm" class="customer-form" style="display:none;">
+                        <div class="form-row" style="display:flex; gap:20px;">
+                            <div style="flex:1;">
+                                <label class="form-label required">First Name</label>
+                                <input type="text" id="firstName" required class="form-input">
+                            </div>
+                            <div style="flex:1;">
+                                <label class="form-label required">Last Name</label>
+                                <input type="text" id="lastName" required class="form-input">
+                            </div>
+                        </div>
+                        <label class="form-label required">Email</label>
+                        <input type="email" id="email" required class="form-input">
+                        <label class="form-label">Description (Optional)</label>
+                        <textarea id="description" class="form-textarea" placeholder="Add any additional notes..."></textarea>
+                    </div>
+                    <div style="text-align:center;margin-top:30px;">
+                        <button class="confirm-button" onclick="confirmUpload()">📤 Confirm Upload</button>
+                    </div>
+                </div>
+            </div>
+            <div class="controls-section" id="controlsSection">
+                <div class="controls-left">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                        <h2 class="controls-title">Audio Levels</h2>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <label class="control-label" style="margin-bottom:0;font-size:14px;">Audio Source:</label>
+                            <select class="setting-select" id="audio">
+                                <option value="system">System Audio</option>
+                                <option value="microphone">Microphone</option>
+                                <option value="both" selected>Both</option>
+                                <option value="none">No Audio</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="audio-meters">
+                        <div style="display:flex;gap:30px;align-items:center;margin:10px 0;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <label style="font-size:16px;min-width:20px;">🔊</label>
+                                    <input type="range" id="system-volume" class="volume-slider-compact" min="0" max="200" value="100" oninput="adjustSystemVolume(this.value)">
+                                    <span style="font-size:12px;color:#ccc;min-width:40px;text-align:right;" id="system-volume-value">100%</span>
+                                </div>
+                                <div class="audio-meter-compact" style="width:100px;height:6px;background:#333;border-radius:3px;overflow:hidden;border:1px solid #555;box-shadow:inset 0 1px 3px rgba(0,0,0,.3);">
+                                    <div class="meter-bar" id="system-meter"></div>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <label style="font-size:16px;min-width:20px;">🎤</label>
+                                    <input type="range" id="mic-volume" class="volume-slider-compact" min="0" max="300" value="100" oninput="adjustMicVolume(this.value)">
+                                    <span style="font-size:12px;color:#ccc;min-width:40px;text-align:right;" id="mic-volume-value">100%</span>
+                                </div>
+                                <div class="audio-meter-compact" style="width:100px;height:6px;background:#333;border-radius:3px;overflow:hidden;border:1px solid #555;box-shadow:inset 0 1px 3px rgba(0,0,0,.3);">
+                                    <div class="meter-bar" id="mic-meter"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="controls-right">
+                    <h2 class="controls-title" style="width:100%;text-align:center;margin:0 0 15px;">Video Settings</h2>
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="display:flex;gap:10px;justify-content:center;align-items:center;">
+                            <select class="setting-select" style="padding:2px 6px;font-size:12px;height:24px;" id="quality">
+                                <option value="480p" selected>480p SD</option>
+                                <option value="720p">720p HD</option>
+                                <option value="1080p">1080p Full HD</option>
+                                <option value="4k">4K Ultra HD</option>
+                            </select>
+                            <select class="setting-select" style="padding:2px 6px;font-size:12px;height:24px;" id="framerate">
+                                <option value="30">30 FPS</option>
+                                <option value="60" selected>60 FPS</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="userVideoGrid" style="width:100%;max-width:1200px;margin:30px auto 0;padding:0 20px;">
+                <div style="background:#333;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:24px;border:2px solid #555;">
+                    <h2 style="margin:0 0 20px;color:#fff;font-size:24px;font-weight:600;display:flex;align-items:center;gap:10px;justify-content:center;">
+                        <span>📹</span>My Recordings
+                        <span id="videoCountBadge" style="background:#4CAF50;color:#fff;padding:4px 12px;border-radius:16px;font-size:14px;font-weight:500;">0</span>
+                    </h2>
+                    <div id="videoGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:20px;">
+                        <div style="grid-column:1 / -1;display:flex;justify-content:center;align-items:center;height:100px;color:#ccc;font-size:16px;">Loading your recordings...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="global-header.js"></script>
+    <script>
+        let isRecording=false,mediaRecorder=null,recordedChunks=[]; let selectedCustomer=null,customerSearchTimeout=null;
+        // Added helper to reliably get current user info from global header / localStorage
+        function getCurrentUserInfo(){
+            const fallback={displayName:'Unknown User', email:'unknown@example.com'};
+            try{
+                if(window.currentUser && (window.currentUser.email||window.currentUser.name)){
+                    return {displayName: window.currentUser.displayName||window.currentUser.name||fallback.displayName, email: window.currentUser.email||fallback.email};
+                }
+                if(window.__currentUser && (window.__currentUser.email||window.__currentUser.name)){
+                    return {displayName: window.__currentUser.displayName||window.__currentUser.name||fallback.displayName, email: window.__currentUser.email||fallback.email};
+                }
+                if(window.getCurrentUser && typeof window.getCurrentUser==='function'){
+                    const u=window.getCurrentUser();
+                    if(u && (u.email||u.name||u.displayName)) return {displayName:u.displayName||u.name||fallback.displayName, email:u.email||fallback.email};
+                }
+                // NEW: Direct global header elements
+                const directEmailEl=document.getElementById('user-email');
+                const directNameEl=document.getElementById('user-name');
+                if(directEmailEl){
+                    const emailTxt=(directEmailEl.textContent||'').trim();
+                    if(emailTxt && /@/.test(emailTxt)){
+                        const nameTxt=(directNameEl?.textContent||'').trim();
+                        return {displayName: nameTxt||fallback.displayName, email: emailTxt};
+                    }
+                }
+                if(document.body){
+                    const be=document.body.getAttribute('data-user-email');
+                    const bn=document.body.getAttribute('data-user-name');
+                    if(be) return {displayName:(bn||'').trim()||fallback.displayName, email:be};
+                }
+                const anyDataEl=document.querySelector('[data-user-email]');
+                if(anyDataEl){
+                    const email=anyDataEl.getAttribute('data-user-email');
+                    const nameAttr=anyDataEl.getAttribute('data-user-name')||anyDataEl.textContent||'';
+                    if(email) return {displayName:nameAttr.trim()||fallback.displayName, email};
+                }
+                const emailEl=document.querySelector('#userEmail, .user-email, #user-email, [class*="userEmail"], [id*="userEmail"]');
+                if(emailEl){
+                    const txt=emailEl.textContent||emailEl.value||'';
+                    const mail=txt.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+                    if(mail){
+                        let name='';
+                        const parent=emailEl.closest('div,li,span,header');
+                        if(parent){
+                            const nameCand=parent.querySelector('.user-name, #user-name, [data-user-name]');
+                            if(nameCand) name=nameCand.textContent||nameCand.getAttribute('data-user-name')||'';
+                        }
+                        return {displayName:name.trim()||fallback.displayName, email:mail[1]};
+                    }
+                }
+                const headerUser=document.querySelector('.user-info, .userName, .header-user');
+                if(headerUser){
+                    const txt=headerUser.textContent||'';
+                    const mail=txt.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+                    if(mail){
+                        const email=mail[1];
+                        const name=txt.replace(email,'').replace(/[()|,-]/g,' ').trim();
+                        return {displayName:name||fallback.displayName, email};
+                    }
+                }
+                const ls=JSON.parse(localStorage.getItem('currentUser')||'{}');
+                if(ls && (ls.email||ls.name||ls.displayName)) return {displayName: ls.displayName||ls.name||fallback.displayName, email: ls.email||fallback.email};
+            }catch(e){ }
+            return fallback;
+        }
+        function isFallbackUser(u){return !u || u.email==='unknown@example.com';}
+        async function getResolvedUserInfo(maxWait=2000){
+            const start=Date.now();
+            let u=getCurrentUserInfo();
+            if(!isFallbackUser(u)) return u;
+            while(Date.now()-start<maxWait){
+                await new Promise(r=>setTimeout(r,200));
+                u=getCurrentUserInfo();
+                if(!isFallbackUser(u)) return u;
+            }
+            return u; // fallback if still unknown
+        }
+        function toggleRecording(){ if(!isRecording) startRecording(); else stopRecording(); }
+        async function startRecording(){ try{ const btn=document.getElementById('recordButton'); btn.classList.add('lighting-up'); const stream=await navigator.mediaDevices.getDisplayMedia({video:{mediaSource:'screen'},audio:true}); const preview=document.querySelector('.preview-screen'); const v=document.createElement('video'); v.srcObject=stream; v.autoplay=true; v.muted=true; v.style.width='100%'; v.style.height='100%'; v.style.objectFit='contain'; preview.innerHTML=''; preview.appendChild(v); mediaRecorder=new MediaRecorder(stream); recordedChunks=[]; mediaRecorder.ondataavailable=e=>{ if(e.data.size>0) recordedChunks.push(e.data); }; mediaRecorder.onstop=()=>{ const blob=new Blob(recordedChunks,{type:'video/webm'}); window.recordedVideoBlob=blob; try{ const blobUrl=URL.createObjectURL(blob); if(typeof window.addLocalRecordingToGrid==='function'){ window.addLocalRecordingToGrid(blobUrl,{ customerName:'Local Recording', description:'Recently recorded session', recordingDate:new Date().toISOString(), customerEmail:''}); }}catch(e){} document.getElementById('recordButtonSection').style.display='none'; document.getElementById('controlsSection').style.display='none'; document.getElementById('metadataForm').style.display='block'; preview.innerHTML='<img src="Sparky-AItp.gif" alt="Sparky AI" style="max-width:200px;max-height:200px;object-fit:contain;">'; }; mediaRecorder.start(); isRecording=true; btn.classList.remove('lighting-up'); btn.classList.add('recording'); btn.innerHTML='⏹️ Stop Recording'; }catch(err){ console.error('Error starting recording:',err); alert('Error: Could not start recording.'); const btn=document.getElementById('recordButton'); btn.classList.remove('lighting-up'); }}
+        function stopRecording(){ if(!isRecording||!mediaRecorder) return; mediaRecorder.stop(); isRecording=false; if(mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t=>t.stop()); const btn=document.getElementById('recordButton'); btn.classList.remove('recording'); btn.innerHTML='🔴 Start Recording'; }
+        function toggleCustomerForm(t){ const ex=document.getElementById('existingCustomerForm'); const nw=document.getElementById('newCustomerForm'); if(t==='existing'){ ex.style.display='block'; nw.style.display='none'; document.getElementById('customerSearch').focus(); } else { ex.style.display='none'; nw.style.display='block'; document.getElementById('firstName').focus(); } selectedCustomer=null; }
+        async function searchCustomers(){ const q=document.getElementById('customerSearch').value.trim(); const sug=document.getElementById('customerSuggestions'); if(q.length<2){ sug.style.display='none'; return;} if(customerSearchTimeout) clearTimeout(customerSearchTimeout); customerSearchTimeout=setTimeout(async()=>{ try{ const r=await fetch(`/api/search-customers?q=${encodeURIComponent(q)}`); if(!r.ok) throw new Error('Search endpoint error'); let customers=await r.json(); if(Array.isArray(customers)&&customers.length){ displayCustomerSuggestions(customers);} else { sug.innerHTML='<div class="suggestion-item">No customers found</div>'; sug.style.display='block'; } }catch(e){ console.error(e); sug.innerHTML='<div class="suggestion-item">Search error</div>'; sug.style.display='block'; } },300); }
+        function displayCustomerSuggestions(customers){ const sug=document.getElementById('customerSuggestions'); sug.innerHTML=customers.map(c=>`<div class="suggestion-item" onclick="selectCustomer(${JSON.stringify(c).replace(/"/g,'&quot;')})"><strong>${c.name}</strong><br><small>${c.email}</small></div>`).join(''); sug.style.display='block'; }
+        function selectCustomer(c){ selectedCustomer=c; document.getElementById('customerSearch').value=`${c.name} (${c.email})`; document.getElementById('customerSuggestions').style.display='none'; }
+        async function confirmUpload(){ const type=document.querySelector('input[name="customerType"]:checked')?.value; if(!type){ alert('Select customer type'); return;} let customerData={}; if(type==='existing'){ if(!selectedCustomer){ alert('Select a customer'); return;} customerData=selectedCustomer; } else { const fn=document.getElementById('firstName').value.trim(); const ln=document.getElementById('lastName').value.trim(); const em=document.getElementById('email').value.trim(); const desc=document.getElementById('description').value.trim(); if(!fn||!ln||!em){ alert('Fill required fields'); return;} customerData={ name:`${fn} ${ln}`, firstName:fn, lastName:ln, email:em, description:desc }; } const btn=document.querySelector('.confirm-button'); btn.textContent='Uploading...'; btn.disabled=true; try{ if(recordedChunks && recordedChunks.length){ const blob=new Blob(recordedChunks,{type:'video/webm'}); const reader=new FileReader(); reader.onloadend=function(){ const base64=reader.result.split(',')[1]; getResolvedUserInfo().then(userInfo=>{ console.log('👤 Resolved user for upload:',userInfo); const recordedBy={ displayName:userInfo.displayName, email:userInfo.email }; const payload={ videoData:base64, title:customerData.name, description:document.getElementById('description')?.value||'Screen recording session', customerData, recordedBy }; fetch('/api/upload-vimeo',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).then(r=>r.json()).then(res=>{ if(res.success){ window.showBriefSuccessMessage(); setTimeout(()=>window.autoResetForNextRecording(),1000); } else { alert('Upload failed'); btn.textContent='📤 Confirm Upload'; btn.disabled=false; } }).catch(e=>{ alert('Upload error: '+e.message); btn.textContent='📤 Confirm Upload'; btn.disabled=false; }); }); }; reader.readAsDataURL(blob); } else { alert('No video recorded'); btn.textContent='📤 Confirm Upload'; btn.disabled=false; } }catch(e){ alert('Upload error: '+e.message); btn.textContent='📤 Confirm Upload'; btn.disabled=false; } }
+        if(typeof window.showBriefSuccessMessage==='undefined'){ window.showBriefSuccessMessage=function(){ const n=document.createElement('div'); n.innerHTML='✅ Upload Complete!'; n.style.cssText='position:fixed;top:20px;right:20px;background:#4CAF50;color:#fff;padding:12px 24px;border-radius:8px;font-weight:bold;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.3);'; document.body.appendChild(n); setTimeout(()=>n.remove(),2500); }; }
+        if(typeof window.autoResetForNextRecording==='undefined'){ window.autoResetForNextRecording=function(){ location.reload(); }; }
+        window.addLocalRecordingToGrid=function(blobUrl,meta){ try{ const grid=document.getElementById('videoGrid'); if(!grid) return; const name=meta.customerName||'Local Recording'; const card=document.createElement('div'); card.className='video-card'; card.setAttribute('data-vimeo',blobUrl); card.setAttribute('data-title',name); card.setAttribute('data-description',meta.description||''); card.setAttribute('data-customer-email',meta.customerEmail||''); card.setAttribute('data-recording-date',meta.recordingDate||new Date().toLocaleString()); card.style='background:#444;border:2px solid #666;border-radius:12px;overflow:hidden;transition:.3s;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);'; card.onclick=function(){ const userInfo=getCurrentUserInfo(); const metadata={customerName:name, customerEmail:this.dataset.customerEmail, recordedBy:userInfo.displayName, recordedByEmail:userInfo.email, recordingDate:this.dataset.recordingDate, description:this.dataset.description}; openVideoModal(this.dataset.vimeo,this.dataset.title,metadata); }; card.innerHTML=`<div style="position:relative;width:100%;height:160px;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;">🎬</div><div style="padding:14px;"><div style="font-weight:700;font-size:15px;color:#4CAF50;margin-bottom:4px;">👤 ${name}</div><div style="font-size:11px;color:#bbb;margin-bottom:8px;">📧 ${meta.customerEmail||''}</div><div style="font-size:11px;color:#ccc;line-height:1.3;height:28px;overflow:hidden;">${meta.description||''}</div></div>`; grid.insertBefore(card,grid.firstChild); }catch(e){ console.warn('addLocalRecordingToGrid failed',e);} };
+        function cleanLoadVideoLibrary(){ let userEmail=''; if(window.getCurrentUser){ try{ userEmail=window.getCurrentUser()?.email||'';}catch{} } if(!userEmail){ const stored=JSON.parse(localStorage.getItem('currentUser')||'{}'); userEmail=stored.email||'john@tpnlife.com'; } const grid=document.getElementById('videoGrid'); const badge=document.getElementById('videoCountBadge'); if(!grid) return; grid.innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;align-items:center;height:100px;color:#666;font-size:16px;">Loading recordings for '+userEmail+'...</div>'; fetch('/api/all-user-videos/'+encodeURIComponent(userEmail)).then(r=>r.json()).then(videos=>{ badge.textContent=videos.length; if(!videos.length){ grid.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ccc;">No recordings found</div>'; return;} let html=''; videos.forEach(video=>{ const date=new Date(video.recordingDate).toLocaleDateString(); const name=video.customerName||'Unknown'; const fullDesc=video.description||''; const recordedByMatch=fullDesc.match(/Recorded By:\s*([^\n\r]+)/); const recordedByEmailMatch=fullDesc.match(/Recorded By Email:\s*([^\n\r]+)/); let recordedByName='Unknown'; let recordedByEmail=''; if(recordedByMatch && recordedByEmailMatch){ recordedByName=recordedByMatch[1].trim(); recordedByEmail=recordedByEmailMatch[1].trim(); } else if(video.recordedBy && video.recordedBy.displayName && video.recordedBy.email){ recordedByName=video.recordedBy.displayName; recordedByEmail=video.recordedBy.email; } else { const userInfo=getCurrentUserInfo(); recordedByName=userInfo.displayName || 'Unknown'; recordedByEmail=userInfo.email || ''; } const mainDesc=fullDesc.split('Customer Email:')[0]||fullDesc.split('--- RECORDING DETAILS ---')[0]||''; const desc=mainDesc.replace(/\*+/g,'').trim()||fullDesc; const escapedDesc=fullDesc.replace(/'/g,'').replace(/"/g,'&quot;'); html+=`<div class="video-card" style="background:#444;border:2px solid #666;border-radius:12px;overflow:hidden;transition:.3s;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);" onclick="openVideoModalWithMetadata('${video.vimeoLink}','${name.replace(/'/g,'')}','${escapedDesc}')" data-vimeo="${video.vimeoLink}" data-title="${(name||'Recording').replace(/"/g,'&quot;')}"><div style="position:relative;width:100%;height:160px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;color:#fff;">${video.thumbnail?`<img src='${video.thumbnail}' style='width:100%;height:100%;object-fit:cover;'>`:`<div style='text-align:center;'><div style='font-size:36px;margin-bottom:8px;'>🎬</div><div style='font-size:12px;opacity:.8;'>Click to View</div></div>`}<div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.8);color:#fff;padding:4px 8px;border-radius:4px;font-size:10px;font-weight:bold;border:1px solid #4CAF50;">${date}</div></div><div style="padding:14px;"><div style="font-weight:700;font-size:15px;color:#4CAF50;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👤 ${name}</div><div style="font-size:11px;color:#bbb;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📧 ${video.customerEmail||''}</div><div style="font-size:12px;color:#ffeb3b;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎬 ${recordedByName}</div><div style="font-size:10px;color:#ddd;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📨 ${recordedByEmail}</div><div style="font-size:10px;color:#aaa;margin-bottom:8px;font-family:monospace;">🕒 ${new Date(video.recordingDate).toLocaleString()}</div><div style="font-size:11px;color:#ccc;line-height:1.3;height:28px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;background:rgba(0,0,0,.3);padding:4px 6px;border-radius:4px;border-left:3px solid #4CAF50;">📝 ${desc.length>50?desc.substring(0,50)+'...':desc}</div></div></div>`; }); grid.innerHTML=html; }); }
+        document.addEventListener('DOMContentLoaded',()=>{ setTimeout(cleanLoadVideoLibrary,1200); });
+        function openVideoModal(url,title,metadata=null){ try{ const modal=document.getElementById('videoModal'); const inner=document.getElementById('videoModalInner'); inner.innerHTML=''; if(/vimeo\.com|player\.vimeo\.com/.test(url)){ let src=url; if(/^https:\/\/(www\.)?vimeo\.com\/.+/.test(url)){ const m=url.match(/vimeo\.com\/(?:video\/)?(\d+)/); if(m&&m[1]) src=`https://player.vimeo.com/video/${m[1]}?autoplay=1`; } else if(url.indexOf('player.vimeo.com')!==-1 && url.indexOf('autoplay')===-1){ src+= (url.indexOf('?')===-1?'?':'&')+'autoplay=1'; } const iframe=document.createElement('iframe'); iframe.src=src; iframe.allow='autoplay; fullscreen; picture-in-picture'; iframe.allowFullscreen=true; iframe.frameBorder='0'; inner.appendChild(iframe);} else if(url && url.startsWith('blob:')){ const v=document.createElement('video'); v.src=url; v.controls=true; v.autoplay=true; v.playsInline=true; v.addEventListener('canplay',()=>{ const p=v.play(); if(p&&p.catch)p.catch(()=>{}); }); v.playsInline=true; inner.appendChild(v);} else if(url && /(\.mp4|\.webm|\.ogg)$/i.test(url)){ const v=document.createElement('video'); v.src=url; v.controls=true; v.autoplay=true; v.playsInline=true; v.addEventListener('canplay',()=>{ const p=v.play(); if(p&&p.catch)p.catch(()=>{}); }); v.playsInline=true; inner.appendChild(v);} else { window.open(url,'_blank'); return;} const metadataSection=document.getElementById('videoMetadataSection'); if(metadata){ const items=document.getElementById('metadataItems'); const desc=document.getElementById('metadataDescription'); let html=''; if(metadata.customerName) html+=`<div class="metadata-item">👤 ${metadata.customerName}</div>`; if(metadata.customerEmail) html+=`<div class="metadata-item">📧 ${metadata.customerEmail}</div>`; if(metadata.recordedBy) html+=`<div class="metadata-item">🎬 ${metadata.recordedBy}</div>`; if(metadata.recordedByEmail) html+=`<div class="metadata-item">📨 ${metadata.recordedByEmail}</div>`; if(metadata.recordingDate) html+=`<div class="metadata-item">🕒 ${metadata.recordingDate}</div>`; items.innerHTML=html; desc.innerHTML=(metadata.description||'No description available').replace(/\n/g,'<br>'); metadataSection.style.display='flex'; } else { metadataSection.style.display='none'; } modal._ignoreClicks=true; modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); setTimeout(()=>{ modal._ignoreClicks=false; },50); modal._previouslyFocused=document.activeElement; document.getElementById('videoModalClose').focus(); }catch(e){ console.error(e); window.open(url,'_blank'); }}
+        function closeVideoModal(){ const modal=document.getElementById('videoModal'); if(!modal) return; const inner=document.getElementById('videoModalInner'); const el=inner.querySelector('video,iframe'); if(el){ try{ if(el.tagName.toLowerCase()==='video'){ el.pause(); if(el.src && el.src.startsWith('blob:')) URL.revokeObjectURL(el.src);} if(el.tagName.toLowerCase()==='iframe') el.src=''; }catch{} } inner.innerHTML=''; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); const prev=modal._previouslyFocused; if(prev&&prev.focus) prev.focus(); }
+        document.addEventListener('click',e=>{ const modal=document.getElementById('videoModal'); if(!modal||!modal.classList.contains('open')) return; if(modal._ignoreClicks) return; const content=modal.querySelector('.video-modal-content'); if(!content.contains(e.target)) closeVideoModal(); });
+        document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ const modal=document.getElementById('videoModal'); if(modal&&modal.classList.contains('open')) closeVideoModal(); }});
+        function openVideoModalWithMetadata(url,title,description){ const recordedByMatch=description.match(/Recorded By:\s*([^\n\r]+)/); const recordedByEmailMatch=description.match(/Recorded By Email:\s*([^\n\r]+)/); const customerEmailMatch=description.match(/Customer Email:\s*([^\n\r]+)/); const recordingDateMatch=description.match(/Recording Date:\s*([^\n\r]+)/); const userInfo=getCurrentUserInfo(); const mainDesc=description.split('Customer Email:')[0]||description.split('--- RECORDING DETAILS ---')[0]||''; const cleanDesc=mainDesc.replace(/\*+/g,'').trim()||description||'No description available'; const metadata={customerName:title, customerEmail:customerEmailMatch?customerEmailMatch[1].trim():'', recordedBy:recordedByMatch?recordedByMatch[1].trim():userInfo.displayName, recordedByEmail:recordedByEmailMatch?recordedByEmailMatch[1].trim():userInfo.email, recordingDate:recordingDateMatch?recordingDateMatch[1].trim():new Date().toLocaleString(), description:cleanDesc}; openVideoModal(url,title,metadata); } window.openVideoModal=openVideoModal; window.closeVideoModal=closeVideoModal; window.openVideoModalWithMetadata=openVideoModalWithMetadata;
+    </script>
+    <div id="videoModal" class="video-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="video-modal-content" role="document">
+            <button class="video-modal-close" aria-label="Close video" id="videoModalClose" onclick="closeVideoModal()">✕</button>
+            <div class="video-modal-body">
+                <div id="videoModalInner" style="width:100%;"></div>
+                <div id="videoMetadataSection" class="video-metadata-section" style="display:none;">
+                    <div class="video-metadata-left">
+                        <div id="metadataItems"></div>
+                    </div>
+                    <div class="video-metadata-right">
+                        <div id="metadataDescription" class="metadata-description"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
