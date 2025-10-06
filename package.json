@@ -1,16 +1,28 @@
 {
-  "name": "sr927c-clean",
-  "version": "0.1.0",
+  "name": "sparky-screen-recorder",
+  "version": "1.0.0",
+  "description": "Screen recording toolkit with Vimeo + Supabase integrations",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint .",
+    "serve": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
+    "@vercel/node": "^3.0.7",
     "@vimeo/vimeo": "^3.0.3",
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "formidable": "^3.5.1",
+    "multer": "^1.4.5-lts.1",
     "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0"

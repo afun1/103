@@ -20,6 +20,10 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
       "refactor/**",
+      "routes/**",
+      "server*.js",
+      "*-endpoint.js",
+      "simple-move-endpoint.js",
     ],
   },
 ];

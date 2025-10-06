@@ -1,31 +1,5 @@
-const FAVICON_PATH = '/supersparky.png';
-
-function ensureFavicon() {
-    if (typeof document === 'undefined') return;
-    const { head } = document;
-    if (!head) return;
-
-    const variants = [
-        { rel: 'icon', type: 'image/png' },
-        { rel: 'shortcut icon', type: 'image/png' },
-        { rel: 'apple-touch-icon' }
-    ];
-
-    variants.forEach(({ rel, type }) => {
-        let link = head.querySelector(`link[rel="${rel}"]`);
-        if (!link) {
-            link = document.createElement('link');
-            link.rel = rel;
-            head.appendChild(link);
-        }
-        if (type) link.type = type;
-        link.href = FAVICON_PATH;
-    });
-}
-
 // Global Header Component
 function loadGlobalHeader() {
-    ensureFavicon();
     const headerHTML = `
         <div class="header">
             <div class="header-column">
@@ -379,7 +353,7 @@ function initializeHeader() {
     setActiveNavButton();
     
     // Listen for auth state changes
-    window.supabase.auth.onAuthStateChange(() => {
+    window.supabase.auth.onAuthStateChange((event, session) => {
         loadUserProfile();
     });
 }
@@ -510,11 +484,6 @@ async function logout() {
         console.error('Logout error:', error);
     }
 }
-
-// Expose handlers globally for inline attributes
-window.toggleDropdown = toggleDropdown;
-window.navigateTo = navigateTo;
-window.logout = logout;
 
 // Load header when DOM is ready
 if (document.readyState === 'loading') {

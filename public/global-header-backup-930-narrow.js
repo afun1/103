@@ -398,13 +398,18 @@ function initializeHeader() {
     // Initialize Supabase
     const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
-    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    if (window.supabase && window.supabase.createClient) {
+        window.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    } else {
+        console.error('Supabase library not loaded properly');
+        return;
+    }
 
     loadUserProfile();
     setActiveNavButton();
     
     // Listen for auth state changes
-    window.supabase.auth.onAuthStateChange(() => {
+    window.supabase.auth.onAuthStateChange((event, session) => {
         loadUserProfile();
     });
 }
@@ -448,7 +453,7 @@ async function loadUserProfile() {
             window.headerUserProfile = { displayName, email, role };
         }
         // Persist and expose for other scripts (recording page)
-    try { localStorage.setItem('currentUser', JSON.stringify(window.headerUserProfile)); } catch {}
+    try { localStorage.setItem('currentUser', JSON.stringify(window.headerUserProfile)); } catch (e) {}
         document.body.setAttribute('data-user-name', window.headerUserProfile.displayName || '');
         document.body.setAttribute('data-user-email', window.headerUserProfile.email || '');
         document.body.setAttribute('data-user-role', window.headerUserProfile.role || '');
@@ -684,7 +689,6 @@ async function logout() {
 window.toggleDropdown = toggleDropdown;
 window.navigateTo = navigateTo;
 window.logout = logout;
-
 // Load header when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadGlobalHeader);

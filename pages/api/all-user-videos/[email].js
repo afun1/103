@@ -1,91 +1,66 @@
-// Fixed API endpoint for user videos
+import { extractVideoMetadata, fetchFolderVideos, VIMEO_DEFAULT_FOLDER_ID } from '@/lib/vimeo';
+
 export default async function handler(req, res) {
-  const { email } = req.query;
-  
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!email) {
+  const rawEmail = Array.isArray(req.query.email) ? req.query.email[0] : req.query.email;
+  if (!rawEmail) {
     return res.status(400).json({ error: 'Email parameter required' });
   }
 
+  const normalizedEmail = String(rawEmail).trim().toLowerCase();
+  if (!normalizedEmail) {
+    return res.status(400).json({ error: 'Valid email parameter required' });
+  }
+
   try {
-    const vimeoAccessToken = process.env.VIMEO_ACCESS_TOKEN;
-    if (!vimeoAccessToken) {
+    const token = process.env.VIMEO_ACCESS_TOKEN;
+    if (!token) {
       return res.status(500).json({ error: 'Vimeo access token not configured' });
     }
 
-    // Fetch all videos from the main folder
-    const response = await fetch(`https://api.vimeo.com/users/112996063/projects/26555277/videos?per_page=100&sort=date&direction=desc`, {
-      headers: {
-        'Authorization': `Bearer ${vimeoAccessToken}`,
-        'Accept': 'application/vnd.vimeo.*+json;version=3.4'
-      }
-    });
+    const folderId = Array.isArray(req.query.folderId)
+      ? req.query.folderId[0]
+      : req.query.folderId || VIMEO_DEFAULT_FOLDER_ID;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Vimeo user videos error:', errorText);
-      return res.status(500).json({ error: 'Failed to fetch user videos from Vimeo' });
-    }
+    const videos = await fetchFolderVideos(token, { folderId });
 
-    const data = await response.json();
-    
-    // Filter videos by the user's email and transform them
-    const userVideos = (data.data || [])
-      .map(video => {
-        const description = video.description || '';
-        
-        // Extract metadata from description
-        const extractMetadata = (desc) => {
-          const metadata = {};
-          const lines = desc.split('\n');
-          
-          lines.forEach(line => {
-            const emailMatch = line.match(/Customer Email:\s*(.+)/i);
-            const recordedByMatch = line.match(/Recorded By:\s*(.+)/i);
-            const recordedByEmailMatch = line.match(/Recorded By Email:\s*(.+)/i);
-            const dateMatch = line.match(/Recording Date:\s*(.+)/i);
-            
-            if (emailMatch) metadata.customerEmail = emailMatch[1].trim();
-            if (recordedByMatch) metadata.recordedBy = recordedByMatch[1].trim();
-            if (recordedByEmailMatch) metadata.recordedByEmail = recordedByEmailMatch[1].trim();
-            if (dateMatch) metadata.recordingDate = dateMatch[1].trim();
-          });
-          
-          return metadata;
-        };
+    const userVideos = videos
+      .map((video) => {
+        const metadata = extractVideoMetadata(video.description);
+        const recordedByEmail = metadata.recordedByEmail?.toLowerCase() || '';
+        const videoId = video?.uri?.split('/')?.pop?.() || '';
 
-        const metadata = extractMetadata(description);
-        
         return {
-          id: video.uri.split('/').pop(),
-          name: video.name,
-          customerName: video.name,
+          id: videoId,
+          name: video?.name || metadata.customer || 'Untitled Recording',
+          customerName: video?.name || metadata.customer || 'Unknown Customer',
           customerEmail: metadata.customerEmail || '',
-          description: description,
-          vimeoLink: video.link,
-          thumbnail: video.pictures?.sizes?.[0]?.link || null,
+          description: video?.description || '',
+          vimeoLink: video?.link || (videoId ? `https://vimeo.com/${videoId}` : ''),
+          thumbnail: video?.pictures?.sizes?.[0]?.link || null,
           recordedBy: {
             displayName: metadata.recordedBy || '',
-            email: metadata.recordedByEmail || ''
+            email: recordedByEmail
           },
-          recordingDate: metadata.recordingDate || video.created_time,
-          duration: video.duration,
-          created_time: video.created_time,
-          metadata: metadata
+          recordingDate: metadata.recordingDate || video?.created_time || null,
+          duration: video?.duration ?? null,
+          created_time: video?.created_time || null,
+          metadata: {
+            ...metadata,
+            folderId,
+            sourceUri: video?.uri || ''
+          }
         };
       })
-      .filter(video => {
-        // Filter by recorded by email
-        return video.recordedBy.email.toLowerCase() === email.toLowerCase();
-      });
+      .filter((video) => video.recordedBy.email === normalizedEmail)
+      .sort((a, b) => new Date(b.created_time || 0) - new Date(a.created_time || 0));
 
     return res.status(200).json(userVideos);
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        res.status(500).json({ error: 'Failed to fetch recordings' });
-    }
+  } catch (error) {
+    console.error('❌ Failed to load user videos:', error);
+    return res.status(500).json({ error: 'Failed to fetch user videos from Vimeo' });
+  }
 }

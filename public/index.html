@@ -1379,14 +1379,17 @@
       const customerName = (formData.first + ' ' + formData.last).trim();
       const dateStr = currentTimestamp();
       const userDescription = formData.desc.trim();
-      const fullDescription = userDescription || '';
-      const result = await uploadToVimeo({
-        title: customerName,
+      const metadataBlock = [`Customer: ${customerName}`, `Customer Email: ${formData.email}`, `Recorded By: ${recordedByInfo.name}`, `Recorded By Email: ${recordedByInfo.email}`, `Recording Date: ${dateStr}`].join('\n');
+      const fullDescription = userDescription ? `${userDescription}\n\n${metadataBlock}` : metadataBlock;
+      await uploadToVimeo({
+        title: customerName || 'Untitled Recording',
         description: fullDescription,
+        customerName,
         customerEmail: formData.email,
         recordedBy: recordedByInfo.name,
         recordedByEmail: recordedByInfo.email,
-        recordingDate: dateStr
+        recordingDate: dateStr,
+        folderId
       });
       // Success UI - fully reset recorder to start screen
       alert('✅ Uploaded successfully to Vimeo!');
