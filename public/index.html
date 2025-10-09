@@ -165,8 +165,9 @@
                 </div>
             </div>
         </div>
-    </div>
-    <script src="global-header.js"></script>
+  </div>
+  <script src="app-config.js"></script>
+  <script src="global-header.js"></script>
     <script>
         // ...existing code from original index (logic unchanged, backup copy)...
     </script>
@@ -280,19 +281,412 @@
     return (list||[]).map(v=>normalizeVideo(v, prof));
   }
 
+  function getVideoShareLink(video){
+    if(!video || typeof video !== 'object') return '';
+    return (
+      video.vimeoLink ||
+      video.link ||
+      video.playerEmbedUrl ||
+      video.player_embed_url ||
+      ''
+    );
+  }
+
+  function escapeAttribute(value){
+    return (value ?? '')
+      .toString()
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function copyTextToClipboard(text){
+    if(!text) return false;
+    if(navigator?.clipboard?.writeText){
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch(err){
+        console.warn('navigator.clipboard failed', err);
+      }
+    }
+
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return successful;
+    } catch(err){
+      console.warn('Fallback copy failed', err);
+      return false;
+    }
+  }
+
+  function showCopyFeedback(button, message){
+    if(!button) return;
+    const originalLabel = button.dataset.originalLabel || button.textContent;
+    button.dataset.originalLabel = originalLabel;
+    button.textContent = message || 'Copied!';
+    button.disabled = true;
+    button.classList.add('copied');
+    setTimeout(()=>{
+      button.textContent = button.dataset.originalLabel;
+      button.disabled = false;
+      button.classList.remove('copied');
+    }, 1600);
+  }
+
+  async function handleCopyVideoLink(button){
+    if(!button) return;
+    let link = button.dataset.videoLink || '';
+    const indexAttr = button.dataset.videoIndex;
+    if(!link && typeof indexAttr !== 'undefined'){
+      const idx = parseInt(indexAttr, 10);
+      if(!Number.isNaN(idx) && Array.isArray(window.__videoItemsCache)){
+        const video = window.__videoItemsCache[idx];
+        link = getVideoShareLink(video);
+      }
+    }
+
+    if(!link){
+      showCopyFeedback(button, 'No link');
+      return;
+    }
+
+    const success = await copyTextToClipboard(link);
+    if(success){
+      showCopyFeedback(button, '✅ Copied!');
+    } else {
+      showCopyFeedback(button, 'Copy failed');
+      alert(`Copy failed. Here is the link:\n\n${link}`);
+    }
+  }
+
+  const STORAGE_SUPPORTED = (() => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return false;
+      const testKey = '__sparky_cache_probe__';
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      return true;
+    } catch (err) {
+      console.warn('Local storage unavailable, caching disabled', err);
+      return false;
+    }
+  })();
+
+  function readCacheEntry(key) {
+    if (!STORAGE_SUPPORTED) return null;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const { payload, expireAt } = parsed;
+      if (typeof expireAt === 'number' && expireAt && Date.now() > expireAt) {
+        window.localStorage.removeItem(key);
+        return null;
+      }
+      return payload || null;
+    } catch (err) {
+      console.warn('Cache read failed', err);
+      return null;
+    }
+  }
+
+  function writeCacheEntry(key, payload, ttlMs) {
+    if (!STORAGE_SUPPORTED) return;
+    try {
+      const record = {
+        payload,
+        savedAt: Date.now(),
+        expireAt: typeof ttlMs === 'number' && ttlMs > 0 ? Date.now() + ttlMs : null
+      };
+      window.localStorage.setItem(key, JSON.stringify(record));
+    } catch (err) {
+      console.warn('Cache write failed', err);
+    }
+  }
+
+  const VIDEO_CACHE_KEY_PREFIX = 'sparkyVideosCache:';
+  const VIDEO_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  const CUSTOMER_CACHE_KEY = 'sparkyCustomersCache';
+  const CUSTOMER_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+  function toArray(value){
+    if(Array.isArray(value)) return value;
+    if(typeof value === 'string'){
+      return value
+        .split(',')
+        .map(part => part.trim())
+        .filter(Boolean);
+    }
+    return [];
+  }
+
+  function normalizeBaseUrl(value){
+    if(typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if(!trimmed || trimmed === '/') return '';
+    return trimmed.replace(/\/+$/, '');
+  }
+
+  function gatherApiBaseCandidates(){
+    const ordered = [];
+    const seen = new Set();
+    const push = (candidate) => {
+      if(candidate === undefined || candidate === null) return;
+      const normalized = candidate === '' ? '' : normalizeBaseUrl(candidate);
+      if(normalized === undefined || normalized === null) return;
+      if(!seen.has(normalized)){
+        seen.add(normalized);
+        ordered.push(normalized);
+      }
+    };
+
+    push('');
+
+    if(typeof window !== 'undefined' && window.location?.origin) {
+      push(window.location.origin);
+    }
+
+    try {
+      if(typeof window !== 'undefined' && window.localStorage){
+        push(window.localStorage.getItem('sparkyApiBaseUrl'));
+        toArray(window.localStorage.getItem('sparkyApiBaseList')).forEach(push);
+      }
+    } catch(storageError) {
+      console.warn('Unable to read stored API base overrides', storageError);
+    }
+
+    const config = (typeof window !== 'undefined' && window.SPARKY_CONFIG) || {};
+    push(config.apiBaseUrl);
+    toArray(config.apiBaseUrls).forEach(push);
+    toArray(config.apiBases).forEach(push);
+    toArray(config.additionalApiBases).forEach(push);
+
+    push('https://103.vercel.app');
+
+    if(typeof document !== 'undefined'){
+      const meta = document.querySelector?.('meta[name="sparky-api-base"]');
+      push(meta?.content);
+      const bodyDataset = document.body?.dataset?.sparkyApiBase || document.documentElement?.dataset?.sparkyApiBase;
+      push(bodyDataset);
+    }
+
+    return ordered;
+  }
+
+  function buildApiEndpoints(email){
+    const encoded = encodeURIComponent(email || '');
+    const endpoints = [];
+    const seen = new Set();
+    const bases = gatherApiBaseCandidates();
+
+    bases.forEach(base => {
+  const prefix = base ? base.replace(/\/+$/, '') : '';
+  const dynamicPath = `${prefix}/api/all-user-videos/${encoded}`.replace(/^\/+/, '/');
+      if(!seen.has(dynamicPath)){
+        seen.add(dynamicPath);
+        endpoints.push(dynamicPath);
+      }
+  const queryPath = `${prefix}/api/all-user-videos?userEmail=${encoded}`.replace(/^\/+/, '/');
+      if(!seen.has(queryPath)){
+        seen.add(queryPath);
+        endpoints.push(queryPath);
+      }
+    });
+
+    return endpoints;
+  }
+
+  async function fetchVideosFromApis(email){
+    const endpoints = buildApiEndpoints(email);
+    const errors = [];
+
+    for(const endpoint of endpoints){
+      try {
+        const response = await fetch(endpoint, { headers: { 'Accept': 'application/json' }});
+        const clone = response.clone();
+        let cachedSnippet = null;
+        async function readSnippet(){
+          if(cachedSnippet !== null) return cachedSnippet;
+          try {
+            const text = await clone.text();
+            cachedSnippet = text ? ` :: ${text.slice(0,160).replace(/\s+/g,' ').trim()}` : '';
+          } catch {
+            cachedSnippet = '';
+          }
+          return cachedSnippet;
+        }
+        if(!response.ok){
+          const snippet = await readSnippet();
+          errors.push(`${endpoint} [${response.status}${snippet}]`);
+          continue;
+        }
+        const contentType = response.headers?.get?.('content-type') || '';
+        if(!/application\/json/i.test(contentType)){
+          const snippet = await readSnippet();
+          errors.push(`${endpoint} [${response.status || '200'} non-json${snippet}]`);
+          continue;
+        }
+        let payload;
+        try {
+          payload = await response.json();
+        } catch(parseError){
+          const snippet = await readSnippet();
+          errors.push(`${endpoint} [json-parse-error${snippet}]`);
+          continue;
+        }
+        return { videos: normalizeList(payload), endpoint };
+      } catch(err){
+        const message = err?.message || 'network error';
+        errors.push(`${endpoint} [${message}]`);
+      }
+    }
+
+    const failure = new Error('All API endpoints failed');
+    failure.sparkyEndpointErrors = errors;
+    throw failure;
+  }
+
+  function mapSupabaseRecord(record){
+    if(!record || typeof record !== 'object') return null;
+    const email = (record.recorded_by_email || record.recordedByEmail || '').toLowerCase();
+    return {
+      id: String(record.id ?? record.vimeo_id ?? record.video_id ?? ''),
+      name: record.title || record.customer_name || record.customerName || 'Untitled Recording',
+      customerName: record.customer_name || record.customerName || '',
+      customerEmail: record.customer_email || record.customerEmail || '',
+      description: record.description || record.notes || '',
+      rawDescription: record.description || record.notes || '',
+      vimeoLink: record.vimeo_link || record.vimeoLink || record.link || '',
+      thumbnail: record.thumbnail_url || record.thumbnail || null,
+      recordedBy: {
+        displayName: record.recorded_by_name || record.recordedBy || '',
+        email
+      },
+      recordingDate: record.recording_date || record.recordingDate || record.created_at || record.createdAt || null,
+      created_time: record.created_at || record.createdAt || record.recording_date || record.recordingDate || null,
+      metadata: record.metadata || {}
+    };
+  }
+
+  async function fetchVideosFromSupabase(email){
+    if(!window.supabase?.from){
+      throw new Error('Supabase client not ready');
+    }
+
+    const normalizedEmail = (email || '').toLowerCase();
+    let query = window.supabase
+      .from('recordings')
+      .select('id, title, customer_name, customer_email, description, vimeo_link, thumbnail_url, recorded_by_name, recorded_by_email, recording_date, created_at, metadata')
+      .order('recording_date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if(normalizedEmail){
+      query = query.eq('recorded_by_email', normalizedEmail);
+    }
+
+    const { data, error } = await query;
+    if(error){
+      const message = (error?.message || '').toLowerCase();
+      if(message.includes('schema cache') || message.includes('does not exist') || message.includes('not found')){
+        return { videos: [], source: 'supabase-missing-table' };
+      }
+      throw error;
+    }
+
+    const mapped = (data || [])
+      .map(mapSupabaseRecord)
+      .filter(Boolean);
+
+    return { videos: normalizeList(mapped), source: 'supabase' };
+  }
+
   async function loadUserVideos(email){
     const grid = document.getElementById('videoGrid');
+    const badge = document.getElementById('videoCountBadge');
     if(!grid) return;
-    grid.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;height:110px;color:#bbb;">Loading your recordings...</div>';
+
+    const requestedEmail = (email || '').trim();
+    if(!requestedEmail){
+      badge && (badge.textContent = '0');
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ccc;padding:40px;">No user email available. Please sign in again.</div>';
+      return;
+    }
+
+    const cacheKey = `${VIDEO_CACHE_KEY_PREFIX}${requestedEmail.toLowerCase()}`;
+    const cachedPayload = readCacheEntry(cacheKey);
+    const cachedVideos = Array.isArray(cachedPayload?.videos) ? cachedPayload.videos : null;
+    const hasCachedVideos = !!(cachedVideos && cachedVideos.length);
+
+    if(hasCachedVideos){
+      grid.dataset.recordingsSource = cachedPayload.source || 'cache';
+      grid.dataset.recordingsEndpoint = cachedPayload.endpoint || 'cache';
+      renderMyRecordings(cachedVideos);
+    } else {
+      grid.dataset.recordingsSource = '';
+      grid.dataset.recordingsEndpoint = '';
+      grid.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;height:110px;color:#bbb;">Loading your recordings...</div>';
+    }
+
+    let apiError;
     try {
-      const resp = await fetch(`/api/all-user-videos/${encodeURIComponent(email)}`);
-      if(!resp.ok) throw new Error('HTTP '+resp.status);
-      const raw = await resp.json();
-      const vids = normalizeList(raw);
-      renderMyRecordings(vids);
-    } catch(e){
-      console.error(e);
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#f66;padding:40px;">Failed to load recordings.</div>';
+      const { videos, endpoint } = await fetchVideosFromApis(requestedEmail);
+      grid.dataset.recordingsSource = 'api';
+      grid.dataset.recordingsEndpoint = endpoint || '';
+      renderMyRecordings(videos);
+      writeCacheEntry(cacheKey, { videos, endpoint: endpoint || '', source: 'api' }, VIDEO_CACHE_TTL);
+      return;
+    } catch(err){
+      apiError = err;
+      if(err?.sparkyEndpointErrors?.length){
+        console.warn('Recordings API endpoints failed', err.sparkyEndpointErrors);
+      } else {
+        console.warn('Recordings API fetch failed', err);
+      }
+    }
+
+    try {
+      const { videos, source } = await fetchVideosFromSupabase(requestedEmail);
+      grid.dataset.recordingsSource = source || 'supabase';
+      grid.dataset.recordingsEndpoint = 'supabase';
+      renderMyRecordings(videos);
+      writeCacheEntry(cacheKey, { videos, endpoint: 'supabase', source: source || 'supabase' }, VIDEO_CACHE_TTL);
+      return;
+    } catch(supabaseError){
+      console.error('Supabase fallback failed', supabaseError);
+      if(hasCachedVideos){
+        grid.dataset.recordingsSource = cachedPayload.source || 'cache';
+        grid.dataset.recordingsEndpoint = cachedPayload.endpoint || 'cache';
+        console.warn('Using cached recordings due to load failure');
+        return;
+      }
+      badge && (badge.textContent = '0');
+      const endpointErrors = Array.isArray(apiError?.sparkyEndpointErrors) ? apiError.sparkyEndpointErrors : [];
+      const deploymentDisabled = endpointErrors.some(msg => /DEPLOYMENT_DISABLED/i.test(msg) || /403/.test(msg));
+      let supabaseHint = null;
+      if(supabaseError?.message){
+        if(/schema cache|does not exist|not found/i.test(supabaseError.message)){
+          supabaseHint = 'Supabase fallback table "recordings" is missing. Create it or adjust the fallback table name.';
+        } else {
+          supabaseHint = `Supabase error: ${supabaseError.message}`;
+        }
+      }
+      const hints = [
+        'Unable to load recordings at the moment.',
+        deploymentDisabled ? 'The Vercel deployment responded with DEPLOYMENT_DISABLED (403). Re-enable the project in the Vercel dashboard or redeploy the API.' : null,
+        endpointErrors.length ? `API attempts: ${endpointErrors.join(' | ')}` : null,
+        supabaseHint,
+        'Verify that your recordings API deployment is reachable or update `window.SPARKY_CONFIG.apiBaseUrl` inside `app-config.js`.'
+      ].filter(Boolean).join('<br><br>');
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#f66;padding:40px;line-height:1.6;">${hints}</div>`;
     }
   }
 
@@ -308,6 +702,8 @@
     window.__videoItemsCache = videos;
     grid.innerHTML = videos.map((v,i)=>{
       const safeDesc = (v.__cleanDescription||'').replace(/</g,'&lt;');
+      const shareLink = getVideoShareLink(v);
+      const linkAttr = shareLink ? ` data-video-link="${escapeAttribute(shareLink)}"` : '';
       return `
       <div class="user-video-card" data-video-index="${i}" style="background:#222c44;border:1px solid #2f3b55;border-radius:12px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;">
         <div style="position:relative;aspect-ratio:16/9;background:#111;">${v.thumbnail ? `<img src="${v.thumbnail}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : '<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#555;font-size:34px;\'>🎬</div>'}</div>
@@ -318,12 +714,13 @@
             <div style="color:#6fbf6f;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.recordedBy.email || ''}</div>
           <div style="color:#999;font-size:10px;">${v.recordingDate ? new Date(v.recordingDate).toLocaleString() : ''}</div>
           ${safeDesc ? `<div style=\"margin-top:4px;color:#cfd6e2;font-size:11px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;\">${safeDesc}</div>` : ''}
+          ${shareLink ? `<button type="button" class="get-link-button" data-video-index="${i}"${linkAttr} style="margin-top:6px;align-self:flex-start;padding:4px 10px;border-radius:6px;border:1px solid #4caf50;background:#1f3d2b;color:#9df39d;font-size:11px;font-weight:600;cursor:pointer;">🔗 Get Link</button>` : ''}
         </div>
       </div>`;
     }).join('');
   }
 
-  function openVideoModal(video){
+  function openVideoModal(video, index){
     document.querySelectorAll('.user-video-modal-overlay').forEach(o=>o.remove());
     const overlay = document.createElement('div');
     overlay.className='user-video-modal-overlay';
@@ -331,9 +728,14 @@
     const safeDesc = (video.__cleanDescription||'').replace(/</g,'&lt;') || 'No description provided.';
     const baseEmbed = getPlayerEmbedUrl(video);
     const embedUrl = baseEmbed ? (baseEmbed.includes('?') ? `${baseEmbed}&autoplay=1` : `${baseEmbed}?autoplay=1`) : '';
+    const shareLink = getVideoShareLink(video);
+    const linkAttrs = shareLink ? `${typeof index === 'number' && index > -1 ? ` data-video-index="${index}"` : ''} data-video-link="${escapeAttribute(shareLink)}"` : '';
     overlay.innerHTML = `
       <div style="width:100%;max-width:1100px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.45);">
-        <button style="position:absolute;top:10px;right:10px;width:44px;height:44px;border:none;border-radius:50%;background:#dc2626;color:#fff;font-size:22px;font-weight:600;cursor:pointer;">×</button>
+        <div style="position:absolute;top:10px;right:10px;display:flex;gap:8px;">
+          ${shareLink ? `<button type="button" class="get-link-button"${linkAttrs} style="padding:8px 14px;border-radius:6px;border:1px solid #4caf50;background:#1f3d2b;color:#9df39d;font-size:12px;font-weight:600;cursor:pointer;">🔗 Get Link</button>` : ''}
+          <button type="button" class="video-modal-close" style="width:44px;height:44px;border:none;border-radius:50%;background:#dc2626;color:#fff;font-size:22px;font-weight:600;cursor:pointer;">×</button>
+        </div>
         <div style="aspect-ratio:16/9;background:#111;">${embedUrl ? `<iframe src="${embedUrl}" style="width:100%;height:100%;border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>`:'<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#666;\'>No Link</div>'}</div>
         <div style="display:flex;flex-wrap:wrap;border-top:1px solid #1f1f1f;">
           <div style="flex:1 1 260px;padding:18px 22px;border-right:1px solid #1f1f1f;min-width:240px;display:flex;flex-direction:column;gap:6px;">
@@ -346,16 +748,26 @@
           <div style="flex:3 1 400px;padding:18px 22px;max-height:260px;overflow:auto;color:#ccc;font-size:13px;line-height:1.4;white-space:pre-wrap;word-break:break-word;">${safeDesc}</div>
         </div>
       </div>`;
-    overlay.addEventListener('click', e=>{ if(e.target===overlay || e.target.tagName==='BUTTON') overlay.remove(); });
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+    const closeBtn = overlay.querySelector('.video-modal-close');
+    closeBtn?.addEventListener('click', ()=> overlay.remove());
     document.body.appendChild(overlay);
   }
 
   document.addEventListener('click', e=>{
+    const copyBtn = e.target.closest('.get-link-button');
+    if(copyBtn){
+      e.preventDefault();
+      e.stopPropagation();
+      handleCopyVideoLink(copyBtn);
+      return;
+    }
+
     const card = e.target.closest('.user-video-card');
     if(card && card.dataset.videoIndex){
       const idx = parseInt(card.dataset.videoIndex,10);
       const video = (window.__videoItemsCache||[])[idx];
-      if(video) openVideoModal(video);
+      if(video) openVideoModal(video, idx);
     }
   });
 
@@ -1136,12 +1548,13 @@
   const searchInput = document.getElementById('customerSearch');
   const suggestionsEl = document.getElementById('customerSuggestions');
   let allCustomers = []; let loaded=false; let loading=false; let filtered=[]; let activeIndex=-1; let debounce;
+  let showingCachedCustomers = false;
 
   function escapeHtml(t){ if(typeof t!=='string') return t; return t.replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[s])); }
   function render(){
     if(!suggestionsEl) return;
-    
-    if(loading){ 
+
+    if(loading && !showingCachedCustomers){ 
       suggestionsEl.innerHTML='<div class="suggestion-item">Loading customers...</div>'; 
       suggestionsEl.style.display='block';
       return; 
@@ -1163,12 +1576,26 @@
     activeIndex = filtered.length?0:-1; render();
   }
   async function loadAll(){
-    if(loaded || loading) return; loading=true; render();
-    
-    // Try to load from both sources and merge
+    if(loading) return;
+    if(loaded && allCustomers.length) return;
+
+    loading = true;
+
+    const cachedPayload = readCacheEntry(CUSTOMER_CACHE_KEY);
+    const cachedCustomers = Array.isArray(cachedPayload?.customers) ? cachedPayload.customers : [];
+    const hasCachedCustomers = cachedCustomers.length > 0;
+
+    if(hasCachedCustomers){
+      showingCachedCustomers = true;
+      allCustomers = cachedCustomers.slice().filter(c => c.name && c.email);
+      allCustomers.sort((a,b) => a.name.localeCompare(b.name));
+      applyFilter(searchInput && searchInput.value || '');
+    } else {
+      render();
+    }
+
     let customers = [];
-    
-    // Load from Vimeo folder first (more reliable)
+
     try {
       const vidsResp = await fetch('/api/vimeo-folder/26555277');
       if(vidsResp.ok){
@@ -1177,14 +1604,13 @@
         vids.forEach(v => {
           let name = v.customerName || v.name || '';
           let email = v.customerEmail || '';
-          
-          // Extract email from description if not in main fields
-          if(!email && v.description){ 
-            const emailMatch = v.description.match(/Customer Email:\s*([^\n\r]+)/i); 
-            if(emailMatch) email = emailMatch[1].trim(); 
+
+          if(!email && v.description){
+            const emailMatch = v.description.match(/Customer Email:\s*([^\n\r]+)/i);
+            if(emailMatch) email = emailMatch[1].trim();
           }
-          
-          if(name && email){ 
+
+          if(name && email){
             const key = email.toLowerCase();
             if(!map.has(key)) {
               map.set(key, { name: name.trim(), email: email.trim() });
@@ -1197,14 +1623,13 @@
     } catch(e) {
       console.log('Vimeo customer load failed:', e);
     }
-    
-    // Also try dedicated customer endpoint
+
     try {
       const resp = await fetch('/api/get-all-customers');
-      if(resp.ok){ 
+      if(resp.ok){
         const data = await resp.json();
         const customerMap = new Map(customers.map(c => [c.email.toLowerCase(), c]));
-        
+
         (data || []).forEach(c => {
           const name = c.name || c.customerName || '';
           const email = c.email || c.customerEmail || '';
@@ -1212,19 +1637,31 @@
             customerMap.set(email.toLowerCase(), { name: name.trim(), email: email.trim() });
           }
         });
-        
+
         customers = [...customerMap.values()];
         console.log('Total customers after merge:', customers.length);
       }
     } catch(e) {
       console.log('Customer API load failed:', e);
     }
-    
-    allCustomers = customers.filter(c => c.name && c.email);
-    allCustomers.sort((a,b) => a.name.localeCompare(b.name));
-    
-    loaded = true; 
-    loading = false; 
+
+    customers = customers.filter(c => c.name && c.email);
+    customers.sort((a,b) => a.name.localeCompare(b.name));
+
+    if(customers.length){
+      allCustomers = customers;
+      writeCacheEntry(CUSTOMER_CACHE_KEY, { customers }, CUSTOMER_CACHE_TTL);
+      loaded = true;
+    } else if(hasCachedCustomers){
+      allCustomers = cachedCustomers;
+      loaded = true;
+    } else {
+      allCustomers = [];
+      loaded = false;
+    }
+
+    loading = false;
+    showingCachedCustomers = false;
     applyFilter(searchInput && searchInput.value || '');
   }
   function select(idx){ 

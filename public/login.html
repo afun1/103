@@ -242,13 +242,13 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         // Check if user is already authenticated and redirect
-        async function checkExistingAuth() {
+        async function redirectIfAuthenticated() {
             try {
                 const { data: { session }, error } = await supabase.auth.getSession();
-                
+
                 if (!error && session) {
-                    console.log('✅ User already authenticated - redirecting to app');
-                    window.location.href = 'index.html';
+                    console.log('✅ User already authenticated - redirecting to recorder');
+                    window.location.href = '/recorder';
                 }
             } catch (error) {
                 console.error('Auth check error:', error);
@@ -256,9 +256,7 @@
             }
         }
 
-        window.addEventListener('load', () => {
-            checkExistingAuth();
-        });
+        window.addEventListener('load', redirectIfAuthenticated);
 
         // Password visibility toggle
         function togglePassword() {
@@ -308,7 +306,7 @@
                 
                 // Redirect to main app after successful login
                 setTimeout(() => {
-                    window.location.href = '/';
+                    window.location.href = '/recorder';
                 }, 1000);
 
             } catch (error) {
@@ -342,12 +340,7 @@
         }
 
         // Check if user is already logged in
-        window.addEventListener('load', async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                window.location.href = '/';
-            }
-        });
+        window.addEventListener('load', redirectIfAuthenticated);
     </script>
 </body>
 </html>

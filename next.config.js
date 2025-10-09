@@ -1,7 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  trailingSlash: true,
-  output: 'standalone'
+  output: 'standalone',
+  async redirects() {
+    return [
+      {
+        source: '/index.html',
+        destination: '/recorder',
+        permanent: false
+      }
+    ];
+  }
 }
 
 module.exports = nextConfig

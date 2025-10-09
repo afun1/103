@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
-
 export default function Home() {
-  const router = useRouter();
-  
-  useEffect(() => {
-    // Redirect to your main HTML file
-    router.replace('/index.html');
-  }, [router]);
-
-  return <div>Loading...</div>;
+  return null;
 }
+
+export async function getServerSideProps({ res }) {
+  if (!res.headersSent) {
+    res.writeHead(302, { Location: '/login.html' });
+  }
+  res.end();
+  return { props: {} };
+}
+
+export const config = {
+  runtime: 'nodejs'
+};

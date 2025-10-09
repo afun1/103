@@ -70,3 +70,5 @@ next-env.d.ts
 
 # Project specific
 refactor/
+
+.vercel
