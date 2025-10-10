@@ -1,4 +1,4 @@
-import { getCustomersCache, setCustomersCache } from '@/lib/vimeo';
+import { getCustomersCache, setCustomersCache, fetchFolderVideos, summarizeCustomersFromVideos } from '@/lib/vimeo';
 
 // Consolidated customers endpoint - now uses customer registry
 export default async function handler(req, res) {
@@ -23,15 +23,26 @@ export default async function handler(req, res) {
     if (!allCustomers) {
       // Fallback to registry API
       console.log('📋 Cache miss, fetching from registry...');
-      const registryResp = await fetch(`${req.protocol || 'http'}://${req.get('host')}/api/customer-registry`);
-      if (!registryResp.ok) {
-        throw new Error(`Registry API failed: ${registryResp.status}`);
+      try {
+        const registryResp = await fetch(`${req.protocol || 'http'}://${req.headers.host}/api/customer-registry`);
+        if (!registryResp.ok) {
+          throw new Error(`Registry API failed: ${registryResp.status}`);
+        }
+        allCustomers = await registryResp.json();
+        
+        // Update cache
+        setCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26918583', allCustomers);
+        console.log('💾 Updated cache with registry data');
+      } catch (registryError) {
+        console.log('⚠️ Registry API failed, falling back to direct Vimeo loading:', registryError.message);
+        // Fallback to direct Vimeo loading
+        const videos = await fetchFolderVideos(process.env.VIMEO_ACCESS_TOKEN, { folderId: '26555277' });
+        allCustomers = summarizeCustomersFromVideos(videos);
+        
+        // Update cache with fresh data
+        setCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26918583', allCustomers);
+        console.log('💾 Updated cache with fresh Vimeo data');
       }
-      allCustomers = await registryResp.json();
-
-      // Update cache
-      setCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26918583', allCustomers);
-      console.log('💾 Updated cache with registry data');
     }
 
     // Pagination
