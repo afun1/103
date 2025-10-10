@@ -4,12 +4,12 @@ import { promises as fsPromises } from 'fs';
 
 const FALLBACK_HTML = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recorder Unavailable</title></head><body><h1>Recorder bundle missing</h1><p>The recorder HTML could not be loaded.</p></body></html>';
 
-function resolveLoginHtmlPath() {
+function resolveIndexHtmlPath() {
   const candidatePaths = [
-    path.join(process.cwd(), 'public', 'login.html'),
-    path.join(process.cwd(), '..', 'public', 'login.html'),
-    path.join(__dirname, '../../../public/login.html'),
-    path.join(__dirname, '../../../../public/login.html')
+    path.join(process.cwd(), 'public', 'index.html'),
+    path.join(process.cwd(), '..', 'public', 'index.html'),
+    path.join(__dirname, '../../../public/index.html'),
+    path.join(__dirname, '../../../../public/index.html')
   ];
 
   for (const candidate of candidatePaths) {
@@ -21,7 +21,7 @@ function resolveLoginHtmlPath() {
   return candidatePaths[0];
 }
 
-const LOGIN_HTML_PATH = resolveLoginHtmlPath();
+const INDEX_HTML_PATH = resolveIndexHtmlPath();
 
 export default function Home() {
   return null;
@@ -29,12 +29,12 @@ export default function Home() {
 
 export async function getServerSideProps({ res }) {
   try {
-    const html = await fsPromises.readFile(LOGIN_HTML_PATH, 'utf8');
+    const html = await fsPromises.readFile(INDEX_HTML_PATH, 'utf8');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.write(html);
     res.end();
   } catch (error) {
-    console.error('Failed to load login HTML:', error);
+    console.error('Failed to load recorder HTML:', error);
     if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader('Content-Type', 'text/html; charset=utf-8');

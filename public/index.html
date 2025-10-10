@@ -67,6 +67,39 @@
     </style>
 </head>
 <body>
+    <!-- Authentication Check -->
+    <script>
+        // Check if user is authenticated, redirect to login if not
+        (async function checkAuth() {
+            try {
+                // Initialize Supabase
+                const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+                const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+                const { data: { session }, error } = await supabase.auth.getSession();
+
+                if (error || !session) {
+                    console.log('❌ Not authenticated, redirecting to login');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                console.log('✅ User authenticated, proceeding to recorder');
+            } catch (error) {
+                console.error('Auth check error:', error);
+                // On error, redirect to login to be safe
+                window.location.href = '/login';
+            }
+        })();
+
+        // Load Supabase for later use
+        if (!window.supabase) {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            document.head.appendChild(script);
+        }
+    </script>
     <div class="container">
         <div class="header-container"></div>
         <div class="main-content">
