@@ -248,7 +248,7 @@
 
                 if (!error && session) {
                     console.log('✅ User already authenticated - redirecting to app');
-                    window.location.href = '/';
+                    window.location.href = '/recorder';
                 }
             } catch (error) {
                 console.error('Auth check error:', error);
@@ -280,7 +280,7 @@
         }
 
         function navigateToRecorder(){
-            window.location.href = '/';
+            window.location.href = '/recorder';
         }
 
         // Login form handler
