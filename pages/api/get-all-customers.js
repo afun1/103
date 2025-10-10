@@ -1,8 +1,8 @@
-import { fetchFolderVideos, summarizeCustomersFromVideos, VIMEO_DEFAULT_FOLDER_ID } from '@/lib/vimeo';
+import { getCustomersCache, setCustomersCache } from '@/lib/vimeo';
 
-// Consolidated customers endpoint - extracts from Vimeo videos
+// Consolidated customers endpoint - now uses customer registry
 export default async function handler(req, res) {
-  console.log('👥 Fetching all customers...');
+  console.log('👥 Fetching customers from registry...');
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -17,20 +17,41 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = process.env.VIMEO_ACCESS_TOKEN;
-    if (!token) {
-      return res.status(500).json({ error: 'Vimeo access token not configured' });
+    // Try to get from Vimeo cache first (for speed)
+    let allCustomers = await getCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26555277');
+
+    if (!allCustomers) {
+      // Fallback to registry API
+      console.log('📋 Cache miss, fetching from registry...');
+      const registryResp = await fetch(`${req.protocol || 'http'}://${req.get('host')}/api/customer-registry`);
+      if (!registryResp.ok) {
+        throw new Error(`Registry API failed: ${registryResp.status}`);
+      }
+      allCustomers = await registryResp.json();
+
+      // Update cache
+      setCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26918583', allCustomers);
+      console.log('💾 Updated cache with registry data');
     }
 
-    const folderId = Array.isArray(req.query.folderId)
-      ? req.query.folderId[0]
-      : req.query.folderId || VIMEO_DEFAULT_FOLDER_ID;
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = (page - 1) * limit;
+    const paginatedCustomers = allCustomers.slice(offset, offset + limit);
 
-    const videos = await fetchFolderVideos(token, { folderId });
-    const customers = summarizeCustomersFromVideos(videos);
+    console.log(`✅ Retrieved ${allCustomers.length} customers from registry, returning page ${page} (${paginatedCustomers.length} items)`);
 
-    console.log(`✅ Extracted ${customers.length} customers`);
-    return res.status(200).json(customers);
+    // Add cache headers for edge caching
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600'); // 5 min cache
+
+    return res.status(200).json({
+      customers: paginatedCustomers,
+      total: allCustomers.length,
+      page,
+      limit,
+      totalPages: Math.ceil(allCustomers.length / limit)
+    });
   } catch (error) {
     console.error('❌ Error fetching customers:', error);
     return res.status(500).json({ error: 'Failed to fetch customers', details: error.message });

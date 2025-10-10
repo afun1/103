@@ -49,6 +49,31 @@ export default async function handler(req, res) {
       return res.status(moveResp.status).json({ error: 'Failed to move to folder', debug: mt });
     }
 
+    // Register customer in the registry
+    try {
+      if (customerEmail && customerEmail.trim()) {
+        const registryResp = await fetch(`${req.protocol || 'http'}://${req.get('host')}/api/customer-registry`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: customerName,
+            email: customerEmail,
+            videoUri,
+            recordedBy: recordedByEmail
+          })
+        });
+
+        if (!registryResp.ok) {
+          console.warn('⚠️ Failed to update customer registry, but video upload succeeded');
+        } else {
+          console.log('✅ Customer registered successfully');
+        }
+      }
+    } catch (registryError) {
+      console.warn('⚠️ Customer registry update failed:', registryError.message);
+      // Don't fail the whole request if registry update fails
+    }
+
     return res.status(200).json({ success: true, videoId, vimeoUrl: `https://vimeo.com/${videoId}` });
   } catch (e) {
     return res.status(500).json({ error: e.message });

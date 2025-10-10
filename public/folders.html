@@ -184,12 +184,56 @@
         }
         
         // State variables
-        let folders = [], allFolders = [], videos = [], allVideos = [];
+    let folders = [], allFolders = [], allVideos = [];
         let currentFolderData = null;
         let currentFolderType = 'main';
         let supabaseUser, supabaseUsers = [];
         let videoUpdatesCache = new Map();
         let selectedUserForMove = null;
+        let foldersPayload = null;
+
+        function hydrateFoldersFromPayload(payload) {
+            foldersPayload = payload || {};
+            const mainVideoList = applyLocalUpdates(foldersPayload.mainVideos || []);
+            allVideos = mainVideoList;
+
+            const hydratedFolders = [];
+
+            hydratedFolders.push({
+                id: 'main',
+                key: 'main',
+                name: 'Sparky Screen Recordings',
+                type: 'main',
+                email: '',
+                role: 'All Videos',
+                videoCount: mainVideoList.length,
+                videos: mainVideoList
+            });
+
+            const userFolders = Array.isArray(foldersPayload.userFolders) ? foldersPayload.userFolders : [];
+
+            userFolders.forEach((folder, index) => {
+                const folderVideos = applyLocalUpdates(folder.videos || []);
+                const folderId = folder.email
+                    ? `user-${folder.email}`
+                    : (folder.key ? `group-${folder.key}` : `unassigned-${index}`);
+
+                hydratedFolders.push({
+                    id: folderId,
+                    key: folder.key || folderId,
+                    name: folder.displayName || folder.email || 'Unassigned Recorder',
+                    type: folder.email ? 'user' : 'unassigned',
+                    email: folder.email || '',
+                    role: folder.role || 'user',
+                    userId: folder.userId || null,
+                    videoCount: folder.videoCount || folderVideos.length,
+                    videos: folderVideos
+                });
+            });
+
+            folders = hydratedFolders;
+            allFolders = [...hydratedFolders];
+        }
 
         // Initialize the page
         // The initialization is now triggered by the 'profileLoaded' event.
@@ -197,173 +241,38 @@
         // Fetch and display folders
         async function loadFolders() {
             try {
-                console.log('🎬 loadFolders() function started...');
-                console.log('Loading folders and videos efficiently...');
-                
-                // Load users from Supabase
-                const usersResponse = await fetch('/api/users');
-                if (!usersResponse.ok) throw new Error('Failed to load users');
-                const usersData = await usersResponse.json();
-                const users = usersData.users || [];
+                console.log('🎬 Loading folders payload from API...');
+                const response = await fetch('/api/folders');
+                if (!response.ok) {
+                    throw new Error(`Failed to load folders: ${response.status}`);
+                }
 
-                // Create folders array - start fresh to avoid duplicates
-                folders = [];
+                const payload = await response.json();
+                hydrateFoldersFromPayload(payload);
 
-                // Add user folders with role information and sort by role then name
-                const sortedUsers = users.sort((a, b) => {
-                    // First sort by role (admin > supervisor > manager > user > others)
-                    const roleOrder = { 
-                        'admin': 1, 
-                        'supervisor': 2, 
-                        'manager': 3, 
-                        'user': 4 
-                    };
-                    const aRole = roleOrder[a.role?.toLowerCase()] || 99;
-                    const bRole = roleOrder[b.role?.toLowerCase()] || 99;
-                    
-                    if (aRole !== bRole) {
-                        return aRole - bRole;
-                    }
-                    
-                    // Then sort alphabetically by display name
-                    const aName = (a.display_name || a.email || 'Unknown').toLowerCase();
-                    const bName = (b.display_name || b.email || 'Unknown').toLowerCase();
-                    return aName.localeCompare(bName);
-                });
-                
-                console.log(`� Loading videos for ${sortedUsers.length} users using same API as index.html...`);
-                
-                // Load all videos once and assign to users (much more efficient)
-                console.log(`🚀 Loading all videos once for efficient assignment...`);
-                const allVideosResponse = await fetch('/api/folder-videos');
-                if (!allVideosResponse.ok) throw new Error('Failed to load videos');
-                const allVideosData = await allVideosResponse.json();
-                const videoList = allVideosData.videos || [];
-                allVideos = applyLocalUpdates(videoList); // Store globally for copying functionality
-                videos = allVideos; // Also set global videos for main folder display
-                
-                // Create user email map for fast lookup
-                const usersByEmail = new Map();
-                sortedUsers.forEach(user => {
-                    usersByEmail.set(user.email.toLowerCase(), user);
-                });
-                
-                // Assign videos to users using the same server logic
-                const userVideosMap = new Map();
-                let johnVideoFound = false;
-                
-                allVideos.forEach(video => {
-                    const desc = video.description || '';
-                    
-                    // Special debugging for john@tpnlife.com
-                    if (desc.includes('john@tpnlife.com') || video.name === 'Test 9281') {
-                        console.log('🔍 DEBUGGING JOHN VIDEO:', {
-                            name: video.name,
-                            description: desc.substring(0, 200) + '...',
-                            fullDescription: desc,
-                            uri: video.uri
-                        });
-                        johnVideoFound = true;
-                    }
-                    
-                    const match = desc.match(/Recorded By Email:\s*([^\n]+)/);
-                    if (match) {
-                        const recordedByEmail = match[1].trim().toLowerCase();
-                        
-                        if (recordedByEmail === 'john@tpnlife.com') {
-                            console.log('✅ JOHN VIDEO MATCHED:', {
-                                email: recordedByEmail,
-                                videoName: video.name,
-                                match: match[1]
-                            });
-                        }
-                        
-                        if (!userVideosMap.has(recordedByEmail)) {
-                            userVideosMap.set(recordedByEmail, []);
-                        }
-                        userVideosMap.get(recordedByEmail).push({
-                            id: video.uri.split('/').pop(),
-                            uri: video.uri,
-                            name: video.name || 'Unknown Customer', // Use name, not customerName
-                            link: video.link, // Use link, not vimeoLink
-                            pictures: video.pictures, // Keep full pictures object for thumbnails
-                            duration: video.duration || 0, // Include duration
-                            created_time: video.created_time, // Use created_time, not createdTime
-                            description: desc
-                        });
-                    }
-                });
-                
-                console.log('🧪 JOHN DEBUG SUMMARY:', {
-                    johnVideoFound: johnVideoFound,
-                    johnVideosAssigned: userVideosMap.get('john@tpnlife.com')?.length || 0,
-                    allEmailsFound: Array.from(userVideosMap.keys())
-                });
-                
-                console.log(`� EFFICIENT ASSIGNMENT: Processed ${allVideos.length} videos in single batch`);
-                
-                // First, add the main Sparky folder at the beginning
-                folders.push({
-                    id: 'main',
-                    name: 'Sparky Screen Recordings',
-                    type: 'main',
-                    videoCount: allVideos.length,
-                    displayName: '',
-                    email: ''
-                });
-                
-                // Then add user folders (excluding any that might duplicate the main folder)
-                sortedUsers.forEach(user => {
-                    const userVideos = userVideosMap.get(user.email.toLowerCase()) || [];
-                    console.log(`📧 ${user.email}: assigned ${userVideos.length} videos`);
-                    
-                    const folderData = {
-                        id: `user-${user.id}`,
-                        name: user.display_name || user.email || 'Unknown User',
-                        type: 'user',
-                        videoCount: userVideos.length,
-                        displayName: user.display_name || '',
-                        email: user.email || '',
-                        role: user.role || 'User',
-                        userId: user.id,
-                        userVideos: userVideos
-                    };
-                    
-                    // Debug John's folder specifically
-                    if (user.email.toLowerCase() === 'john@tpnlife.com') {
-                        console.log('🔧 JOHN FOLDER DEBUG:', {
-                            userEmail: user.email,
-                            userVideosLength: userVideos.length,
-                            folderVideoCount: folderData.videoCount,
-                            folderName: folderData.name,
-                            userVideos: userVideos
-                        });
-                    }
-                    
-                    folders.push(folderData);
-                });
-                
-            console.log(`✅ Created ${folders.length - 1} user folders from Supabase users (plus main folder)`);
-            console.log('Folder breakdown:', folders.map(f => `${f.name}: ${f.videoCount} videos`));
-
-            // Store original folders for search filtering
-            allFolders = [...folders];
-            displayFolders();
-            
-        } catch (error) {
-            console.error('Error loading folders:', error);
-            document.getElementById('folders-container').innerHTML = 
-                '<div class="error">Failed to load folders: ' + error.message + '</div>';
+                console.log(`✅ Hydrated ${folders.length - 1} user folders (plus main)`);
+                displayFolders();
+            } catch (error) {
+                console.error('Error loading folders:', error);
+                document.getElementById('folders-container').innerHTML = 
+                    '<div class="error">Failed to load folders: ' + error.message + '</div>';
+            }
         }
-    }
 
-    function showMainVideos() {
-        console.log('Showing main folder videos');
-        document.getElementById('folders-container').style.display = 'none';
-        document.getElementById('video-grid-container').style.display = 'block';
-        
-        // Add back button
+    function renderFolderVideos(folder) {
+        if (!folder) {
+            console.error('renderFolderVideos called without folder data');
+            return;
+        }
+
+        console.log(`Showing videos for folder: ${folder.name || folder.id}`);
+        const foldersSection = document.getElementById('folders-container');
         const videoGridContainer = document.getElementById('video-grid-container');
+        if (!foldersSection || !videoGridContainer) return;
+
+        foldersSection.style.display = 'none';
+        videoGridContainer.style.display = 'block';
+
         const backButton = `
             <div class="back-to-folders">
                 <button onclick="backToFolders()">
@@ -371,19 +280,20 @@
                 </button>
             </div>
         `;
-        
-        const container = document.getElementById('video-grid');
-        if (!container) return;
-        
-        if (!allVideos || allVideos.length === 0) {
-            videoGridContainer.innerHTML = backButton + '<div id="video-grid"><div style="grid-column: 1 / -1; text-align: center; color: #ccc; padding: 40px 0;">No videos found in main folder.</div></div>';
+
+        const videosForFolder = Array.isArray(folder.videos) ? folder.videos : [];
+
+        if (videosForFolder.length === 0) {
+            videoGridContainer.innerHTML = backButton + '<div id="video-grid"><div style="grid-column: 1 / -1; text-align: center; color: #ccc; padding: 40px 0;">No videos found for this folder.</div></div>';
             return;
         }
-        
+
         videoGridContainer.innerHTML = backButton + '<div id="video-grid"></div>';
-        const newContainer = document.getElementById('video-grid');
-        displayVideosInGrid(allVideos, newContainer);
-    }        function applyLocalUpdates(videoList) {
+        const gridElement = document.getElementById('video-grid');
+        displayVideosInGrid(videosForFolder, gridElement);
+    }
+
+        function applyLocalUpdates(videoList) {
             // Apply any locally cached updates to the video list
             return videoList.map(video => {
                 if (videoUpdatesCache.has(video.uri)) {
@@ -400,19 +310,17 @@
                 console.log('Reloading videos with fresh data...');
                 
                 // Force fresh fetch with cache busting
-                const videosResponse = await fetch(`/api/folder-videos?t=${Date.now()}`);
-                if (!videosResponse.ok) throw new Error('Failed to reload videos');
-                const videosData = await videosResponse.json();
-                
-                // Apply local updates to fresh data
-                videos = applyLocalUpdates(videosData.videos || []);
-                allVideos = videos; // Update global videos array
-                
-                console.log(`Reloaded ${videos.length} videos`);
+                const response = await fetch(`/api/folders?t=${Date.now()}`);
+                if (!response.ok) throw new Error('Failed to reload videos');
+                const payload = await response.json();
+
+                hydrateFoldersFromPayload(payload);
+
+                console.log(`Reloaded ${allVideos.length} videos across ${folders.length - 1} user folders`);
                 
                 // Debug: Check if the specific video we just edited has new data
-                if (currentEditVideoUri && videos.length > 0) {
-                    const updatedVideo = videos.find(v => v.uri === currentEditVideoUri);
+                if (currentEditVideoUri && allVideos.length > 0) {
+                    const updatedVideo = allVideos.find(v => v.uri === currentEditVideoUri);
                     if (updatedVideo) {
                         console.log('Found updated video:', updatedVideo.uri);
                         console.log('Video description (with local updates):', updatedVideo.description?.substring(0, 100) + '...');
@@ -424,9 +332,17 @@
                 }
                 
                 // Debug: log first video to see overall state
-                if (videos.length > 0) {
-                    console.log('Sample video (first in list):', videos[0].uri);
-                    console.log('Sample description:', videos[0].description?.substring(0, 100) + '...');
+                if (allVideos.length > 0) {
+                    console.log('Sample video (first in list):', allVideos[0].uri);
+                    console.log('Sample description:', allVideos[0].description?.substring(0, 100) + '...');
+                }
+
+                // Re-render current folder if open
+                if (currentFolderData && currentFolderData.id) {
+                    const refreshedFolder = folders.find(f => f.id === currentFolderData.id);
+                    if (refreshedFolder) {
+                        renderFolderVideos(refreshedFolder);
+                    }
                 }
             } catch (error) {
                 console.error('Error reloading videos:', error);
@@ -449,13 +365,16 @@
             const foldersHTML = folders.map(folder => {
                 const isMain = folder.type === 'main';
                 const cardClass = isMain ? 'folder-card main-folder' : 'folder-card';
+                const roleLabel = folder.role
+                    ? folder.role.charAt(0).toUpperCase() + folder.role.slice(1)
+                    : '';
                 
                 return `
-                    <div class="${cardClass}" onclick="openFolder('${folder.id}', '${folder.type}')">
+                    <div class="${cardClass}" onclick="openFolder('${folder.id}')">
                         <div class="folder-title">${escapeHtml(folder.name)}</div>
                         ${folder.email ? `<div class="folder-email">${escapeHtml(folder.email)}</div>` : ''}
                         <div class="folder-count">${folder.videoCount} videos</div>
-                        ${folder.role ? `<div class="folder-role">${escapeHtml(folder.role)}</div>` : ''}
+                        ${roleLabel && !isMain ? `<div class="folder-role">${escapeHtml(roleLabel)}</div>` : ''}
                     </div>
                 `;
             }).join('');
@@ -463,29 +382,17 @@
             container.innerHTML = `<div class="folders-grid">${foldersHTML}</div>`;
         }
 
-        function openFolder(folderId, folderType) {
-            console.log(`Opening folder: ${folderId} (${folderType})`);
-            
-            // Set current folder tracking
-            currentFolderType = folderType;
-            currentFolderData = { id: folderId, type: folderType };
-            
-            if (folderType === 'main') {
-                // Show main folder videos
-                showMainVideos();
-            } else {
-                // Extract the actual user ID from the folder ID (remove 'user-' prefix)
-                const userId = folderId.startsWith('user-') ? folderId.substring(5) : folderId;
-                console.log(`Extracted userId: ${userId} from folderId: ${folderId}`);
-                currentFolderData.userId = userId;
-                // Find the folder data
-                const folderData = folders.find(f => f.id === folderId);
-                if (folderData && folderData.userVideos) {
-                    showUserVideos(userId, folderData.userVideos);
-                } else {
-                    console.error('Folder data not found for:', folderId);
-                }
+        function openFolder(folderId) {
+            console.log(`Opening folder: ${folderId}`);
+            const folder = folders.find(f => f.id === folderId);
+            if (!folder) {
+                console.error('Folder data not found for:', folderId);
+                return;
             }
+
+            currentFolderType = folder.type;
+            currentFolderData = { id: folder.id, type: folder.type, email: folder.email || '' };
+            renderFolderVideos(folder);
         }
 
         function openVideoModal() {
@@ -659,12 +566,10 @@
                     
                     // Immediately refresh display with cached data
                     await reloadVideos(); // This will apply local cache
-                    if (currentFolderType === 'main') {
-                        showMainVideos(); // Refresh main folder videos with cached data
-                    } else if (currentFolderType === 'user' && currentFolderData) {
-                        const folderData = folders.find(f => f.id === `user-${currentFolderData.userId}`);
-                        if (folderData && folderData.userVideos) {
-                            showUserVideos(currentFolderData.userId, folderData.userVideos);
+                    if (currentFolderData && currentFolderData.id) {
+                        const refreshedFolder = folders.find(f => f.id === currentFolderData.id);
+                        if (refreshedFolder) {
+                            renderFolderVideos(refreshedFolder);
                         }
                     }
                     
@@ -707,11 +612,11 @@
             }
         });
 
-        function displayVideos(videos, containerId) {
+        function displayVideos(videos = [], containerId) {
             const container = document.getElementById(containerId);
             if (!container) return;
 
-            if (videos.length === 0) {
+            if (!Array.isArray(videos) || videos.length === 0) {
                 container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ccc; padding: 40px 0;">No videos found for this folder.</div>';
                 return;
             }
@@ -741,31 +646,6 @@
             });
 
             container.innerHTML = html;
-        }
-
-        function showUserVideos(userId, videos) {
-            console.log(`Showing videos for user: ${userId}`);
-            document.getElementById('folders-container').style.display = 'none';
-            document.getElementById('video-grid-container').style.display = 'block';
-            
-            // Add back button
-            const videoGridContainer = document.getElementById('video-grid-container');
-            const backButton = `
-                <div class="back-to-folders">
-                    <button onclick="backToFolders()">
-                        <span>←</span> Back to Folders
-                    </button>
-                </div>
-            `;
-            
-            if (!videos || videos.length === 0) {
-                videoGridContainer.innerHTML = backButton + '<div id="video-grid"><div style="grid-column: 1 / -1; text-align: center; color: #ccc; padding: 40px 0;">No videos found for this user.</div></div>';
-                return;
-            }
-
-            videoGridContainer.innerHTML = backButton + '<div id="video-grid"></div>';
-            const container = document.getElementById('video-grid');
-            displayVideosInGrid(videos, container);
         }
 
         function displayVideosInGrid(videos, container) {
@@ -939,6 +819,7 @@
             document.getElementById('folders-container').style.display = 'block';
             currentFolderType = 'main';
             currentFolderData = null;
+            displayFolders();
         }
         
         window.openVideoModal = openVideoModal;

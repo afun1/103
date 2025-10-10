@@ -1542,146 +1542,267 @@
 <script>
 (function(){
   if(window.__customerSearchMainInit) return; window.__customerSearchMainInit = true;
+
   const existingForm = document.getElementById('existingCustomerForm');
   const newForm = document.getElementById('newCustomerForm');
   const commonFields = document.getElementById('commonFields');
   const searchInput = document.getElementById('customerSearch');
   const suggestionsEl = document.getElementById('customerSuggestions');
-  let allCustomers = []; let loaded=false; let loading=false; let filtered=[]; let activeIndex=-1; let debounce;
-  let showingCachedCustomers = false;
+  const debugLog = (...args) => {
+    try {
+      if(window?.console?.debug){
+        console.debug('[Customers]', ...args);
+      } else if(window?.console){
+        console.log('[Customers]', ...args);
+      }
+    } catch(_){}
+  };
+
+  let allCustomers = [];
+  let filtered = [];
+  let activeIndex = -1;
+  let debounce;
+  let loadPromise = null;
+  let lastSuccessfulQuery = '';
+
+  const CUSTOMER_CACHE_KEY = 'sparkyCustomersCache';
+  const CUSTOMER_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+  const STORAGE_SUPPORTED = (() => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return false;
+      const testKey = '__sparky_customer_cache_probe__';
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      return true;
+    } catch (_err) {
+      return false;
+    }
+  })();
+
+  function readCacheEntry(key) {
+    if (!STORAGE_SUPPORTED) return null;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const { payload, expireAt } = parsed;
+      if (typeof expireAt === 'number' && expireAt && Date.now() > expireAt) {
+        window.localStorage.removeItem(key);
+        return null;
+      }
+      return payload || null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function writeCacheEntry(key, payload, ttlMs) {
+    if (!STORAGE_SUPPORTED) return;
+    try {
+      const record = {
+        payload,
+        savedAt: Date.now(),
+        expireAt: typeof ttlMs === 'number' && ttlMs > 0 ? Date.now() + ttlMs : null
+      };
+      window.localStorage.setItem(key, JSON.stringify(record));
+    } catch (_err) {
+      // ignore storage failures
+    }
+  }
 
   function escapeHtml(t){ if(typeof t!=='string') return t; return t.replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[s])); }
-  function render(){
-    if(!suggestionsEl) return;
 
-    if(loading && !showingCachedCustomers){ 
-      suggestionsEl.innerHTML='<div class="suggestion-item">Loading customers...</div>'; 
-      suggestionsEl.style.display='block';
-      return; 
+  function renderMessage(message){
+    if(!suggestionsEl) return;
+    suggestionsEl.innerHTML = `<div class="suggestion-item">${escapeHtml(message)}</div>`;
+    suggestionsEl.style.display = 'block';
+    debugLog('renderMessage', message);
+  }
+
+  function renderList(){
+    if (window.__selectedCustomer) return; // Don't show dropdown after customer selection
+    if(!suggestionsEl) return;
+    if(!filtered.length){
+      renderMessage('No customers found');
+      return;
     }
-    
-    if(!filtered.length){ 
-      suggestionsEl.innerHTML='<div class="suggestion-item">No customers found</div>'; 
-      suggestionsEl.style.display='block';
-      return; 
-    }
-    
     suggestionsEl.innerHTML = filtered.map((c,i)=>`<div class="suggestion-item" data-idx="${i}" style="${i===activeIndex?'background:#555;':''}"><strong>${escapeHtml(c.name||'(No Name)')}</strong><br><small>${escapeHtml(c.email||'')}</small></div>`).join('');
     suggestionsEl.style.display='block';
   }
+
+  function filterCustomers(query){
+    const term = (query||'').trim().toLowerCase();
+    if(!term) return allCustomers.slice(0,150);
+    return allCustomers.filter(c => (c.name||'').toLowerCase().includes(term) || (c.email||'').toLowerCase().includes(term)).slice(0,150);
+  }
+
   function applyFilter(q){
-    const term = (q||'').trim().toLowerCase();
-    if(!term){ filtered = allCustomers.slice(0,150); activeIndex=-1; render(); return; }
-    filtered = allCustomers.filter(c=> (c.name||'').toLowerCase().includes(term) || (c.email||'').toLowerCase().includes(term)).slice(0,150);
-    activeIndex = filtered.length?0:-1; render();
+    if(typeof q === 'string'){
+      lastSuccessfulQuery = q;
+    }
+    const targetQuery = typeof q === 'string' ? q : lastSuccessfulQuery;
+    filtered = filterCustomers(targetQuery);
+    activeIndex = filtered.length ? 0 : -1;
+    renderList();
+    debugLog('applyFilter', { query: targetQuery, results: filtered.length, total: allCustomers.length });
   }
-  async function loadAll(){
-    if(loading) return;
-    if(loaded && allCustomers.length) return;
 
-    loading = true;
+  function pickFirstString(candidateList){
+    for(const value of candidateList){
+      if(typeof value === 'string' && value.trim()){ return value.trim(); }
+    }
+    return '';
+  }
 
+  function normaliseCustomers(list){
+    if(!Array.isArray(list)) return [];
+    return list
+      .map(c => {
+        const name = pickFirstString([
+          c?.name,
+          c?.customerName,
+          c?.customer_name,
+          c?.displayName,
+          c?.customer?.name,
+          c?.metadata?.customer,
+          c?.metadata?.customerName
+        ]) || 'Unnamed Customer';
+        const email = pickFirstString([
+          c?.email,
+          c?.customerEmail,
+          c?.customer_email,
+          c?.emailAddress,
+          c?.email_address,
+          c?.metadata?.customerEmail,
+          c?.metadata?.customer_email,
+          c?.metadata?.email,
+          c?.customer?.email
+        ]);
+        return { name, email };
+      })
+      .filter(c => c.email);
+  }
+
+  function hydrateFromCache(){
     const cachedPayload = readCacheEntry(CUSTOMER_CACHE_KEY);
-    const cachedCustomers = Array.isArray(cachedPayload?.customers) ? cachedPayload.customers : [];
-    const hasCachedCustomers = cachedCustomers.length > 0;
-
-    if(hasCachedCustomers){
-      showingCachedCustomers = true;
-      allCustomers = cachedCustomers.slice().filter(c => c.name && c.email);
-      allCustomers.sort((a,b) => a.name.localeCompare(b.name));
-      applyFilter(searchInput && searchInput.value || '');
-    } else {
-      render();
-    }
-
-    let customers = [];
-
-    try {
-      const vidsResp = await fetch('/api/vimeo-folder/26555277');
-      if(vidsResp.ok){
-        const vids = await vidsResp.json();
-        const map = new Map();
-        vids.forEach(v => {
-          let name = v.customerName || v.name || '';
-          let email = v.customerEmail || '';
-
-          if(!email && v.description){
-            const emailMatch = v.description.match(/Customer Email:\s*([^\n\r]+)/i);
-            if(emailMatch) email = emailMatch[1].trim();
-          }
-
-          if(name && email){
-            const key = email.toLowerCase();
-            if(!map.has(key)) {
-              map.set(key, { name: name.trim(), email: email.trim() });
-            }
-          }
-        });
-        customers = [...map.values()];
-        console.log('Loaded', customers.length, 'customers from Vimeo');
-      }
-    } catch(e) {
-      console.log('Vimeo customer load failed:', e);
-    }
-
-    try {
-      const resp = await fetch('/api/get-all-customers');
-      if(resp.ok){
-        const data = await resp.json();
-        const customerMap = new Map(customers.map(c => [c.email.toLowerCase(), c]));
-
-        (data || []).forEach(c => {
-          const name = c.name || c.customerName || '';
-          const email = c.email || c.customerEmail || '';
-          if(name && email && !customerMap.has(email.toLowerCase())) {
-            customerMap.set(email.toLowerCase(), { name: name.trim(), email: email.trim() });
-          }
-        });
-
-        customers = [...customerMap.values()];
-        console.log('Total customers after merge:', customers.length);
-      }
-    } catch(e) {
-      console.log('Customer API load failed:', e);
-    }
-
-    customers = customers.filter(c => c.name && c.email);
-    customers.sort((a,b) => a.name.localeCompare(b.name));
-
-    if(customers.length){
-      allCustomers = customers;
-      writeCacheEntry(CUSTOMER_CACHE_KEY, { customers }, CUSTOMER_CACHE_TTL);
-      loaded = true;
-    } else if(hasCachedCustomers){
-      allCustomers = cachedCustomers;
-      loaded = true;
-    } else {
-      allCustomers = [];
-      loaded = false;
-    }
-
-    loading = false;
-    showingCachedCustomers = false;
-    applyFilter(searchInput && searchInput.value || '');
+    const cachedCustomers = normaliseCustomers(cachedPayload?.customers);
+    if(!cachedCustomers.length) return false;
+    allCustomers = dedupeCustomers([...cachedCustomers, ...allCustomers]);
+    allCustomers.sort((a,b) => a.name.localeCompare(b.name));
+    applyFilter(searchInput ? searchInput.value : lastSuccessfulQuery);
+    debugLog('hydrateFromCache', { cachedCount: cachedCustomers.length, total: allCustomers.length });
+    return true;
   }
-  function select(idx){ 
-    if(idx<0||idx>=filtered.length) return; 
-    const c=filtered[idx]; 
-    searchInput.value = c.name + (c.email? ' ('+c.email+')':''); 
-    activeIndex=idx; 
-    
-    // Close dropdown immediately
-    suggestionsEl.innerHTML=''; 
-    suggestionsEl.style.display='none';
-    
-    commonFields.style.display='block'; 
-    window.__selectedCustomer=c; 
-    
-    // Show extra fields when customer is selected
+
+  async function fetchCustomers(){
+    if(loadPromise) return loadPromise;
+
+    const queryBefore = searchInput ? searchInput.value : lastSuccessfulQuery;
+    debugLog('fetchCustomers:start', { queryBefore, haveCustomers: allCustomers.length });
+
+    async function loadFromApi(){
+      try {
+        const resp = await fetch('/api/get-all-customers', { headers: { 'Accept': 'application/json' }});
+        if(!resp.ok) throw new Error(`status ${resp.status}`);
+        const payload = await resp.json();
+        const customers = normaliseCustomers(payload.customers || payload);
+        debugLog('fetchCustomers:apiResult', { rawCount: Array.isArray(payload.customers || payload) ? (payload.customers || payload).length : 'n/a', normalized: customers.length });
+        return customers;
+      } catch(err) {
+        debugLog('fetchCustomers:apiError', err?.message || err);
+        return [];
+      }
+    }
+
+    async function loadFromVimeo(){
+      try {
+        const resp = await fetch('/api/vimeo-folder/26555277', { headers: { 'Accept': 'application/json' }});
+        if(!resp.ok) throw new Error(`status ${resp.status}`);
+        const payload = await resp.json();
+        const fromVimeo = normaliseCustomers(
+          (Array.isArray(payload) ? payload : []).map(v => ({
+            name: v.customerName || v.name || '',
+            email: v.customerEmail || ''
+          }))
+        );
+        debugLog('fetchCustomers:vimeoResult', { rawCount: Array.isArray(payload) ? payload.length : 'n/a', normalized: fromVimeo.length });
+        return fromVimeo;
+      } catch(err) {
+        debugLog('fetchCustomers:vimeoError', err?.message || err);
+        return [];
+      }
+    }
+
+    loadPromise = (async () => {
+      if(!allCustomers.length) renderMessage('Loading customers...');
+
+      const merged = [];
+      const apiCustomers = await loadFromApi();
+      if(apiCustomers.length) merged.push(...apiCustomers);
+
+      if(!merged.length){
+        const vimeoFallback = await loadFromVimeo();
+        if(vimeoFallback.length) merged.push(...vimeoFallback);
+      }
+
+      if(merged.length){
+        allCustomers = dedupeCustomers([...merged, ...allCustomers]);
+        allCustomers.sort((a,b) => a.name.localeCompare(b.name));
+        writeCacheEntry(CUSTOMER_CACHE_KEY, { customers: allCustomers }, CUSTOMER_CACHE_TTL);
+        applyFilter(queryBefore);
+        debugLog('fetchCustomers:mergedSuccess', { merged: merged.length, total: allCustomers.length });
+        return;
+      }
+
+      if(allCustomers.length){
+        applyFilter(queryBefore);
+        debugLog('fetchCustomers:usingExisting', { total: allCustomers.length });
+        return;
+      }
+
+      renderMessage('Unable to load customers');
+      debugLog('fetchCustomers:allSourcesFailed');
+    })()
+    .finally(() => { loadPromise = null; });
+
+    return loadPromise;
+  }
+
+  function dedupeCustomers(list){
+    const map = new Map();
+    list.forEach(c => {
+      const key = c.email.toLowerCase();
+      if(!map.has(key)) map.set(key, c);
+    });
+    return Array.from(map.values());
+  }
+
+  function ensureCustomersLoaded(){
+    const hadCache = hydrateFromCache();
+    if(!hadCache) renderMessage('Loading customers...');
+    fetchCustomers();
+    debugLog('ensureCustomersLoaded', { hadCache, total: allCustomers.length });
+  }
+
+  function select(idx){
+    if(!searchInput || idx<0 || idx>=filtered.length) return;
+    const c = filtered[idx];
+    searchInput.value = `${c.name}${c.email ? ` (${c.email})` : ''}`;
+    activeIndex = idx;
+
+    if(suggestionsEl){
+      suggestionsEl.innerHTML = '';
+      suggestionsEl.style.display = 'none';
+    }
+
+    commonFields.style.display = 'block';
+    window.__selectedCustomer = c;
+
     const extraFields = document.getElementById('existingExtraFields');
     if(extraFields) extraFields.style.display='block';
-    
-    // Auto-populate the extra fields
+
     const nameParts = (c.name||'').trim().split(/\s+/);
     const first = nameParts.shift()||'';
     const last = nameParts.join(' ')||'';
@@ -1692,33 +1813,97 @@
     if(el) el.value = last;
     if(ee) ee.value = c.email||'';
   }
-  function keyHandler(e){ if(!filtered.length) return; switch(e.key){ case 'ArrowDown': e.preventDefault(); activeIndex=(activeIndex+1)%filtered.length; render(); break; case 'ArrowUp': e.preventDefault(); activeIndex=(activeIndex-1+filtered.length)%filtered.length; render(); break; case 'Enter': if(activeIndex>-1){ e.preventDefault(); select(activeIndex);} break; case 'Escape': suggestionsEl.innerHTML=''; break; }}
+
+  function keyHandler(e){
+    if(!filtered.length) return;
+    switch(e.key){
+      case 'ArrowDown':
+        e.preventDefault();
+        activeIndex = (activeIndex + 1) % filtered.length;
+        renderList();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        activeIndex = (activeIndex - 1 + filtered.length) % filtered.length;
+        renderList();
+        break;
+      case 'Enter':
+        if(activeIndex > -1){
+          e.preventDefault();
+          select(activeIndex);
+        }
+        break;
+      case 'Escape':
+        if(suggestionsEl){
+          suggestionsEl.innerHTML = '';
+          suggestionsEl.style.display = 'none';
+        }
+        break;
+      default:
+        break;
+    }
+  }
 
   if(searchInput){
-    searchInput.addEventListener('focus', ()=>{ loadAll(); applyFilter(searchInput.value); });
-    searchInput.addEventListener('input', ()=>{ clearTimeout(debounce); debounce=setTimeout(()=>{ applyFilter(searchInput.value); },140); });
+    searchInput.addEventListener('focus', () => {
+      ensureCustomersLoaded();
+      applyFilter(searchInput.value);
+    });
+    searchInput.addEventListener('input', () => {
+      if (window.__selectedCustomer) return; // Prevent reopening dropdown after selection
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        applyFilter(searchInput.value);
+      }, 140);
+    });
     searchInput.addEventListener('keydown', keyHandler);
   }
+
   if(suggestionsEl){
-    suggestionsEl.addEventListener('mousedown', e=>{ const item=e.target.closest('.suggestion-item'); if(!item) return; const idx=parseInt(item.dataset.idx,10); select(idx); });
+    suggestionsEl.addEventListener('mousedown', e => {
+      const item = e.target.closest('.suggestion-item');
+      if(!item) return;
+      const idx = parseInt(item.dataset.idx, 10);
+      select(idx);
+    });
   }
+
   const originalToggle = window.toggleCustomerForm;
   window.toggleCustomerForm = function(type){
-    if(type==='existing'){
-      existingForm.style.display='block'; newForm.style.display='none'; commonFields.style.display='block'; 
-      loadAll(); applyFilter(searchInput.value);
-      // Hide extra fields initially until customer is selected
+    if(type === 'existing'){
+      existingForm.style.display='block';
+      newForm.style.display='none';
+      commonFields.style.display='block';
+      ensureCustomersLoaded();
+      applyFilter(searchInput ? searchInput.value : lastSuccessfulQuery);
+      if(searchInput){
+        setTimeout(() => {
+          try {
+            searchInput.focus();
+            searchInput.select();
+          } catch(err){ debugLog('focus fail', err?.message || err); }
+        }, 30);
+      }
       const extraFields = document.getElementById('existingExtraFields');
       if(extraFields) extraFields.style.display='none';
-    } else if(type==='new'){
-      newForm.style.display='block'; existingForm.style.display='none'; commonFields.style.display='block';
-    } else { 
-      existingForm.style.display='none'; newForm.style.display='none'; commonFields.style.display='none'; 
-      // Also hide extra fields when hiding forms
+      debugLog('toggle existing', { total: allCustomers.length });
+    } else if(type === 'new'){
+      newForm.style.display='block';
+      existingForm.style.display='none';
+      commonFields.style.display='block';
+      debugLog('toggle new');
+    } else {
+      existingForm.style.display='none';
+      newForm.style.display='none';
+      commonFields.style.display='none';
       const extraFields = document.getElementById('existingExtraFields');
       if(extraFields) extraFields.style.display='none';
+      debugLog('toggle off/reset');
     }
-    if(typeof originalToggle==='function'){ try { originalToggle(type); } catch(_){} }
+
+    if(typeof originalToggle === 'function'){
+      try { originalToggle(type); } catch(_){}
+    }
   };
 })();
 </script>

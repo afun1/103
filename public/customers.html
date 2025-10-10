@@ -278,6 +278,15 @@
                         <!-- Customer rows will be populated here -->
                     </tbody>
                 </table>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button id="load-more-btn" onclick="loadMoreCustomers()" 
+                            style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.2s; display: none;" 
+                            onmouseover="this.style.background='#764ba2'" 
+                            onmouseout="this.style.background='#667eea'">
+                        📄 Load More Customers
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -393,24 +402,59 @@
             }
         }
 
+        let currentPage = 1;
+        let allCustomers = [];
+        let isLoading = false;
+        const PAGE_SIZE = 100;
+
         async function loadCustomers() {
             try {
                 console.log('🔄 Loading customers from API...');
                 
-                const response = await fetch('/api/get-all-customers');
+                const response = await fetch(`/api/get-all-customers?page=${currentPage}&limit=${PAGE_SIZE}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const customers = await response.json();
-                console.log('✅ Loaded customers:', customers.length);
+                const data = await response.json();
+                console.log(`✅ Loaded page ${data.page} of ${data.totalPages} (${data.customers.length} customers)`);
                 
-                displayCustomers(customers);
-                updateStats(customers);
+                // Append new customers to the list
+                allCustomers = allCustomers.concat(data.customers);
+                
+                displayCustomers(allCustomers);
+                updateStats(allCustomers);
+                
+                // Show/hide load more button
+                const loadMoreBtn = document.getElementById('load-more-btn');
+                if (data.page < data.totalPages) {
+                    loadMoreBtn.style.display = 'block';
+                } else {
+                    loadMoreBtn.style.display = 'none';
+                }
                 
             } catch (error) {
                 console.error('❌ Error loading customers:', error);
                 showError();
+            }
+        }
+
+        async function loadMoreCustomers() {
+            if (isLoading) return;
+            isLoading = true;
+            
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            const originalText = loadMoreBtn.innerHTML;
+            loadMoreBtn.innerHTML = '🔄 Loading...';
+            loadMoreBtn.disabled = true;
+            
+            try {
+                currentPage++;
+                await loadCustomers();
+            } finally {
+                loadMoreBtn.innerHTML = originalText;
+                loadMoreBtn.disabled = false;
+                isLoading = false;
             }
         }
 
@@ -641,6 +685,8 @@
 
         // Refresh customers function
         function refreshCustomers() {
+            currentPage = 1;
+            allCustomers = [];
             document.getElementById('loading-message').style.display = 'block';
             document.getElementById('customers-table').style.display = 'none';
             document.getElementById('error-message').style.display = 'none';

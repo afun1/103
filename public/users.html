@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Users - Sparky Screen Recorder</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .email-header,
+        .email-cell {
+            width: 280px;
+            max-width: 280px;
         }
 
         body {
@@ -16,62 +16,62 @@
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             min-height: 100vh;
             color: #e2e8f0;
-            padding: 20px;
+            padding: 2px 20px 0 20px;
+            overflow: hidden;
         }
 
         .container {
             max-width: 1600px;
             margin: 0 auto;
-            padding: 20px 0;
-        }
-
-        .page-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .page-title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #f1f5f9;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .page-subtitle {
-            font-size: 1.1rem;
-            color: #94a3b8;
-            margin-bottom: 20px;
-        }
-
-        .stats-bar {
+            padding: 10px 0 20px;
             display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 12px;
+            min-height: calc(100vh - 12px);
         }
 
-        .stat-item {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 15px 25px;
+        .role-header,
+        .role-cell {
+            width: calc(10.5ch - 20px);
+            min-width: max(0px, calc(10ch - 20px));
+            text-align: left;
+        }
+
+        .manager-header,
+        .manager-cell,
+        .supervisor-header,
+        .supervisor-cell,
+        .admin-header,
+        .admin-cell {
+            width: 12ch;
+            min-width: 12ch;
+            max-width: 12ch;
+            text-align: left;
+        }
+
+        .admin-cell {
             text-align: center;
-            min-width: 120px;
+        }
+
+        .role-cell .role-badge {
+            display: block;
+            text-align: left;
+            white-space: normal;
+            word-break: break-word;
+            padding: 2px 6px;
         }
 
         .stat-number {
-            font-size: 1.8rem;
-            font-weight: bold;
+            font-size: 0.9rem;
+            font-weight: 600;
             color: #60a5fa;
-            display: block;
         }
 
         .stat-label {
             font-size: 0.9rem;
-            color: #94a3b8;
-            margin-top: 5px;
+            font-weight: 600;
+            color: #cbd5e1;
+            letter-spacing: 0.3px;
         }
 
         .table-container {
@@ -80,188 +80,479 @@
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .table-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: rgba(15, 23, 42, 0.65);
+        }
+
+        .table-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .table-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        .table-scroll::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.4);
+            border-radius: 4px;
         }
 
         .table-header {
             background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
-            padding: 20px 25px;
+            padding: 5px 25px;
             border-bottom: 1px solid #475569;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.55);
         }
 
-        .table-title {
-            font-size: 1.3rem;
+        .bulk-actions {
+            display: none;
+            flex: 0 0 auto;
+        }
+
+        .bulk-actions.show {
+            display: flex;
+        }
+
+        .bulk-delete-btn {
+            background: rgba(239, 68, 68, 0.18);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fecaca;
+            border-radius: 10px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
             font-weight: 600;
-            color: #f1f5f9;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .bulk-delete-btn:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: rgba(248, 113, 113, 0.6);
+            color: #ffe4e6;
+        }
+
+        .bulk-delete-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .table-search {
+            position: relative;
+            flex: 1 1 320px;
+            max-width: 420px;
+            min-width: 220px;
+        }
+
+        .search-input-wrapper {
             display: flex;
             align-items: center;
             gap: 10px;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid #475569;
+            border-radius: 40px;
+            padding: 6px 16px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .table-title::before {
-            content: "👥";
-            font-size: 1.5rem;
+        .search-input-wrapper:focus-within {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+        }
+
+        .search-suggestions {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #475569;
+            border-radius: 14px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.6);
+            padding: 6px 0;
+            display: none;
+            max-height: 260px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+
+        .search-suggestions.show {
+            display: block;
+        }
+
+        .suggestion-item {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            text-align: left;
+            padding: 8px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+            font-size: 0.9rem;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(96, 165, 250, 0.12);
+            color: #bfdbfe;
+        }
+
+        .suggestion-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #94a3b8;
+        }
+
+        .suggestion-value {
+            font-weight: 600;
+        }
+
+        .sort-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 0 0 auto;
+        }
+
+        .sort-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .sort-select {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            outline: none;
+            min-width: 130px;
+            border-radius: 10px;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .sort-select:focus-visible {
+            border-color: #60a5fa;
+        }
+
+        .sort-select option {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .sort-direction-btn {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #bfdbfe;
+            border-radius: 10px;
+            padding: 4px 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .sort-direction-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            color: #e0f2ff;
+            border-color: rgba(59, 130, 246, 0.6);
+        }
+
+        .sort-direction-btn:disabled,
+        .sort-select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .select-header,
+        .select-cell {
+            width: 26px;
+            min-width: 26px;
+            max-width: 26px;
+            text-align: center;
+            padding: 2px 0;
+        }
+
+        .users-table th.select-header {
+            padding: 4px 0;
+        }
+
+        .users-table td.select-cell {
+            padding: 2px 0;
+        }
+
+        .select-header {
+            font-size: 0.75rem;
+        }
+
+        .email-header,
+        .email-cell {
+            width: 260px;
+            max-width: 260px;
+        }
+
+        .email-cell .user-email {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .details-header,
+        .details-cell {
+            width: 230px;
+            max-width: 230px;
+        }
+
+        .role-cell .role-badge {
+            display: block;
+            text-align: left;
+            white-space: normal;
+            word-break: break-word;
+            padding: 2px 6px;
+        }
+        .role-header,
+        .role-cell {
+            width: calc(10.5ch - 20px);
+            min-width: max(0px, calc(10ch - 20px));
+            text-align: left;
+        }
+
+        .admin-header,
+        .admin-cell {
+            width: 8.5ch;
+            min-width: 7ch;
+            text-align: left;
+        }
+
+
+        .supervisor-header,
+        .supervisor-cell,
+        .manager-header,
+        .manager-cell {
+            width: 12ch;
+            min-width: 12ch;
+            max-width: 12ch;
+        }
+
+        .actions-header,
+        .actions-cell {
+            width: 7ch;
+            min-width: 7ch;
+            max-width: 7ch;
+            text-align: right;
         }
 
         .users-table {
             width: 100%;
             border-collapse: collapse;
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.92);
         }
 
         .users-table th {
             background: linear-gradient(135deg, #475569 0%, #334155 100%);
             color: #f1f5f9;
             font-weight: 600;
-            padding: 15px 20px;
+            padding: 5px 20px;
             text-align: left;
             border-bottom: 2px solid #64748b;
             font-size: 0.95rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 25;
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.45);
         }
 
-        .users-table td {
-            padding: 20px;
-            border-bottom: 1px solid #334155;
-            vertical-align: middle;
+        .stats-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin: 0;
         }
 
-        .users-table tr:hover {
-            background: rgba(51, 65, 85, 0.5);
-            transition: background-color 0.2s ease;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: #f1f5f9;
-            margin-bottom: 5px;
-            font-size: 1.1rem;
-        }
-
-        .user-email {
-            color: #94a3b8;
-            font-size: 0.9rem;
+        .stat-item {
             display: flex;
             align-items: center;
             gap: 6px;
+            padding: 5px 12px;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            white-space: nowrap;
         }
 
-        .user-email::before {
-            content: "📧";
-            font-size: 0.8rem;
+        .stat-number,
+        .stat-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .stat-number {
+            color: #60a5fa;
+        }
+
+        .stat-label {
+            color: #cbd5e1;
+            letter-spacing: 0.3px;
+        }
+
+        .users-table td {
+            padding: 2px 16px;
+            border-bottom: 1px solid #334155;
+            vertical-align: middle;
+            text-align: left;
+        }
+
+        .users-table th.role-header,
+        .users-table td.role-cell {
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+
+        .users-table th.actions-header,
+        .users-table td.actions-cell {
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                min-height: calc(100vh - 72px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                min-height: calc(100vh - 64px);
+                gap: 8px;
+            }
+
+            .table-header {
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .bulk-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .table-search {
+                max-width: none;
+                width: 100%;
+            }
+
+            .sort-bar {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 10px;
+            }
+
+            .sort-select {
+                flex: 1 1 auto;
+            }
+        }
+
+        .user-email {
+            display: block;
         }
 
         .role-badge {
             display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 2px 8px;
+            border-radius: 6px;
             font-size: 0.8rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 5px;
+            background: none;
+            border: none;
         }
 
         .role-admin {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-            color: white;
+            color: #f87171;
         }
 
         .role-manager {
-            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-            color: white;
+            color: #fbbf24;
         }
 
         .role-supervisor {
-            background: linear-gradient(135deg, #d97706 0%, #a16207 100%);
-            color: white;
+            color: #38bdf8;
         }
 
         .role-user {
-            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
-            color: white;
+            color: #a5b4fc;
         }
 
         .role-default {
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-            color: white;
+            color: #e2e8f0;
         }
 
         .hierarchy-info {
             color: #cbd5e1;
             font-size: 0.85rem;
             line-height: 1.4;
+            text-align: left;
         }
 
         .hierarchy-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            display: block;
             margin-bottom: 3px;
-        }
-
-        .supervisor-icon::before {
-            content: "👑";
-            font-size: 0.8rem;
-        }
-
-        .manager-icon::before {
-            content: "📊";
-            font-size: 0.8rem;
         }
 
         .user-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
-        .action-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
+        .action-link {
             font-size: 0.85rem;
             font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            color: #60a5fa;
             text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: color 0.2s ease;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(71, 85, 105, 0.8);
-            color: #e2e8f0;
-            border: 1px solid #475569;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(100, 116, 139, 0.8);
-            border-color: #64748b;
-        }
-
-        .quick-actions {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-
-        .quick-actions .action-btn {
-            font-size: 0.95rem;
-            padding: 10px 20px;
+        .action-link:hover {
+            color: #93c5fd;
+            text-decoration: underline;
         }
 
         .loading {
@@ -308,10 +599,10 @@
 
         /* Responsive Design */
         @media (max-width: 1200px) {
-            .users-table th:nth-child(5),
-            .users-table td:nth-child(5),
             .users-table th:nth-child(6),
-            .users-table td:nth-child(6) {
+            .users-table td:nth-child(6),
+            .users-table th:nth-child(7),
+            .users-table td:nth-child(7) {
                 display: none;
             }
         }
@@ -321,11 +612,8 @@
                 padding: 10px 0;
             }
 
-            .page-title {
-                font-size: 2rem;
-            }
-
             .stats-bar {
+                justify-content: flex-start;
                 gap: 15px;
             }
 
@@ -343,8 +631,8 @@
                 font-size: 1rem;
             }
 
-            .users-table th:nth-child(4),
-            .users-table td:nth-child(4) {
+            .users-table th:nth-child(5),
+            .users-table td:nth-child(5) {
                 display: none;
             }
 
@@ -355,32 +643,28 @@
         }
 
         @media (max-width: 480px) {
-            .page-title {
-                font-size: 1.8rem;
-            }
-
             .users-table th,
             .users-table td {
                 padding: 12px 8px;
             }
+            .table-header {
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .table-search {
+                max-width: none;
+                width: 100%;
+            }
+
 
             .stats-bar {
                 flex-direction: column;
-                align-items: center;
+                align-items: flex-start;
             }
 
-            .quick-actions {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .quick-actions .action-btn {
-                width: 200px;
-                text-align: center;
-            }
-
-            .users-table th:nth-child(3),
-            .users-table td:nth-child(3) {
+            .users-table th:nth-child(4),
+            .users-table td:nth-child(4) {
                 display: none;
             }
         }
@@ -413,43 +697,57 @@
 </head>
 <body>
     <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">Users Management</h1>
-            <p class="page-subtitle">Manage user profiles and organizational hierarchy</p>
-            <div class="quick-actions">
-                <button class="action-btn btn-secondary" onclick="navigateToCustomers()" title="Manage Customers">
-                    👥 Manage Customers
-                </button>
-            </div>
-        </div>
-
-        <div class="stats-bar" id="stats-bar">
-            <div class="stat-item">
-                <span class="stat-number" id="total-users">-</span>
-                <span class="stat-label">Total Users</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="total-admins">-</span>
-                <span class="stat-label">Admins</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="total-managers">-</span>
-                <span class="stat-label">Managers</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="total-supervisors">-</span>
-                <span class="stat-label">Supervisors</span>
-            </div>
-        </div>
-
         <div class="table-container">
             <div class="table-header">
-                <h2 class="table-title">All Users</h2>
+                <div class="sort-bar">
+                    <span class="sort-label">Sort</span>
+                    <select id="sort-field" class="sort-select" disabled>
+                        <option value="name">Name</option>
+                        <option value="email">Email</option>
+                        <option value="role">Role</option>
+                        <option value="admin">Admin</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="manager">Manager</option>
+                    </select>
+                    <button type="button" id="sort-direction" class="sort-direction-btn" disabled aria-label="Toggle sort direction">A→Z</button>
+                </div>
+                <div class="bulk-actions" id="bulk-actions">
+                    <button type="button" id="bulk-delete" class="bulk-delete-btn" disabled>
+                        🗑 Delete Selected
+                    </button>
+                </div>
+                <div class="table-search">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔎</span>
+                        <input type="search" id="user-search" class="search-input" placeholder="Search name, email, role..." autocomplete="off" disabled />
+                    </div>
+                    <div class="search-suggestions" id="search-suggestions"></div>
+                </div>
+                <div class="stats-bar" id="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-users">-</span>
+                        <span class="stat-label">Users</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-managers">-</span>
+                        <span class="stat-label">Managers</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-supervisors">-</span>
+                        <span class="stat-label">Supervisors</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-admins">-</span>
+                        <span class="stat-label">Admins</span>
+                    </div>
+                </div>
             </div>
-            
-            <div id="users-content">
-                <div class="loading">
-                    Loading users from Supabase...
+
+            <div class="table-scroll">
+                <div id="users-content">
+                    <div class="loading">
+                        Loading users from Supabase...
+                    </div>
                 </div>
             </div>
         </div>
@@ -462,9 +760,22 @@
 
     <script>
         // Initialize Supabase
-        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
-        window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    let allUsers = [];
+    let filteredUsers = [];
+    let searchInputEl = null;
+    let suggestionsEl = null;
+    let sortFieldSelect = null;
+    let sortDirectionButton = null;
+    let bulkActionsEl = null;
+    let bulkDeleteBtn = null;
+    let sortField = 'name';
+    let sortDirection = 'asc';
+    let currentUserRole = 'user';
+    const selectedUserIds = new Set();
 
         // Authentication check using Supabase session
         async function checkAuthAndRole() {
@@ -500,6 +811,8 @@
                     return false;
                 }
                 
+                currentUserRole = role;
+                updateBulkActionsVisibility();
                 console.log('✅ Full access authenticated for role:', role);
                 return true;
             } catch (error) {
@@ -509,7 +822,356 @@
             }
         }
         
+        function initializeSearch() {
+            searchInputEl = document.getElementById('user-search');
+            suggestionsEl = document.getElementById('search-suggestions');
+
+            if (!searchInputEl || !suggestionsEl) {
+                console.warn('Search UI elements missing from DOM.');
+                return;
+            }
+
+            searchInputEl.addEventListener('input', handleSearchInput);
+            searchInputEl.addEventListener('focus', handleSearchFocus);
+            searchInputEl.addEventListener('keydown', handleSearchKeyDown);
+            searchInputEl.addEventListener('blur', handleSearchBlur);
+
+            suggestionsEl.addEventListener('mousedown', handleSuggestionSelect);
+        }
+
+        function handleSearchInput(event) {
+            const query = event.target.value || '';
+            updateSearchSuggestions(query);
+            filterAndRender(query);
+        }
+
+        function handleSearchFocus() {
+            if (!searchInputEl) return;
+            const currentValue = searchInputEl.value || '';
+            if (currentValue.trim()) {
+                updateSearchSuggestions(currentValue);
+            } else {
+                updateSearchSuggestions('', true);
+            }
+        }
+
+        function handleSearchBlur() {
+            setTimeout(() => {
+                clearSearchSuggestions();
+            }, 120);
+        }
+
+        function handleSearchKeyDown(event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                searchInputEl.value = '';
+                clearSearchSuggestions();
+                filterAndRender('');
+                return;
+            }
+
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                applySearchValue(searchInputEl.value.trim());
+            }
+        }
+
+        function handleSuggestionSelect(event) {
+            const target = event.target.closest('[data-suggestion-value]');
+            if (!target) return;
+            event.preventDefault();
+            const value = decodeURIComponent(target.dataset.suggestionValue || '');
+            applySearchValue(value);
+        }
+
+        function applySearchValue(value) {
+            if (!searchInputEl) return;
+            searchInputEl.value = value;
+            filterAndRender(value);
+            clearSearchSuggestions();
+            searchInputEl.focus();
+            const length = value.length;
+            searchInputEl.setSelectionRange(length, length);
+        }
+
+        function filterAndRender(rawQuery) {
+            if (!Array.isArray(allUsers) || allUsers.length === 0) {
+                filteredUsers = [];
+                displayUsers([]);
+                updateStats([]);
+                return;
+            }
+
+            const normalizedQuery = (rawQuery || '').trim().toLowerCase();
+
+            if (!normalizedQuery) {
+                filteredUsers = [...allUsers];
+            } else {
+                filteredUsers = filterUsersByQuery(normalizedQuery);
+            }
+
+            filteredUsers = sortUsers(filteredUsers);
+
+            const sortedCopy = [...filteredUsers];
+            displayUsers(sortedCopy);
+            updateStats(sortedCopy);
+        }
+
+        function filterUsersByQuery(normalizedQuery) {
+            if (!normalizedQuery) {
+                return [...allUsers];
+            }
+
+            return allUsers.filter(user => {
+                return getSearchableFields(user).some(field =>
+                    field.value.toLowerCase().includes(normalizedQuery)
+                );
+            });
+        }
+
+        function getSearchableFields(user) {
+            const fields = new Map();
+
+            const addField = (label, value) => {
+                const clean = (value ?? '').toString().trim();
+                if (!clean) return;
+                const key = `${label}|${clean.toLowerCase()}`;
+                if (!fields.has(key)) {
+                    fields.set(key, { label, value: clean });
+                }
+            };
+
+            const firstName = user.first_name || '';
+            const lastName = user.last_name || '';
+            const fullName = `${firstName} ${lastName}`.trim();
+            const displayName = user.display_name || '';
+
+            if (fullName) addField('Name', fullName);
+            if (displayName && displayName.toLowerCase() !== fullName.toLowerCase()) {
+                addField('Name', displayName);
+            }
+
+            addField('Email', user.email || '');
+            addField('Role', user.role || '');
+            addField('Supervisor', user.assigned_to_supervisor || '');
+            addField('Manager', user.assigned_to_manager || '');
+
+            if (user.company) addField('Company', user.company);
+            if (user.department) addField('Department', user.department);
+
+            return Array.from(fields.values());
+        }
+
+        function updateSearchSuggestions(rawQuery, showDefaults = false) {
+            if (!suggestionsEl) return;
+
+            const query = (rawQuery || '').trim().toLowerCase();
+            const maxSuggestions = 8;
+
+            if (!allUsers.length) {
+                clearSearchSuggestions();
+                return;
+            }
+
+            const suggestions = [];
+            const seen = new Set();
+
+            const pushField = (field) => {
+                const lowerValue = field.value.toLowerCase();
+                const key = `${field.label}|${lowerValue}`;
+                if (seen.has(key)) return;
+                if (query && !lowerValue.includes(query)) return;
+                seen.add(key);
+                suggestions.push(field);
+            };
+
+            if (query) {
+                outer: for (const user of allUsers) {
+                    const fields = getSearchableFields(user);
+                    for (const field of fields) {
+                        pushField(field);
+                        if (suggestions.length >= maxSuggestions) {
+                            break outer;
+                        }
+                    }
+                }
+            } else if (showDefaults) {
+                for (const user of allUsers) {
+                    const fields = getSearchableFields(user);
+                    if (fields.length === 0) continue;
+                    pushField(fields[0]);
+                    if (suggestions.length >= maxSuggestions) {
+                        break;
+                    }
+                }
+            } else {
+                clearSearchSuggestions();
+                return;
+            }
+
+            if (!suggestions.length) {
+                clearSearchSuggestions();
+                return;
+            }
+
+            suggestionsEl.innerHTML = suggestions.slice(0, maxSuggestions).map(field => `
+                <button type="button" class="suggestion-item" data-suggestion-value="${encodeURIComponent(field.value)}">
+                    <span class="suggestion-label">${escapeHtml(field.label)}</span>
+                    <span class="suggestion-value">${escapeHtml(field.value)}</span>
+                </button>
+            `).join('');
+
+            suggestionsEl.classList.add('show');
+        }
+
+        function clearSearchSuggestions() {
+            if (!suggestionsEl) return;
+            suggestionsEl.classList.remove('show');
+            suggestionsEl.innerHTML = '';
+        }
+
+        function initializeBulkActions() {
+            bulkActionsEl = document.getElementById('bulk-actions');
+            bulkDeleteBtn = document.getElementById('bulk-delete');
+
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.addEventListener('click', handleBulkDelete);
+            }
+
+            updateBulkActionsVisibility();
+        }
+
+        function updateBulkActionsVisibility() {
+            if (!bulkActionsEl) return;
+            const isAdmin = currentUserRole === 'admin';
+            bulkActionsEl.classList.toggle('show', isAdmin);
+            if (!isAdmin) {
+                selectedUserIds.clear();
+            }
+            updateBulkDeleteState();
+        }
+
+        function updateBulkDeleteState() {
+            if (!bulkDeleteBtn) return;
+            const hasSelection = selectedUserIds.size > 0;
+            const canDelete = currentUserRole === 'admin' && hasSelection;
+            bulkDeleteBtn.disabled = !canDelete;
+        }
+
+        function resetSelection() {
+            selectedUserIds.clear();
+            updateBulkDeleteState();
+        }
+
+        function attachSelectionEvents() {
+            const checkboxes = document.querySelectorAll('#users-content .user-select-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', handleSelectChange);
+            });
+            updateBulkDeleteState();
+        }
+
+        function handleSelectChange(event) {
+            const checkbox = event.target;
+            const userId = checkbox.dataset.userId;
+            if (!userId) return;
+
+            if (checkbox.checked) {
+                selectedUserIds.add(userId);
+            } else {
+                selectedUserIds.delete(userId);
+            }
+
+            updateBulkDeleteState();
+        }
+
+        function handleBulkDelete() {
+            if (selectedUserIds.size === 0) {
+                return;
+            }
+
+            const confirmation = confirm(`Delete ${selectedUserIds.size} selected user${selectedUserIds.size === 1 ? '' : 's'}?`);
+            if (!confirmation) {
+                return;
+            }
+
+            alert('Delete functionality not yet implemented. Selected IDs: ' + Array.from(selectedUserIds).join(', '));
+            resetSelection();
+            filterAndRender(searchInputEl ? searchInputEl.value : '');
+        }
+
+        function initializeSorting() {
+            sortFieldSelect = document.getElementById('sort-field');
+            sortDirectionButton = document.getElementById('sort-direction');
+
+            if (sortFieldSelect) {
+                sortFieldSelect.value = sortField;
+                sortFieldSelect.addEventListener('change', (event) => {
+                    sortField = event.target.value || 'name';
+                    filterAndRender(searchInputEl ? searchInputEl.value : '');
+                });
+            }
+
+            if (sortDirectionButton) {
+                updateSortDirectionButton();
+                sortDirectionButton.addEventListener('click', toggleSortDirection);
+            }
+        }
+
+        function toggleSortDirection() {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            updateSortDirectionButton();
+            filterAndRender(searchInputEl ? searchInputEl.value : '');
+        }
+
+        function updateSortDirectionButton() {
+            if (!sortDirectionButton) return;
+            const isAsc = sortDirection === 'asc';
+            sortDirectionButton.textContent = isAsc ? 'A→Z' : 'Z→A';
+            sortDirectionButton.setAttribute('aria-label', isAsc ? 'Sort ascending' : 'Sort descending');
+        }
+
+        function sortUsers(list) {
+            const sorted = [...list];
+            sorted.sort((a, b) => {
+                const aValue = (getSortValue(a, sortField) || '').toLowerCase();
+                const bValue = (getSortValue(b, sortField) || '').toLowerCase();
+
+                if (aValue === bValue) return 0;
+                const comparison = aValue > bValue ? 1 : -1;
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
+            return sorted;
+        }
+
+        function getSortValue(user, field) {
+            switch (field) {
+                case 'email':
+                    return user.email || '';
+                case 'role':
+                    return user.role || '';
+                case 'admin':
+                    return (user.role || '').toLowerCase() === 'admin' ? '1' : '0';
+                case 'supervisor':
+                    return user.assigned_to_supervisor || '';
+                case 'manager':
+                    return user.assigned_to_manager || '';
+                case 'name':
+                default: {
+                    const firstName = user.first_name || '';
+                    const lastName = user.last_name || '';
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    if (fullName) return fullName;
+                    if (user.display_name) return user.display_name;
+                    return user.email || user.id || '';
+                }
+            }
+        }
+
         window.addEventListener('load', async () => {
+            initializeSearch();
+            initializeSorting();
+            initializeBulkActions();
             if (await checkAuthAndRole()) {
                 loadUsers();
             }
@@ -527,12 +1189,58 @@
                 
                 const data = await response.json();
                 console.log('👤 Received users data:', data);
-                
-                displayUsers(data.users || []);
-                updateStats(data.users || []);
+
+                allUsers = Array.isArray(data.users) ? data.users : [];
+                filteredUsers = [...allUsers];
+
+                resetSelection();
+
+                if (searchInputEl) {
+                    searchInputEl.removeAttribute('disabled');
+                    searchInputEl.placeholder = allUsers.length
+                        ? 'Search name, email, role...'
+                        : 'No users available to search';
+                }
+
+                if (sortFieldSelect) {
+                    if (allUsers.length) {
+                        sortFieldSelect.removeAttribute('disabled');
+                        sortFieldSelect.value = sortField;
+                    } else {
+                        sortFieldSelect.setAttribute('disabled', 'true');
+                    }
+                }
+
+                if (sortDirectionButton) {
+                    if (allUsers.length) {
+                        sortDirectionButton.removeAttribute('disabled');
+                    } else {
+                        sortDirectionButton.setAttribute('disabled', 'true');
+                    }
+                    updateSortDirectionButton();
+                }
+
+                filterAndRender(searchInputEl ? searchInputEl.value : '');
+                clearSearchSuggestions();
                 
             } catch (error) {
                 console.error('❌ Error loading users:', error);
+                if (searchInputEl) {
+                    searchInputEl.value = '';
+                    searchInputEl.setAttribute('disabled', 'true');
+                    searchInputEl.placeholder = 'Search unavailable';
+                }
+                if (sortFieldSelect) {
+                    sortFieldSelect.value = 'name';
+                    sortFieldSelect.setAttribute('disabled', 'true');
+                }
+                if (sortDirectionButton) {
+                    sortDirection = 'asc';
+                    sortDirectionButton.setAttribute('disabled', 'true');
+                    updateSortDirectionButton();
+                }
+                resetSelection();
+                clearSearchSuggestions();
                 showError(`Failed to load users: ${error.message}`);
             }
         }
@@ -553,12 +1261,14 @@
                 <table class="users-table">
                     <thead>
                         <tr>
-                            <th>User Details</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Supervisor</th>
-                            <th>Manager</th>
-                            <th>Actions</th>
+                            <th class="select-header"></th>
+                            <th class="details-header">Users</th>
+                            <th class="email-header">Email</th>
+                            <th class="role-header">Role</th>
+                            <th class="manager-header">Manager</th>
+                            <th class="supervisor-header">Supervisor</th>
+                            <th class="admin-header">Admin</th>
+                            <th class="actions-header">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -568,6 +1278,8 @@
             `;
             
             container.innerHTML = tableHTML;
+            attachSelectionEvents();
+            updateBulkDeleteState();
         }
 
         function createUserRow(user) {
@@ -578,45 +1290,48 @@
             const role = user.role || 'user';
             const supervisor = user.assigned_to_supervisor || 'None';
             const manager = user.assigned_to_manager || 'None';
+            const isAdminUser = (role || '').toLowerCase() === 'admin';
+            const isSelected = selectedUserIds.has(user.id);
             
             const roleClass = getRoleClass(role);
 
             return `
                 <tr>
-                    <td>
+                    <td class="select-cell">
+                        <input
+                            type="checkbox"
+                            class="user-select-checkbox"
+                            data-user-id="${user.id}"
+                            ${isSelected ? 'checked' : ''}
+                        />
+                    </td>
+                    <td class="details-cell">
                         <div class="user-name">${escapeHtml(fullName)}</div>
-                        <div class="user-email">
-                            ${escapeHtml(email)}
-                        </div>
                     </td>
-                    <td>
-                        <div style="color: #94a3b8; font-size: 0.9rem;">${escapeHtml(email)}</div>
+                    <td class="email-cell">
+                        <div class="user-email">${escapeHtml(email)}</div>
                     </td>
-                    <td>
+                    <td class="role-cell">
                         <div class="role-badge ${roleClass}">${escapeHtml(role)}</div>
                     </td>
-                    <td>
+                    <td class="manager-cell">
                         <div class="hierarchy-info">
-                            <div class="hierarchy-item supervisor-icon">
-                                ${escapeHtml(supervisor)}
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="hierarchy-info">
-                            <div class="hierarchy-item manager-icon">
+                            <div class="hierarchy-item">
                                 ${escapeHtml(manager)}
                             </div>
                         </div>
                     </td>
-                    <td>
+                    <td class="supervisor-cell">
+                        <div class="hierarchy-info">
+                            <div class="hierarchy-item">
+                                ${escapeHtml(supervisor)}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="admin-cell"></td>
+                    <td class="actions-cell">
                         <div class="user-actions">
-                            <button class="action-btn btn-primary" onclick="editUser('${user.id}')">
-                                <span>✏️</span> Edit
-                            </button>
-                            <button class="action-btn btn-secondary" onclick="viewProfile('${user.id}')">
-                                <span>👁️</span> View
-                            </button>
+                            <a href="#" class="action-link" onclick="viewProfile('${user.id}'); return false;">👁️ View</a>
                         </div>
                     </td>
                 </tr>
