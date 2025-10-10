@@ -59,6 +59,30 @@
             margin: 5px;
             width: 300px;
         }
+        .password-container {
+            position: relative;
+            display: inline-block;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 1rem;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .password-toggle:hover {
+            color: #60a5fa;
+        }
     </style>
 </head>
 <body>
@@ -79,7 +103,10 @@
     <div class="debug-section">
         <h3>Test Login</h3>
         <input type="email" id="test-email" placeholder="Email" value="">
-        <input type="password" id="test-password" placeholder="Password" value="">
+        <div class="password-container">
+            <input type="password" id="test-password" placeholder="Password" value="">
+            <button type="button" class="password-toggle" onclick="togglePassword('test-password')">👁️</button>
+        </div>
         <button onclick="testLogin()">Test Login</button>
         <div id="login-result" class="result"></div>
     </div>
@@ -195,6 +222,20 @@
                 displayResult('auth-users-result', data);
             } catch (error) {
                 displayResult('auth-users-result', `Unexpected error: ${error.message}`, true);
+            }
+        }
+
+        // Password visibility toggle
+        function togglePassword(fieldId) {
+            const input = document.getElementById(fieldId);
+            const toggle = input.parentElement.querySelector('.password-toggle');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggle.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                toggle.textContent = '👁️';
             }
         }
 
