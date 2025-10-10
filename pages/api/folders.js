@@ -76,20 +76,31 @@ async function loadUserDirectory() {
 function groupVideosByRecorder(videos, userDirectory) {
   const folders = new Map();
 
+  // First, create folders for all users in the directory
+  userDirectory.forEach((userInfo, email) => {
+    folders.set(email, {
+      key: email,
+      email,
+      displayName: userInfo.displayName,
+      role: userInfo.role,
+      userId: userInfo.id,
+      videos: []
+    });
+  });
+
+  // Then add videos to the appropriate folders
   videos.forEach((video) => {
     const email = video.recordedByEmail?.toLowerCase?.() || '';
     const key = email || '__unassigned__';
 
     if (!folders.has(key)) {
-      const directoryEntry = email ? userDirectory.get(email) : null;
-      const displayName = directoryEntry?.displayName || video.recordedBy || email || 'Unassigned Recorder';
-
+      // Create folder for user not in directory (shouldn't happen but fallback)
       folders.set(key, {
         key,
         email,
-        displayName,
-        role: directoryEntry?.role || (email ? 'user' : 'unknown'),
-        userId: directoryEntry?.id || null,
+        displayName: video.recordedBy || email || 'Unassigned Recorder',
+        role: 'user',
+        userId: null,
         videos: []
       });
     }
@@ -132,11 +143,8 @@ export default async function handler(req, res) {
     const { directory: userDirectory, error: directoryError } = await loadUserDirectory();
 
     const userFolders = groupVideosByRecorder(normalizedVideos, userDirectory)
-      .sort((a, b) => {
-        if (!a.email && b.email) return 1;
-        if (!b.email && a.email) return -1;
-        return (a.displayName || '').localeCompare(b.displayName || '');
-      });
+      .filter(folder => folder.email) // Only include folders with emails (real users)
+      .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
 
     const response = {
       success: true,
