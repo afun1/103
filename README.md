@@ -112,3 +112,24 @@ Optionally add `SUPABASE_SERVICE_KEY` if you deploy the Express helpers separate
 - [Next.js API Routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes)
 
 Happy recording! 🎥
+
+## 📦 Docker deployment
+
+To build and run the app in Docker (production):
+
+1. Build the image:
+
+```bash
+docker build -t sparky-screen-recorder:latest .
+```
+
+2. Run the container (pass env vars):
+
+```bash
+docker run -p 3000:3000 --env-file .env -d sparky-screen-recorder:latest
+```
+
+Notes:
+- The container exposes port 3000 by default. Use `PORT` env var to override.
+- Ensure your `.env` contains `VIMEO_ACCESS_TOKEN` and Supabase keys as needed.
+

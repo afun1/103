@@ -1,0 +1,10 @@
+node_modules
+.next
+dist
+build
+npm-debug.log
+.env
+*.local
+coverage
+/.git
+Dockerfile

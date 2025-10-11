@@ -208,6 +208,181 @@
         .read-only-banner .icon {
             margin-right: 8px;
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: #1a202c;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid #4a5568;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 1px solid #4a5568;
+            background: #2d3748;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #e2e8f0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: #a0aec0;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .modal-close-btn:hover {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .video-card {
+            background: #222c44;
+            border: 1px solid #2f3b55;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .video-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .video-thumbnail {
+            position: relative;
+            aspect-ratio: 16/9;
+            background: #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+
+
+        .video-info {
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .video-customer-name {
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-customer-email {
+            color: #b5b5b5;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-recorded-by {
+            color: #8dd28d;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-recorded-by-email {
+            color: #6fbf6f;
+            font-size: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-date {
+            color: #999;
+            font-size: 10px;
+        }
+
+        .video-description {
+            margin-top: 4px;
+            color: #cfd6e2;
+            font-size: 11px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+
+
+        .no-videos {
+            text-align: center;
+            color: #a0aec0;
+            padding: 40px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -236,7 +411,7 @@
 
             <div class="customers-table-container">
                 <div class="admin-controls" id="admin-controls" style="display: none; margin-bottom: 20px;">
-                    <div style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626; border-radius: 8px; padding: 15px;">
+                    <div style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                         <h3 style="color: #fca5a5; margin: 0 0 10px 0; font-size: 14px;">🔐 Admin Controls</h3>
                         <button onclick="deleteSelectedCustomers()" id="delete-selected-btn" 
                                 style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;" 
@@ -249,10 +424,102 @@
                             Select customers to enable delete
                         </span>
                     </div>
+
+                    <!-- Import Customers Section -->
+                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                        <h3 style="color: #86efac; margin: 0 0 10px 0; font-size: 14px;">📥 Import Customers</h3>
+                        
+                        <!-- File Upload Import -->
+                        <div style="margin-bottom: 15px;">
+                            <label style="color: #86efac; font-size: 12px; display: block; margin-bottom: 5px;">Upload CSV or JSON file:</label>
+                            <input type="file" id="import-file" accept=".csv,.json" 
+                                   style="color: #e2e8f0; background: #2d3748; border: 1px solid #4a5568; border-radius: 4px; padding: 6px; font-size: 12px; margin-right: 10px;">
+                            <button onclick="importFromFile()" id="import-file-btn"
+                                    style="background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;" 
+                                    onmouseover="this.style.background='#16a34a'" 
+                                    onmouseout="this.style.background='#22c55e'">
+                                📤 Import from File
+                            </button>
+                        </div>
+
+                        <!-- Manual Import -->
+                        <div style="margin-bottom: 15px;">
+                            <label style="color: #86efac; font-size: 12px; display: block; margin-bottom: 5px;">Manual Import (JSON format):</label>
+                            <textarea id="manual-import-data" placeholder='[{"name": "John Doe", "email": "john@example.com"}, {"name": "Jane Smith", "email": "jane@example.com"}]'
+                                      style="width: 100%; height: 80px; background: #2d3748; border: 1px solid #4a5568; border-radius: 4px; padding: 8px; color: #e2e8f0; font-family: monospace; font-size: 11px; resize: vertical;"></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="importManualData()" id="import-manual-btn"
+                                    style="background: #22c55e; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;" 
+                                    onmouseover="this.style.background='#16a34a'" 
+                                    onmouseout="this.style.background='#22c55e'">
+                                ➕ Import Manual Data
+                            </button>
+                            <button onclick="clearImportForm()"
+                                    style="background: #6b7280; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;" 
+                                    onmouseover="this.style.background='#4b5563'" 
+                                    onmouseout="this.style.background='#6b7280'">
+                                🧹 Clear Form
+                            </button>
+                        </div>
+
+                        <div id="import-status" style="margin-top: 10px; font-size: 11px; color: #86efac;"></div>
+                    </div>
+
+                    <!-- Migrate Vimeo Customers Section -->
+                    <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 15px;">
+                        <h3 style="color: #93c5fd; margin: 0 0 10px 0; font-size: 14px;">🔄 Database Setup & Migration</h3>
+
+                        <!-- Add Missing Columns -->
+                        <div style="margin-bottom: 15px;">
+                            <p style="color: #93c5fd; font-size: 11px; margin-bottom: 10px;">
+                                First, add missing columns to the customers table:
+                            </p>
+                            <button onclick="addMissingColumns()" id="add-columns-btn"
+                                    style="background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;" 
+                                    onmouseover="this.style.background='#d97706'" 
+                                    onmouseout="this.style.background='#f59e0b'">
+                                🔧 Add Missing Columns
+                            </button>
+                            <div id="columns-sql" style="margin-top: 10px; font-size: 11px; color: #93c5fd; display: none;">
+                                <strong>Run these SQL commands in Supabase SQL Editor:</strong>
+                                <pre id="sql-commands" style="background: #1a202c; padding: 10px; border-radius: 4px; margin-top: 5px; font-family: monospace; white-space: pre-wrap;"></pre>
+                            </div>
+                        </div>
+
+                        <!-- Migrate Vimeo Customers -->
+                        <div style="margin-bottom: 15px;">
+                            <p style="color: #93c5fd; font-size: 11px; margin-bottom: 10px;">
+                                Then migrate existing Vimeo customer data:
+                            </p>
+                            <button onclick="migrateVimeoCustomers()" id="migrate-btn"
+                                    style="background: #3b82f6; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;" 
+                                    onmouseover="this.style.background='#2563eb'" 
+                                    onmouseout="this.style.background='#3b82f6'">
+                                🚀 Migrate from Vimeo
+                            </button>
+                            <div id="migrate-status" style="margin-top: 10px; font-size: 11px; color: #93c5fd;"></div>
+                        </div>
+
+                        <!-- Add Vimeo Links -->
+                        <div>
+                            <p style="color: #93c5fd; font-size: 11px; margin-bottom: 10px;">
+                                Finally, add Vimeo video links to each customer:
+                            </p>
+                            <button onclick="addVimeoLinks()" id="add-links-btn"
+                                    style="background: #10b981; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;" 
+                                    onmouseover="this.style.background='#059669'" 
+                                    onmouseout="this.style.background='#10b981'">
+                                🔗 Add Vimeo Links
+                            </button>
+                            <div id="links-status" style="margin-top: 10px; font-size: 11px; color: #93c5fd;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="loading-message" id="loading-message">
-                    Loading customers from Vimeo...
+                    Loading customers from Supabase...
                 </div>
                 
                 <div class="error-message" id="error-message" style="display: none;">
@@ -269,8 +536,6 @@
                             </th>
                             <th>Customer Name</th>
                             <th>Email Address</th>
-                            <th>Customer ID</th>
-                            <th>First Seen</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -286,6 +551,27 @@
                             onmouseout="this.style.background='#667eea'">
                         📄 Load More Customers
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div id="customer-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-customer-name">Customer Details</h2>
+                <button onclick="closeCustomerModal()" class="modal-close-btn">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="videos-section">
+                    <div id="customer-videos-container" class="videos-grid">
+                        <!-- Video cards will be populated here -->
+                    </div>
+                    <div id="no-videos-message" class="no-videos" style="display: none;">
+                        <p>No videos found for this customer.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -409,8 +695,11 @@
 
         async function loadCustomers() {
             try {
-                console.log('🔄 Loading customers from API...');
+                console.log('🔄 Loading customers from Supabase...');
                 
+                // Use a relative API path so the page works regardless of host/port
+                // (hard-coding http://localhost:3000 can fail in different envs or when
+                // the server is not reachable on that exact origin)
                 const response = await fetch(`/api/get-all-customers?page=${currentPage}&limit=${PAGE_SIZE}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -482,8 +771,6 @@
                     </td>
                     <td class="customer-name">${escapeHtml(customer.name || 'Unknown')}</td>
                     <td class="customer-email">${escapeHtml(customer.email || 'No email')}</td>
-                    <td class="customer-id">${escapeHtml(customer.id || 'No ID')}</td>
-                    <td>${new Date().toLocaleDateString()}</td>
                     <td>
                         <button onclick="viewCustomerDetails('${escapeHtml(customer.id)}')" 
                                 style="background: #667eea; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 0.2s;" 
@@ -522,9 +809,540 @@
 
         function viewCustomerDetails(customerId) {
             console.log('📋 Viewing details for customer:', customerId);
-            // TODO: Implement customer details view
-            alert(`Customer details for: ${customerId}\n\nThis feature will be implemented soon!`);
+            
+            // Find customer data from current customers list
+            const customer = allCustomers.find(c => c.id === customerId);
+            if (!customer) {
+                alert('Customer not found');
+                return;
+            }
+            
+            // Populate modal header with customer name and email
+            const customerName = customer.name || 'Unknown Customer';
+            const customerEmail = customer.email || 'No email';
+            document.getElementById('modal-customer-name').textContent = `${customerName} (${customerEmail})`;
+            
+            // Show modal
+            document.getElementById('customer-modal').style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            
+            // Load customer videos
+            loadCustomerVideos(customerId);
         }
+
+        function closeCustomerModal() {
+            document.getElementById('customer-modal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+            
+            // Stop any playing videos
+            const players = document.querySelectorAll('.video-player');
+            players.forEach(player => {
+                player.style.display = 'none';
+                const thumbnail = player.previousElementSibling;
+                if (thumbnail) thumbnail.style.display = 'flex';
+            });
+        }
+
+        async function loadCustomerVideos(customerId) {
+            const container = document.getElementById('customer-videos-container');
+            const noVideosMsg = document.getElementById('no-videos-message');
+            
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #a0aec0;">Loading videos...</div>';
+            noVideosMsg.style.display = 'none';
+            
+            try {
+                // Fetch customer videos from Vimeo API
+                const response = await fetch(`/api/customer-videos/${encodeURIComponent(customerId)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const videos = data.videos || [];
+                
+                if (videos.length === 0) {
+                    container.innerHTML = '';
+                    noVideosMsg.style.display = 'block';
+                    return;
+                }
+                
+                // Create video cards
+                container.innerHTML = '';
+                videos.forEach(video => {
+                    const videoCard = createVideoCard(video);
+                    container.appendChild(videoCard);
+                });
+                
+            } catch (error) {
+                console.error('Error loading customer videos:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #fca5a5;">Error loading videos</div>';
+            }
+        }
+
+        // Derive a correct player embed URL for a Vimeo video
+        function derivePlayerEmbedUrl(videoObj, autoplay = false) {
+            if (!videoObj) return '';
+
+            // Helper to append params safely
+            function appendParams(url, params) {
+                if (!params) return url;
+                return url.indexOf('?') === -1 ? `${url}?${params}` : `${url}&${params}`;
+            }
+
+            const autoplayParams = autoplay ? 'autoplay=1&muted=1' : '';
+
+            // 1) Use explicit player_embed_url if provided by API
+            if (videoObj.player_embed_url) {
+                return appendParams(videoObj.player_embed_url, autoplayParams);
+            }
+
+            // 2) If embed HTML is provided, try to extract src from it
+            if (videoObj.embed && typeof videoObj.embed.html === 'string') {
+                const m = videoObj.embed.html.match(/src=["']([^"']+)["']/i);
+                if (m && m[1]) return appendParams(m[1], autoplayParams);
+            }
+
+            // 3) Normalize link/uri values
+            const link = String(videoObj.link || videoObj.uri || '').trim();
+
+            // If uri looks like /videos/12345 or /12345, extract numeric id
+            const uriId = String(videoObj.uri || '').split('/').filter(Boolean).pop();
+            if (uriId && /^\d+$/.test(uriId)) {
+                return appendParams(`https://player.vimeo.com/video/${uriId}`, autoplayParams);
+            }
+
+            // 4) Match vimeo.com/... patterns (handles hashed URLs and nested paths)
+            const domainMatch = link.match(/vimeo\.com\/(?:.*?\/)?(\d+)(?:\/(\w+))?/i);
+            if (domainMatch) {
+                const id = domainMatch[1];
+                const hash = domainMatch[2];
+                let url = `https://player.vimeo.com/video/${id}`;
+                if (hash) url = appendParams(url, `h=${hash}${autoplay ? '&autoplay=1&muted=1' : ''}`);
+                else url = appendParams(url, autoplayParams);
+                return url;
+            }
+
+            // 5) Relative hashed links like /12345/abcdef
+            const relMatch = link.match(/\/?(\d+)\/(\w+)$/i);
+            if (relMatch) {
+                return appendParams(`https://player.vimeo.com/video/${relMatch[1]}?h=${relMatch[2]}`, autoplayParams);
+            }
+
+            // 6) Last-resort: extract any long number which is likely the id
+            const anyId = link.match(/(\d{6,})/);
+            if (anyId) return appendParams(`https://player.vimeo.com/video/${anyId[1]}`, autoplayParams);
+
+            return '';
+        }
+
+        function createVideoCard(video) {
+            const card = document.createElement('div');
+            card.className = 'video-card';
+
+            // Extract metadata from video description
+            const metadata = extractVideoMetadata(video.description || '');
+            const customerName = metadata.customer || 'Unknown Customer';
+            const customerEmail = metadata.customerEmail || '';
+            const recordedBy = {
+                displayName: metadata.recordedBy || 'Unknown',
+                email: metadata.recordedByEmail || ''
+            };
+            const recordingDate = metadata.recordingDate || video.created_time || '';
+
+            // Only show the user-entered description (remove our metadata lines)
+            const userDescriptionRaw = extractUserDescription(video.description || '');
+            const safeUserDescription = escapeHtml(userDescriptionRaw) || '';
+
+            // Simplify timestamp for easy reading
+            let simpleDate = '';
+            try {
+                const dt = recordingDate ? new Date(recordingDate) : (video.created_time ? new Date(video.created_time) : null);
+                if (dt && !isNaN(dt)) {
+                    simpleDate = dt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                }
+            } catch (e) {
+                simpleDate = recordingDate || '';
+            }
+
+            // Extract video ID from URI
+            const videoId = String(video.uri || '').split('/').pop();
+            const embedUrl = `https://player.vimeo.com/video/${videoId}`;
+
+            card.innerHTML = `
+                <div class="video-thumbnail">
+                    ${video.pictures?.sizes?.[0]?.link ? `<img src="${video.pictures.sizes[0].link}" loading="lazy">` : '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:#555;font-size:34px;">🎬</div>'}
+                </div>
+                <div class="video-info">
+                    <div class="video-customer-name">${escapeHtml(customerName)}</div>
+                    <div class="video-customer-email">${escapeHtml(customerEmail)}</div>
+                    <div class="video-recorded-by">${escapeHtml(recordedBy.displayName || 'Unknown')}</div>
+                    <div class="video-recorded-by-email">${escapeHtml(recordedBy.email || '')}</div>
+                    <div class="video-date">${escapeHtml(simpleDate)}</div>
+                    ${safeUserDescription ? `<div class="video-description">${safeUserDescription}</div>` : `<div class="video-description">No description provided.</div>`}
+                    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+                        <button type="button" class="add-comment-btn" data-video-uri="${escapeHtml(video.uri)}" style="background:#10b981;color:white;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;">Add comment</button>
+                        <span class="comment-status" style="font-size:12px;color:#93c5fd;"></span>
+                    </div>
+                </div>
+            `;
+
+            // Add click handler to open modal, but don't open when clicking the add-comment button
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.add-comment-btn')) return;
+                openVideoModal(video, metadata);
+            });
+
+            // Wire up the add comment button to open the modal and focus the form
+            (function attachAddCommentHandler() {
+                const btn = card.querySelector('.add-comment-btn');
+                const status = card.querySelector('.comment-status');
+                if (!btn) return;
+                btn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    // Open the modal for this video; the modal contains the full comment form
+                    openVideoModal(video, metadata);
+                    // After a short delay, focus the comment textarea inside the modal
+                    setTimeout(() => {
+                        const overlay = document.querySelector('.user-video-modal-overlay');
+                        const form = overlay?.querySelector('.video-comment-form');
+                        if (form) {
+                            // modal prepopulation handles session values; ensure focus
+                            const textarea = form.querySelector('textarea[name="commentBody"]');
+                            if (textarea) textarea.focus();
+                        }
+                    }, 200);
+                });
+            })();
+
+            return card;
+        }
+
+        function extractUserDescription(description) {
+            if (!description) return '';
+
+            // Split description into lines
+            const lines = description.split('\n');
+
+            // Filter out metadata lines
+            const userLines = lines.filter(line => {
+                const trimmed = line.trim();
+                return !trimmed.match(/^Customer\s*:/i) &&
+                       !trimmed.match(/^Customer Email\s*:/i) &&
+                       !trimmed.match(/^Recorded By\s*:/i) &&
+                       !trimmed.match(/^Recorded By Email\s*:/i) &&
+                       !trimmed.match(/^Recording Date\s*:/i);
+            });
+
+            // Join remaining lines and clean up
+            const userContent = userLines.join('\n').trim();
+
+            // Return raw user-entered content; caller will escape when inserting into DOM
+            return userContent || '';
+        }
+
+        // Extract structured metadata from a video's description
+        function extractVideoMetadata(description) {
+            if (!description) return {};
+
+            const metadata = {};
+
+            // Use the same patterns as vimeo.js
+            const patterns = {
+                customer: /Customer\s*:\s*(.+)/i,
+                customerEmail: /Customer Email\s*:\s*(.+)/i,
+                recordedBy: /Recorded By\s*:\s*(.+)/i,
+                recordedByEmail: /Recorded By Email\s*:\s*(.+)/i,
+                recordingDate: /Recording Date\s*:\s*(.+)/i
+            };
+
+            for (const [key, regex] of Object.entries(patterns)) {
+                const match = description.match(regex);
+                if (match) {
+                    metadata[key] = match[1].trim();
+                }
+            }
+
+            // Also try fallback patterns for backward compatibility
+            if (!metadata.customerEmail) {
+                const emailMatch = description.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+                if (emailMatch) {
+                    metadata.customerEmail = emailMatch[1].toLowerCase().trim();
+                }
+            }
+
+            if (!metadata.customer) {
+                const nameMatch = description.match(/customer:?\s*([^\n]+)/i) ||
+                                 description.match(/name:?\s*([^\n]+)/i);
+                if (nameMatch) {
+                    metadata.customer = nameMatch[1].trim();
+                }
+            }
+
+            // Process recordedBy to split display name and email
+            if (metadata.recordedBy && !metadata.recordedByEmail) {
+                const recordedByStr = metadata.recordedBy;
+                const emailInRecorded = recordedByStr.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+                if (emailInRecorded) {
+                    metadata.recordedBy = recordedByStr.replace(emailInRecorded[0], '').trim();
+                    metadata.recordedByEmail = emailInRecorded[0];
+                }
+            }
+
+            return metadata;
+        }
+
+        // Parse comments from the description. Comments are appended using the
+        // server format: "--- HEADER ---\ncomment body"
+        function parseCommentsFromDescription(description) {
+            if (!description) return [];
+            const parts = description.split(/\n-{3,} ?/g);
+            // First part is original description (pre-comments) if it doesn't start with header
+            const comments = [];
+            for (let i = 1; i < parts.length; i++) {
+                const part = parts[i].trim();
+                if (!part) continue;
+                // header line may be first line until a newline
+                const firstNewline = part.indexOf('\n');
+                let header = '';
+                let body = part;
+                if (firstNewline !== -1) {
+                    header = part.slice(0, firstNewline).trim();
+                    body = part.slice(firstNewline + 1).trim();
+                }
+                comments.push({ header, body });
+            }
+            return comments;
+        }
+
+        function renderCommentsList(container, description) {
+            if (!container) return;
+            const comments = parseCommentsFromDescription(description || '');
+            if (comments.length === 0) {
+                container.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px;">No comments yet.</div>';
+                return;
+            }
+            container.innerHTML = '';
+            comments.forEach(c => {
+                const el = document.createElement('div');
+                el.style.cssText = 'padding:8px;border-bottom:1px solid #111;color:#cbd5e1;';
+                el.innerHTML = `<div style="font-size:12px;color:#93c5fd;margin-bottom:6px;">${escapeHtml(c.header)}</div><div style="white-space:pre-wrap;font-size:13px;">${escapeHtml(c.body)}</div>`;
+                container.appendChild(el);
+            });
+        }
+
+        function openVideoModal(video, metadata) {
+            // Remove any existing modals
+            document.querySelectorAll('.user-video-modal-overlay').forEach(o => o.remove());
+
+            const overlay = document.createElement('div');
+            overlay.className = 'user-video-modal-overlay';
+            overlay.style.cssText = 'position:fixed;left:0;right:0;top:50px;bottom:0;background:rgba(0,0,0,.6);z-index:50000;display:flex;align-items:flex-start;justify-content:center;padding:24px 20px;overflow:auto;';
+
+            const customerName = metadata.customer || 'Unknown Customer';
+            const customerEmail = metadata.customerEmail || '';
+            const recordedBy = {
+                displayName: metadata.recordedBy || 'Unknown',
+                email: metadata.recordedByEmail || ''
+            };
+            const recordingDate = metadata.recordingDate || (video.created_time ? new Date(video.created_time).toLocaleString() : '');
+            
+            // Extract only user-added content from description (remove metadata)
+            const userDescription = extractUserDescription(video.description || '');
+            const safeUserDescription = escapeHtml(userDescription) || 'No additional notes.';
+
+            // Build an embed URL that handles hashed/private links and autoplay
+            const modalEmbedUrl = derivePlayerEmbedUrl(video, true) || (function(){ const id = String(video.uri || '').split('/').pop(); return id ? `https://player.vimeo.com/video/${id}?autoplay=1` : ''; })();
+            console.log('🎯 Modal embed URL:', modalEmbedUrl);
+
+            overlay.innerHTML = `
+                <div style="width:100%;max-width:1100px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.45);">
+                    <div style="position:absolute;top:10px;right:10px;display:flex;gap:8px;">
+                        <button type="button" class="video-modal-close" style="width:44px;height:44px;border:none;border-radius:50%;background:#dc2626;color:#fff;font-size:22px;font-weight:600;cursor:pointer;">×</button>
+                    </div>
+                        <div style="aspect-ratio:16/9;background:#111;">
+                        <iframe src="${modalEmbedUrl}" style="width:100%;height:100%;border:0;" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;border-top:1px solid #1f1f1f;">
+                        <div style="flex:1 1 260px;padding:18px 22px;border-right:1px solid #1f1f1f;min-width:240px;display:flex;flex-direction:column;gap:6px;">
+                            <div style="color:#fff;font-size:14px;">${escapeHtml(customerName)}</div>
+                            <div style="color:#d1d5db;font-size:12px;word-break:break-all;">${escapeHtml(customerEmail)}</div>
+                            <div style="color:#8dd28d;font-size:12px;">${escapeHtml(recordedBy.displayName)}</div>
+                            <div style="color:#6fbf6f;font-size:11px;word-break:break-all;">${escapeHtml(recordedBy.email)}</div>
+                            <div style="color:#999;font-size:11px;">${recordingDate}</div>
+                        </div>
+                        <div style="flex:3 1 400px;padding:18px 22px;max-height:260px;overflow:auto;color:#ccc;font-size:13px;line-height:1.4;white-space:pre-wrap;word-break:break-word;">${safeUserDescription}</div>
+                    </div>
+                    <div style="padding:18px 22px;border-top:1px solid #1f1f1f;background:#0f1720;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+                        <form class="video-comment-form" style="flex:1 1 100%;display:flex;flex-direction:column;gap:8px;" data-video-uri="${escapeHtml(video.uri)}">
+                            <div style="display:flex;flex-direction:column;gap:6px;">
+                                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                                    <div class="posting-as" style="color:#93c5fd;font-size:13px;">Posting as: <span class="posting-as-name">(not signed in)</span></div>
+                                    <div class="signed-in-as" style="color:#a0aec0;font-size:12px;">Signed in as: <span class="signed-in-name">(none)</span></div>
+                                </div>
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                    <input name="commenterName" placeholder="Your name" style="flex:1 1 200px;padding:8px;border-radius:6px;border:1px solid #2a2a2a;background:#081021;color:#e2e8f0;" />
+                                    <input name="commenterEmail" placeholder="Your email" style="flex:1 1 200px;padding:8px;border-radius:6px;border:1px solid #2a2a2a;background:#081021;color:#e2e8f0;" />
+                                    <input name="commentDate" type="datetime-local" title="Comment time (optional)" style="flex:0 0 220px;padding:8px;border-radius:6px;border:1px solid #2a2a2a;background:#081021;color:#e2e8f0;" readonly />
+                                </div>
+                            </div>
+                            <textarea name="commentBody" placeholder="Write your comment here (no limit)" rows="4" style="width:100%;padding:10px;border-radius:6px;border:1px solid #2a2a2a;background:#07101b;color:#e2e8f0;font-family:inherit;resize:vertical;"></textarea>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <button type="submit" style="background:#10b981;color:#051014;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;">Add Comment</button>
+                                <span class="comment-form-status" style="color:#a0aec0;font-size:13px;"></span>
+                            </div>
+                        </form>
+                        <div style="flex:1 1 320px;max-height:220px;overflow:auto;border-left:1px solid #111;padding-left:12px;min-width:260px;">
+                            <div style="color:#93c5fd;font-weight:600;margin-bottom:8px;">Comments</div>
+                            <div class="comments-list" style="max-height:180px;overflow:auto;"></div>
+                        </div>
+                    </div>
+                </div>`;
+
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+            const closeBtn = overlay.querySelector('.video-modal-close');
+            closeBtn?.addEventListener('click', () => overlay.remove());
+            // Prepopulate commenter info from global header / Supabase session if available
+                    (async function prepopulateCommentForm() {
+                try {
+                    const form = overlay.querySelector('.video-comment-form');
+                    if (!form) return;
+
+                    // Helper to build local datetime-local value
+                    function toLocalDateTimeInputValue(d) {
+                        const dt = d || new Date();
+                        const pad = (n) => String(n).padStart(2, '0');
+                        const YYYY = dt.getFullYear();
+                        const MM = pad(dt.getMonth() + 1);
+                        const DD = pad(dt.getDate());
+                        const hh = pad(dt.getHours());
+                        const mm = pad(dt.getMinutes());
+                        return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
+                    }
+
+                    const nameInput = form.querySelector('input[name="commenterName"]');
+                    const emailInput = form.querySelector('input[name="commenterEmail"]');
+                    const dateInput = form.querySelector('input[name="commentDate"]');
+                    const postingAsName = form.querySelector('.posting-as-name');
+
+                    // Prefer the header-exposed profile which mirrors the global header
+                    const headerProfile = window.headerUserProfile || (window.getCurrentUser ? window.getCurrentUser() : null) || null;
+                    if (headerProfile && headerProfile.displayName) {
+                        if (nameInput) nameInput.value = headerProfile.displayName;
+                        if (postingAsName) postingAsName.textContent = headerProfile.displayName;
+                        const signedInNameSpan = form.querySelector('.signed-in-name');
+                        if (signedInNameSpan) signedInNameSpan.textContent = `${headerProfile.displayName} <${headerProfile.email || ''}>`;
+                    }
+                    if (headerProfile && headerProfile.email) {
+                        if (emailInput) emailInput.value = headerProfile.email;
+                    }
+
+                    // Fallback: try Supabase session
+                    if (window.supabase && (!nameInput.value || !emailInput.value)) {
+                        try {
+                            const { data: { session }, error } = await window.supabase.auth.getSession();
+                            if (session && session.user) {
+                                if (nameInput && !nameInput.value) {
+                                    const metaName = session.user.user_metadata?.display_name || session.user.user_metadata?.full_name || `${session.user.user_metadata?.first_name || ''} ${session.user.user_metadata?.last_name || ''}`.trim();
+                                    if (metaName) nameInput.value = metaName;
+                                }
+                                if (emailInput && !emailInput.value) emailInput.value = session.user.email || '';
+                            }
+                        } catch (e2) {
+                            // ignore
+                        }
+                    }
+
+                    // Always set comment date to now (local) unless already present
+                    if (dateInput && !dateInput.value) {
+                        dateInput.value = toLocalDateTimeInputValue(new Date());
+                    }
+                } catch (err) {
+                    console.warn('Could not prepopulate comment form:', err);
+                }
+            })();
+
+            // Wire comment form submission and keep posting-as label in sync with editable inputs
+            overlay.querySelectorAll('.video-comment-form').forEach(form => {
+                // Keep posting-as label updated when the name input changes
+                try {
+                    const nameInputLive = form.querySelector('input[name="commenterName"]');
+                    const emailInputLive = form.querySelector('input[name="commenterEmail"]');
+                    const postingAsNameLive = form.querySelector('.posting-as-name');
+                    const updatePostingAsLive = () => {
+                        if (!postingAsNameLive) return;
+                        const v = (nameInputLive && nameInputLive.value && nameInputLive.value.trim()) ? nameInputLive.value.trim() : (window.headerUserProfile && window.headerUserProfile.displayName) || '(not signed in)';
+                        postingAsNameLive.textContent = v;
+                    };
+                    if (nameInputLive) {
+                        nameInputLive.addEventListener('input', updatePostingAsLive);
+                    }
+                    if (emailInputLive) {
+                        emailInputLive.addEventListener('input', () => { /* no-op but kept editable */ });
+                    }
+                    // Initialize label value
+                    updatePostingAsLive();
+                } catch (e) {
+                    /* ignore */
+                }
+
+                form.addEventListener('submit', async (ev) => {
+                    ev.preventDefault();
+                    const status = form.querySelector('.comment-form-status');
+                    const videoUri = form.dataset.videoUri;
+                    const commenterName = form.querySelector('input[name="commenterName"]').value.trim();
+                    const commenterEmail = form.querySelector('input[name="commenterEmail"]').value.trim();
+                    const commentDate = form.querySelector('input[name="commentDate"]').value;
+                    const commentBody = form.querySelector('textarea[name="commentBody"]').value;
+
+                    if (!commentBody) {
+                        status.textContent = 'Please enter a comment.';
+                        return;
+                    }
+
+                    try {
+                        status.textContent = 'Saving...';
+                        // Include audit info about the actual actor (signed-in user) if available
+                        const payload = { videoUri, comment: commentBody, commenterName, commenterEmail, commentDate };
+                        const resp = await fetch('/api/update-video', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        const json = await resp.json();
+                        status.textContent = 'Saved';
+                        // Append the new comment to the comments list in the modal
+                        const commentsContainer = overlay.querySelector('.comments-list');
+                        if (commentsContainer) {
+                            // The server appended the comment to the description; updated video object returned
+                            const updatedDescription = (json.video && json.video.description) || '';
+                            renderCommentsList(commentsContainer, updatedDescription);
+                        }
+                        setTimeout(() => status.textContent = '', 3000);
+                        // Optionally update the modal or the page to reflect new comment
+                    } catch (err) {
+                        console.error('Failed to save comment:', err);
+                        status.textContent = 'Error saving comment';
+                        setTimeout(() => status.textContent = '', 4000);
+                    }
+                });
+            });
+            document.body.appendChild(overlay);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('customer-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCustomerModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('customer-modal').style.display === 'flex') {
+                closeCustomerModal();
+            }
+        });
 
         function escapeHtml(text) {
             if (typeof text !== 'string') return text;
@@ -691,6 +1509,280 @@
             document.getElementById('customers-table').style.display = 'none';
             document.getElementById('error-message').style.display = 'none';
             loadCustomers();
+        }
+
+        // Import functions
+        async function importFromFile() {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showImportStatus('❌ Please select a file to import', 'error');
+                return;
+            }
+
+            const statusDiv = document.getElementById('import-status');
+            const importBtn = document.getElementById('import-file-btn');
+            const originalText = importBtn.innerHTML;
+            
+            try {
+                importBtn.innerHTML = '🔄 Importing...';
+                importBtn.disabled = true;
+                
+                const fileContent = await readFileContent(file);
+                let customers = [];
+                
+                if (file.name.toLowerCase().endsWith('.csv')) {
+                    customers = parseCSV(fileContent);
+                } else if (file.name.toLowerCase().endsWith('.json')) {
+                    customers = JSON.parse(fileContent);
+                } else {
+                    throw new Error('Unsupported file format. Please use CSV or JSON.');
+                }
+                
+                await importCustomers(customers);
+                showImportStatus(`✅ Successfully imported ${customers.length} customers`, 'success');
+                fileInput.value = '';
+                refreshCustomers();
+                
+            } catch (error) {
+                console.error('Import error:', error);
+                showImportStatus(`❌ Import failed: ${error.message}`, 'error');
+            } finally {
+                importBtn.innerHTML = originalText;
+                importBtn.disabled = false;
+            }
+        }
+
+        async function importManualData() {
+            const textarea = document.getElementById('manual-import-data');
+            const data = textarea.value.trim();
+            
+            if (!data) {
+                showImportStatus('❌ Please enter customer data to import', 'error');
+                return;
+            }
+
+            const importBtn = document.getElementById('import-manual-btn');
+            const originalText = importBtn.innerHTML;
+            
+            try {
+                importBtn.innerHTML = '🔄 Importing...';
+                importBtn.disabled = true;
+                
+                const customers = JSON.parse(data);
+                await importCustomers(customers);
+                showImportStatus(`✅ Successfully imported ${customers.length} customers`, 'success');
+                textarea.value = '';
+                refreshCustomers();
+                
+            } catch (error) {
+                console.error('Manual import error:', error);
+                showImportStatus(`❌ Import failed: ${error.message}`, 'error');
+            } finally {
+                importBtn.innerHTML = originalText;
+                importBtn.disabled = false;
+            }
+        }
+
+        function clearImportForm() {
+            document.getElementById('import-file').value = '';
+            document.getElementById('manual-import-data').value = '';
+            document.getElementById('import-status').textContent = '';
+        }
+
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 2) {
+                throw new Error('CSV must have at least a header row and one data row');
+            }
+            
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const nameIndex = headers.indexOf('name');
+            const emailIndex = headers.indexOf('email');
+            
+            if (nameIndex === -1 || emailIndex === -1) {
+                throw new Error('CSV must have "name" and "email" columns');
+            }
+            
+            const customers = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                if (values.length > Math.max(nameIndex, emailIndex)) {
+                    customers.push({
+                        name: values[nameIndex] || 'Unknown',
+                        email: values[emailIndex].toLowerCase()
+                    });
+                }
+            }
+            
+            return customers;
+        }
+
+        async function importCustomers(customers) {
+            if (!Array.isArray(customers)) {
+                throw new Error('Customer data must be an array');
+            }
+            
+            console.log(`📤 Importing ${customers.length} customers...`);
+            
+            const response = await fetch('/api/import-customers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ customers })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `HTTP ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('✅ Import result:', result);
+            return result;
+        }
+
+        function showImportStatus(message, type) {
+            const statusDiv = document.getElementById('import-status');
+            statusDiv.textContent = message;
+            statusDiv.style.color = type === 'error' ? '#fca5a5' : '#86efac';
+            
+            // Auto-clear success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.textContent = '';
+                }, 5000);
+            }
+        }
+
+        // Add missing columns to customers table
+        async function addMissingColumns() {
+            const btn = document.getElementById('add-columns-btn');
+            const sqlDiv = document.getElementById('columns-sql');
+            const sqlCommands = document.getElementById('sql-commands');
+
+            try {
+                btn.innerHTML = '🔧 Generating SQL...';
+                btn.disabled = true;
+
+                const response = await fetch('/api/add-customers-columns', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                // Display the SQL commands
+                sqlCommands.textContent = result.sqlCommands.join('\n');
+                sqlDiv.style.display = 'block';
+
+                console.log('✅ SQL commands generated:', result.sqlCommands);
+
+            } catch (error) {
+                console.error('❌ Error generating SQL:', error);
+                sqlCommands.textContent = `❌ Error: ${error.message}`;
+                sqlDiv.style.display = 'block';
+            } finally {
+                btn.innerHTML = '🔧 Add Missing Columns';
+                btn.disabled = false;
+            }
+        }
+
+        // Add Vimeo links to existing customers
+        async function addVimeoLinks() {
+            const btn = document.getElementById('add-links-btn');
+            const statusDiv = document.getElementById('links-status');
+
+            try {
+                btn.innerHTML = '🔗 Adding Links...';
+                btn.disabled = true;
+                statusDiv.textContent = 'Fetching videos and matching to customers...';
+                statusDiv.style.color = '#93c5fd';
+
+                const response = await fetch('/api/add-vimeo-links', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('✅ Vimeo links update result:', result);
+
+                statusDiv.textContent = result.message;
+                statusDiv.style.color = '#86efac';
+
+                // Refresh the customer list to show the new links
+                setTimeout(() => {
+                    refreshCustomers();
+                }, 2000);
+
+            } catch (error) {
+                console.error('❌ Vimeo links update error:', error);
+                statusDiv.textContent = `❌ Failed to add Vimeo links: ${error.message}`;
+                statusDiv.style.color = '#fca5a5';
+            } finally {
+                btn.innerHTML = '🔗 Add Vimeo Links';
+                btn.disabled = false;
+            }
+        }
+
+        // Migrate Vimeo customers to Supabase
+        async function migrateVimeoCustomers() {
+            const migrateBtn = document.getElementById('migrate-btn');
+            const statusDiv = document.getElementById('migrate-status');
+            
+            try {
+                migrateBtn.innerHTML = '🔄 Migrating...';
+                migrateBtn.disabled = true;
+                statusDiv.textContent = 'Starting migration from Vimeo...';
+                statusDiv.style.color = '#93c5fd';
+                
+                const response = await fetch('/api/migrate-vimeo-customers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('✅ Migration result:', result);
+                
+                statusDiv.textContent = result.message;
+                statusDiv.style.color = '#86efac';
+                
+                // Refresh the customer list
+                refreshCustomers();
+                
+            } catch (error) {
+                console.error('❌ Migration error:', error);
+                statusDiv.textContent = `❌ Migration failed: ${error.message}`;
+                statusDiv.style.color = '#fca5a5';
+            } finally {
+                migrateBtn.innerHTML = '🚀 Migrate from Vimeo';
+                migrateBtn.disabled = false;
+            }
         }
     </script>
 </body>

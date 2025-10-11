@@ -1,6 +1,16 @@
+// Consolidated customers endpoint - now uses customer registry
+import { createClient } from '@supabase/supabase-js';
 import { getCustomersCache, setCustomersCache, fetchFolderVideos, summarizeCustomersFromVideos } from '@/lib/vimeo';
 
-// Consolidated customers endpoint - now uses customer registry
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase credentials not configured');
+  }
+  return createClient(supabaseUrl, supabaseKey);
+}
 export default async function handler(req, res) {
   console.log('👥 Fetching customers from registry...');
 
@@ -17,28 +27,46 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Try to get from Vimeo cache first (for speed)
-    let allCustomers = await getCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26555277');
+    // Try to get from Supabase customer registry first (now our primary source)
+    let allCustomers = [];
+    try {
+      console.log('📋 Fetching from Supabase customer registry...');
+      const supabase = getSupabaseClient();
 
-    if (!allCustomers) {
-      // Fallback to registry API
-      console.log('📋 Cache miss, fetching from registry...');
-      try {
-        const registryResp = await fetch(`${req.protocol || 'http'}://${req.headers.host}/api/customer-registry`);
-        if (!registryResp.ok) {
-          throw new Error(`Registry API failed: ${registryResp.status}`);
-        }
-        allCustomers = await registryResp.json();
-        
-        // Update cache
-        setCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26918583', allCustomers);
-        console.log('💾 Updated cache with registry data');
-      } catch (registryError) {
-        console.log('⚠️ Registry API failed, falling back to direct Vimeo loading:', registryError.message);
-        // Fallback to direct Vimeo loading
+      // Try to select with vimeo_link first, fallback without it
+      let { data, error } = await supabase
+        .from('customers')
+        .select('id, name, email, vimeo_link')
+        .order('name');
+
+      if (error && error.message.includes('vimeo_link')) {
+        // Fallback to basic fields if vimeo_link column doesn't exist
+        console.log('⚠️ vimeo_link column not found, falling back to basic fields');
+        const fallback = await supabase
+          .from('customers')
+          .select('id, name, email')
+          .order('name');
+        data = fallback.data;
+        error = fallback.error;
+      }
+
+      if (error) {
+        throw error;
+      }
+
+      allCustomers = data || [];
+      console.log(`✅ Found ${allCustomers.length} customers in Supabase registry`);
+    } catch (registryError) {
+      console.log('⚠️ Supabase registry failed, falling back to Vimeo cache:', registryError.message);
+      // Fallback to Vimeo cache
+      allCustomers = await getCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26555277');
+
+      if (!allCustomers) {
+        // Final fallback to direct Vimeo loading
+        console.log('📹 Cache miss, fetching directly from Vimeo...');
         const videos = await fetchFolderVideos(process.env.VIMEO_ACCESS_TOKEN, { folderId: '26555277' });
         allCustomers = summarizeCustomersFromVideos(videos);
-        
+
         // Update cache with fresh data
         setCustomersCache(process.env.VIMEO_ACCESS_TOKEN, '26918583', allCustomers);
         console.log('💾 Updated cache with fresh Vimeo data');

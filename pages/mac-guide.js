@@ -1,0 +1,189 @@
+import Head from 'next/head';
+import Link from 'next/link';
+
+export default function MacGuide() {
+  return (
+    <>
+      <Head>
+        <title>Sparky on Mac - Screen Recorder</title>
+        <script async src="https://unpkg.com/@supabase/supabase-js@2"></script>
+        <script defer src="/global-header.js"></script>
+        <style>{`
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+          }
+
+          .mac-guide-page .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+          }
+
+          .container {
+            max-width: 800px;
+            margin: 2rem auto 0 auto;
+          }
+
+          .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+          }
+
+          .page-header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+
+          .page-header p {
+            font-size: 1.3rem;
+            color: #e2e8f0;
+          }
+
+          .guide-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 3rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+          }
+
+          .guide-card h2 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: #ffffff;
+          }
+
+          .steps {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+          }
+
+          .steps ol {
+            text-align: left;
+            padding-left: 1.5rem;
+            margin: 0;
+          }
+
+          .steps li {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
+          }
+
+          .steps li strong {
+            color: #ffffff;
+          }
+
+          .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+          }
+
+          .feature-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+          }
+
+          .cta-section {
+            text-align: center;
+            margin-top: 3rem;
+          }
+
+          .btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+          }
+
+          .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+          }
+
+          .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+          }
+
+          @media (max-width: 768px) {
+            body {
+              padding: 1rem;
+            }
+
+            .page-header h1 {
+              font-size: 2rem;
+            }
+
+            .guide-card {
+              padding: 2rem 1rem;
+            }
+
+            .features {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}</style>
+      </Head>
+      <div className="mac-guide-page">
+        <div className="container">
+          <div className="page-header">
+            <h1>🍎 Sparky on Mac</h1>
+            <p>How to use Sparky Screen Recorder on your Mac</p>
+          </div>
+
+          <div className="guide-card">
+            <h2>Screen Recording with Sparky</h2>
+
+            <div className="steps">
+              <ol>
+                <li><strong>Use Chrome browser</strong> for best performance</li>
+                <li><strong>Enable permissions:</strong> System Settings → Privacy & Security → Screen Recording (check Chrome)</li>
+                <li>Visit your Sparky dashboard</li>
+                <li>Click &quot;Start Recording&quot;</li>
+                <li>Choose screen and audio options</li>
+                <li>Upload directly to Vimeo</li>
+              </ol>
+            </div>
+
+            <div className="features">
+              <div className="feature-item">✅ Chrome optimized</div>
+              <div className="feature-item">✅ Automatic Vimeo upload</div>
+              <div className="feature-item">✅ Customer management</div>
+              <div className="feature-item">✅ Real-time audio mixing</div>
+              <div className="feature-item">✅ Professional quality</div>
+              <div className="feature-item">✅ Mac compatible</div>
+            </div>
+          </div>
+
+          <div className="cta-section">
+            <Link href="/" className="btn btn-primary">Start Recording Now</Link>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

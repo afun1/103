@@ -1,31 +1,5 @@
-const FAVICON_PATH = '/supersparky.png';
-
-function ensureFavicon() {
-    if (typeof document === 'undefined') return;
-    const { head } = document;
-    if (!head) return;
-
-    const variants = [
-        { rel: 'icon', type: 'image/png' },
-        { rel: 'shortcut icon', type: 'image/png' },
-        { rel: 'apple-touch-icon' }
-    ];
-
-    variants.forEach(({ rel, type }) => {
-        let link = head.querySelector(`link[rel="${rel}"]`);
-        if (!link) {
-            link = document.createElement('link');
-            link.rel = rel;
-            head.appendChild(link);
-        }
-        if (type) link.type = type;
-        link.href = FAVICON_PATH;
-    });
-}
-
 // Global Header Component
 function loadGlobalHeader() {
-    ensureFavicon();
     const headerHTML = `
         <div class="header">
             <div class="header-column">
@@ -53,6 +27,7 @@ function loadGlobalHeader() {
                     <div class="dropdown-menu" id="dropdown-menu">
                         <div class="dropdown-item role" id="user-role">Loading...</div>
                         <div class="dropdown-item email" id="user-email">Loading...</div>
+                        <div class="dropdown-item mac-guide" onclick="navigateTo('mac-guide')">Mac Guide</div>
                         <div class="dropdown-item logout" onclick="logout()">Logout</div>
                     </div>
                 </div>
@@ -398,14 +373,7 @@ function initializeHeader() {
     // Initialize Supabase
     const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
-    
-    // Check if Supabase library is loaded
-    if (window.supabase && window.supabase.createClient) {
-        window.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-    } else {
-        console.error('Supabase library not loaded properly');
-        return;
-    }
+    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     loadUserProfile();
     setActiveNavButton();
@@ -454,7 +422,7 @@ async function loadUserProfile() {
             updateNavigationVisibility(role);
             window.headerUserProfile = { displayName, email, role };
         }
-    // Persist and expose for other scripts (recording page)
+        // Persist and expose for other scripts (recording page)
         try { localStorage.setItem('currentUser', JSON.stringify(window.headerUserProfile)); } catch(e) {}
         document.body.setAttribute('data-user-name', window.headerUserProfile.displayName || '');
         document.body.setAttribute('data-user-email', window.headerUserProfile.email || '');
@@ -622,10 +590,10 @@ async function navigateTo(page) {
         
         // Define role-based access rules
         const roleAccess = {
-            'admin': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy'],
-            'manager': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy'],
-            'supervisor': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy'],
-            'user': ['home', 'customers']
+            'admin': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy', 'mac-guide'],
+            'manager': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy', 'mac-guide'],
+            'supervisor': ['home', 'customers', 'videos', 'users', 'folders', 'hierarchy', 'mac-guide'],
+            'user': ['home', 'customers', 'mac-guide']
         };
         
         // Check if user has access to this page
@@ -663,6 +631,9 @@ async function navigateTo(page) {
         case 'hierarchy':
             targetPage = '/hierarchy.html';
             break;
+        case 'mac-guide':
+            targetPage = '/mac-guide';
+            break;
         default:
             console.log(`Unknown page: ${page}`);
             return;
@@ -687,10 +658,6 @@ async function logout() {
     }
 }
 
-// Expose functions for inline event handlers
-window.toggleDropdown = toggleDropdown;
-window.navigateTo = navigateTo;
-window.logout = logout;
 // Load header when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadGlobalHeader);

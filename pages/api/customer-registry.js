@@ -33,21 +33,13 @@ export default async function handler(req, res) {
 
       const normalizedEmail = email.toLowerCase().trim();
 
-      // First, get existing customer to preserve video list
-      const { data: existingCustomer } = await supabase
-        .from('customers')
-        .select('videos')
-        .eq('id', normalizedEmail)
-        .single();
-
-      const currentVideos = existingCustomer?.videos || [];
-
+      // Note: videos column doesn't exist in current table, so we'll skip video tracking for now
       const customerData = {
         id: normalizedEmail,
         name: (name || '').trim() || 'Unknown Customer',
-        email: normalizedEmail,
-        videos: videoUri ? [...currentVideos, videoUri] : currentVideos,
-        updated_at: new Date().toISOString()
+        email: normalizedEmail
+        // videos: videoUri ? [...currentVideos, videoUri] : currentVideos, // Disabled - column doesn't exist
+        // updated_at: new Date().toISOString() // Disabled - column doesn't exist
       };
 
       // Upsert customer
@@ -65,11 +57,22 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, customer: data[0] });
 
     } else if (req.method === 'GET') {
-      // Get all customers
-      const { data, error } = await supabase
+      // Get all customers - try with vimeo_link first, fallback without it
+      let { data, error } = await supabase
         .from('customers')
-        .select('id, name, email, videos')
+        .select('id, name, email, vimeo_link')
         .order('name');
+
+      if (error && error.message.includes('vimeo_link')) {
+        // Fallback to basic fields if vimeo_link column doesn't exist
+        console.log('⚠️ vimeo_link column not found, falling back to basic fields');
+        const fallback = await supabase
+          .from('customers')
+          .select('id, name, email')
+          .order('name');
+        data = fallback.data;
+        error = fallback.error;
+      }
 
       if (error) {
         console.error('Supabase select error:', error);
