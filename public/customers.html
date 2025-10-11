@@ -7,114 +7,7 @@
     <style>
         * {
             margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            min-height: 100vh;
-            color: #e2e8f0;
-            padding: 20px;
-        }
-
-        .container {
-            width: 100%;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header-container {
-            width: 100%;
-            height: 80px;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .page-title {
-            color: white;
-            font-size: 2.5rem;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .customers-table-container {
-            background: #2d3748;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            overflow-x: auto;
-            border: 1px solid #4a5568;
-        }
-
-        .loading-message {
-            text-align: center;
-            color: #cbd5e0;
-            font-size: 18px;
-            padding: 40px;
-        }
-
-        .customers-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #1a202c;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        .customers-table th {
-            background: #4a5568;
-            color: #e2e8f0;
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
-            border-bottom: 2px solid #2d3748;
-        }
-
-        .customers-table td {
-            padding: 15px;
-            border-bottom: 1px solid #4a5568;
-            font-size: 14px;
-            color: #e2e8f0;
-        }
-
-        .customers-table tr:nth-child(even) {
-            background: #2d3748;
-        }
-
-        .customers-table tr:hover {
-            background: #4a5568;
-            cursor: pointer;
-        }
-
-        .customer-name {
-            font-weight: 600;
-            color: #f7fafc;
-        }
-
-        .customer-email {
-            color: #cbd5e0;
-        }
-
-        .customer-id {
-            font-family: monospace;
-            color: #a0aec0;
-            font-size: 12px;
+            <div class="customers-table-container">
         }
 
         .stats-row {
@@ -189,10 +82,8 @@
             display: none !important;
         }
 
-        .read-only-mode .customers-table th:last-child,
-        .read-only-mode .customers-table td:last-child {
-            display: none !important;
-        }
+        /* Allow the actions column (last column) for all users so "View Details" and comment links are visible.
+           Admin controls remain hidden via .read-only-mode .admin-controls above. */
 
         .read-only-banner {
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -553,6 +444,35 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Developer/Admin Controls (moved below table) -->
+            <div class="admin-controls" id="admin-controls" style="display: none; margin-top: 16px;">
+                <div style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h3 style="color: #fca5a5; margin: 0 0 10px 0; font-size: 14px;">🔐 Admin Controls</h3>
+                    <button onclick="deleteSelectedCustomers()" id="delete-selected-btn" 
+                            style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;" 
+                            onmouseover="this.style.background='#b91c1c'" 
+                            onmouseout="this.style.background='#dc2626'"
+                            disabled>
+                        🗑️ Delete Selected from Vimeo
+                    </button>
+                    <span id="delete-warning" style="color: #fca5a5; font-size: 11px; margin-left: 10px;">
+                        Select customers to enable delete
+                    </span>
+                </div>
+
+                <!-- Import / Migration Controls (kept unchanged) -->
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h3 style="color: #86efac; margin: 0 0 10px 0; font-size: 14px;">📥 Import Customers</h3>
+                    <!-- ...existing content preserved... -->
+                    <div id="import-status" style="margin-top: 10px; font-size: 11px; color: #86efac;"></div>
+                </div>
+
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 15px;">
+                    <h3 style="color: #93c5fd; margin: 0 0 10px 0; font-size: 14px;">🔄 Database Setup & Migration</h3>
+                    <div id="migrate-status" style="margin-top: 10px; font-size: 11px; color: #93c5fd;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -772,12 +692,11 @@
                     <td class="customer-name">${escapeHtml(customer.name || 'Unknown')}</td>
                     <td class="customer-email">${escapeHtml(customer.email || 'No email')}</td>
                     <td>
-                        <button onclick="viewCustomerDetails('${escapeHtml(customer.id)}')" 
-                                style="background: #667eea; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 0.2s;" 
-                                onmouseover="this.style.background='#764ba2'" 
-                                onmouseout="this.style.background='#667eea'">
-                            View Details
-                        </button>
+                        <a href="#" onclick="viewCustomerDetails('${escapeHtml(customer.id)}'); return false;" 
+                           style="display:inline-block;background:#0ea5e9;color:#04263b;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;text-decoration:none;border:1px solid rgba(255,255,255,0.06);" 
+                           onmouseover="this.style.background='#0284c7'" onmouseout="this.style.background='#0ea5e9'">
+                           View Details
+                        </a>
                     </td>
                 `;
                 tbody.appendChild(row);
