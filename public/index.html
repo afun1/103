@@ -2022,12 +2022,28 @@
   function currentTimestamp(){ return new Date().toLocaleString(); }
 
   function gatherFormData(){
-    const type = (document.querySelector('input[name="customerType"]:checked')||{}).value;
+    let type = (document.querySelector('input[name="customerType"]:checked')||{}).value;
+    // If a customer was selected from the dropdown but the radio wasn't explicitly checked,
+    // treat it as an existing customer selection.
+    if(!type && window.__selectedCustomer) type = 'existing';
+
     let first='', last='', email='';
     if(type==='existing'){
       first = document.getElementById('existingFirstName')?.value.trim() || '';
       last = document.getElementById('existingLastName')?.value.trim() || '';
       email = document.getElementById('existingEmail')?.value.trim() || '';
+
+      // If the injected existing fields weren't present or populated (race condition),
+      // fall back to the selected customer object.
+      if((!first || !last || !email) && window.__selectedCustomer){
+        const c = window.__selectedCustomer || {};
+        const nameParts = (c.name || '').trim().split(/\s+/);
+        const f = nameParts.shift() || '';
+        const l = nameParts.join(' ') || '';
+        first = first || f;
+        last = last || l;
+        email = email || (c.email || '');
+      }
     } else if(type==='new'){
       first = document.getElementById('firstName')?.value.trim() || '';
       last = document.getElementById('lastName')?.value.trim() || '';
