@@ -7,6 +7,7 @@
     <title>Sparky Screen Recorder - Professional Edition</title>
     <!-- NOTE: Fresh deployment with optimized performance -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./global-header.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e2852; color:#333; min-height:100vh; }
@@ -66,71 +67,231 @@
         @media (max-width:480px){ .controls-section { width:95%; padding:10px;} .controls-left > div:first-child > div { gap:10px !important;} .audio-meters > div > div { flex-direction:column !important; gap:8px !important; align-items:center !important;} .audio-meters > div > div > div:first-child { gap:5px !important;} .audio-meter-compact { width:60px !important;} .preview-screen { width:95%; } .metadata-form { width:95%; } .main-content { gap:20px; padding:10px;} }
         @media (max-width:416px){ #audioProcessingControls { flex-direction:column; align-items:stretch !important; gap:15px !important;} #systemGainControl,#micGainControl { justify-content:center; border-left:none !important; padding-left:0 !important; flex-wrap:wrap;} }
     </style>
+  <style>
+    /* Floating draggable recording controls */
+    .floating-controls {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      width: auto;
+      background: rgba(18,18,20,0.9);
+      color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      z-index: 99999;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: default;
+      font-family: inherit;
+      overflow: visible;
+      display: none; /* hidden by default, shown only while recording */
+    }
+    .floating-controls .fc-handle {
+      padding: 8px 10px;
+      background: linear-gradient(180deg,#111,#222);
+      border-radius: 10px 10px 0 0;
+      font-weight:700;
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      cursor:grab;
+    }
+    .floating-controls .fc-handle:active { cursor:grabbing; }
+  .floating-controls .fc-body { padding:8px; display:flex; gap:8px; justify-content:center; align-items:center; }
+  /* Small circular icon-only buttons (user requested very small; using 20px diameter) */
+  .fc-btn { width:20px; height:20px; padding:0; border-radius:50%; border: none; font-weight:700; cursor:pointer; font-size:12px; box-shadow:0 3px 8px rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }
+    .fc-btn:active { transform:translateY(1px); }
+    .fc-pause { background: linear-gradient(180deg,#ffb86b 0%,#fb923c 100%); color:#1b1b1b; }
+    .fc-stop { background: linear-gradient(180deg,#ff7a7a 0%,#dc2626 100%); color:#fff; }
+    .fc-small { padding:6px 8px; font-size:12px; border-radius:6px; }
+    .fc-status { font-size:12px; color:#ddd; opacity:0.9; }
+  </style>
 </head>
 <body>
-    <!-- Authentication Check -->
-    <script>
-        // Check if user is authenticated, redirect to login if not
-        (async function checkAuth() {
-            try {
-                // Initialize Supabase
-                const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
-                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
-                const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-                const { data: { session }, error } = await supabase.auth.getSession();
-
-                if (error || !session) {
-                    console.log('❌ Not authenticated, redirecting to login');
-                    window.location.href = '/login';
-                    return;
-                }
-
-                console.log('✅ User authenticated, proceeding to recorder');
-            } catch (error) {
-                console.error('Auth check error:', error);
-                // On error, redirect to login to be safe
-                window.location.href = '/login';
-            }
-        })();
-
-        // Supabase is now loaded synchronously in head
-    </script>
-
-    <!-- Mac User Helper Banner -->
-    <script>
-        // Detect if user is on macOS
-        function isMacUser() {
-            return navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  <!-- Authentication Check -->
+  <script>
+    // Check if user is authenticated, redirect to login if not
+    (async function checkAuth() {
+      try {
+        // Initialize Supabase
+        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        try{
+          const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error || !session) {
+            console.log('❌ Not authenticated, redirecting to login');
+            window.location.href = '/login';
+            return;
+          }
+          console.log('✅ User authenticated, proceeding to recorder');
+        } catch (innerErr) {
+          console.warn('Auth check failed', innerErr);
+          // If auth check fails, proceed but don't block the UI; redirect as a fallback
+          try { window.location.href = '/login'; } catch(e){}
+          return;
         }
+      } catch (e) {
+        console.warn('Auth initialization error', e);
+      }
+    })();
+  </script>
 
-        // Show Mac-specific guidance
-        function showMacBanner() {
-            if (!isMacUser()) return;
 
-            const banner = document.createElement('div');
-            banner.id = 'mac-banner';
-            banner.innerHTML = `
-                <div style="background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); color: white; padding: 12px 20px; text-align: center; position: relative; font-size: 14px; box-shadow: 0 2px 10px rgba(0,122,255,0.3);">
-                    <span style="font-weight: 600;">🍎 Mac User?</span> Check our
-                    <a href="/mac-guide" style="color: #FFE082; text-decoration: underline; font-weight: 600;">Mac Guide</a>
-                    for permissions setup and Chrome optimization
-                    <button onclick="this.parentElement.parentElement.remove()" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: white; font-size: 18px; cursor: pointer; opacity: 0.8;">×</button>
-                </div>
-            `;
-            document.body.insertBefore(banner, document.body.firstChild);
-        }
+  <!-- Floating recording controls (moved outside auth script) -->
+            <div id="floatingControls" class="floating-controls" role="region" aria-label="Recording controls" tabindex="0">
+              <div class="fc-handle" id="fcHandle">
+                <span class="fc-status" id="fcStatus">Idle</span>
+                <button id="fcMinimize" class="fc-small" aria-label="Minimize controls">▾</button>
+              </div>
+              <div class="fc-body" id="fcBody" style="display:flex;">
+                <button id="fcPause" class="fc-btn fc-pause" aria-pressed="false" aria-label="Pause recording">⏸</button>
+                <button id="fcStop" class="fc-btn fc-stop" aria-label="Stop recording">⏹</button>
+              </div>
+            </div>
 
-        // Show banner after page loads
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', showMacBanner);
+  <script>
+    (function(){
+      const floating = document.getElementById('floatingControls');
+      const handle = document.getElementById('fcHandle');
+      const body = document.getElementById('fcBody');
+      const pauseBtn = document.getElementById('fcPause');
+      const stopBtn = document.getElementById('fcStop');
+      const statusEl = document.getElementById('fcStatus');
+      const minimize = document.getElementById('fcMinimize');
+
+      // Draggable
+      let isDragging = false;
+      let dragOffset = { x:0, y:0 };
+
+      function onPointerDown(e){
+        isDragging = true;
+        const rect = floating.getBoundingClientRect();
+        dragOffset.x = (e.clientX || e.touches && e.touches[0].clientX) - rect.left;
+        dragOffset.y = (e.clientY || e.touches && e.touches[0].clientY) - rect.top;
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+        document.addEventListener('touchmove', onPointerMove, { passive:false });
+        document.addEventListener('touchend', onPointerUp);
+      }
+
+      function onPointerMove(e){
+        if(!isDragging) return;
+        e.preventDefault && e.preventDefault();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const left = Math.max(6, clientX - dragOffset.x);
+        const top = Math.max(6, clientY - dragOffset.y);
+        floating.style.left = left + 'px';
+        floating.style.top = top + 'px';
+        floating.style.right = 'auto';
+      }
+
+      function onPointerUp(){
+        isDragging = false;
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        document.removeEventListener('touchmove', onPointerMove);
+        document.removeEventListener('touchend', onPointerUp);
+      }
+
+      handle.addEventListener('pointerdown', onPointerDown);
+
+      // Toggle minimize
+      minimize.addEventListener('click', ()=>{
+        if(body.style.display === 'none'){
+          body.style.display = 'flex';
+          minimize.textContent = '▾';
         } else {
-            showMacBanner();
+          body.style.display = 'none';
+          minimize.textContent = '▴';
         }
-    </script>
+      });
 
-    <div class="container">
-        <div class="header-container"></div>
+      // Pause/Resume logic
+      let isPaused = false;
+
+      function updateStatus(){
+        if(typeof recording !== 'undefined' && recording){
+          // show floating controls when actively recording
+          floating.style.display = '';
+          if(isPaused){ statusEl.textContent = 'Paused'; }
+          else { statusEl.textContent = 'Recording'; }
+        } else {
+          // hide while idle
+          floating.style.display = 'none';
+          statusEl.textContent = 'Idle';
+        }
+      }
+
+      pauseBtn.addEventListener('click', ()=>{
+        // If there is a global pauseRecording function, use it
+        try {
+          if(typeof window.pauseRecording === 'function'){
+            window.pauseRecording();
+            isPaused = !isPaused; // assume toggle
+          } else if(typeof mediaRecorder !== 'undefined' && mediaRecorder){
+            if(mediaRecorder.state === 'recording'){
+              // Pause
+              if(typeof mediaRecorder.pause === 'function') mediaRecorder.pause();
+              isPaused = true;
+            } else if(mediaRecorder.state === 'paused'){
+              if(typeof mediaRecorder.resume === 'function') mediaRecorder.resume();
+              isPaused = false;
+            }
+          } else if(typeof window.handleRecordButtonClick === 'function'){
+            // No recorder yet - attempt start/stop
+            window.handleRecordButtonClick();
+          }
+        } catch(err){ console.warn('Pause action failed', err); }
+        pauseBtn.setAttribute('aria-pressed', String(isPaused));
+        // keep icon-only label; update aria-label for screen readers
+        pauseBtn.setAttribute('aria-label', isPaused ? 'Resume recording' : 'Pause recording');
+        updateStatus();
+      });
+
+      // Stop button
+      stopBtn.addEventListener('click', ()=>{
+        try {
+          if(typeof window.stopRecording === 'function'){
+            window.stopRecording();
+          } else if(typeof stop === 'function'){
+            stop();
+          } else if(typeof mediaRecorder !== 'undefined' && mediaRecorder){
+            if(typeof mediaRecorder.stop === 'function') mediaRecorder.stop();
+          }
+        } catch(err){ console.warn('Stop action failed', err); }
+        isPaused = false;
+        pauseBtn.setAttribute('aria-pressed', 'false');
+        pauseBtn.setAttribute('aria-label', 'Pause recording');
+        updateStatus();
+      });
+
+      // Keyboard shortcuts for accessibility: P = pause/resume, S = stop
+      floating.addEventListener('keydown', (ev)=>{
+        if(ev.key === 'p' || ev.key === 'P') { pauseBtn.click(); ev.preventDefault(); }
+        if(ev.key === 's' || ev.key === 'S') { stopBtn.click(); ev.preventDefault(); }
+      });
+
+      // Keep controls visible when recording state changes
+      // Hook into updateUI if present
+      const origUpdateUI = window.updateUI;
+      window.updateUI = function(){ try{ if(typeof origUpdateUI === 'function') origUpdateUI(); }catch(e){} updateStatus(); };
+
+      // Expose global convenience wrappers
+      window.pauseRecording = window.pauseRecording || function(){ pauseBtn.click(); };
+      window.resumeRecording = window.resumeRecording || function(){ pauseBtn.click(); };
+      window.stopRecordingControl = window.stopRecordingControl || function(){ stopBtn.click(); };
+
+      // Initial update
+      updateStatus();
+    })();
+  </script>
+
+  <div class="container">
+        <div class="header-container" id="header-container"></div>
         <div class="main-content">
             <div class="preview-section"><div class="preview-screen"><img src="Sparky-AItp.gif" alt="Sparky AI" style="max-width:200px;max-height:200px;object-fit:contain;"></div></div>
             <div class="record-button-section" id="recordButtonSection"><button class="record-button" id="recordButton" onclick="handleRecordButtonClick()">🔴 Start Recording</button></div>
@@ -191,19 +352,21 @@
                     </div>
                     <div id="audioProcessingControls" style="display:none; justify-content:center; align-items:center; gap: 12px; flex-wrap: wrap; border-top: 1px solid #888; padding-top: 15px;">
                         <div id="systemGainControl" style="display:none; align-items:center; gap: 8px; border-left: 2px solid #aaa; padding-left: 8px;">
-                            <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">System:</label>
-                            <input id="systemGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+                            <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;" title="Controls system audio recording volume">System:</label>
+                            <input id="systemGainSlider" type="range" min="0" max="10" step="0.1" value="1" style="width:80px;cursor:pointer;" title="System audio recording boost (0x=silent, 1x=normal, 5x=5x louder, 10x=maximum boost)">
                             <span id="systemGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
-                            <div id="masterGainControl" style="display:flex;align-items:center;gap:6px; border-left: 2px solid #4CAF50; padding-left: 8px;">
-                                <div style="font-size:11px;color:#ccc;">Out:</div>
+                            <div style="display:flex;align-items:center;gap:6px; border-left: 2px solid #4CAF50; padding-left: 8px;">
+                                <div style="font-size:11px;color:#ccc;">Level:</div>
                                 <div style="width:100px;height:10px;background:#1b1b1b;border:1px solid #444;border-radius:5px;overflow:hidden;position:relative;">
                                     <div id="outputMeterFill" style="height:100%;width:0%;background:#4caf50;transition:width .1s linear;"></div>
+                                    <div id="systemGainIndicator" style="position:absolute;top:-1px;left:0;width:2px;height:12px;background:#ffa726;display:none;" title="Current gain level marker"></div>
                                 </div>
+                                <div style="font-size:10px;color:#2196F3;">(recording)</div>
                             </div>
                         </div>
                         <div id="micGainControl" style="display:none; align-items:center; gap: 8px; border-left: 2px solid #aaa; padding-left: 8px;">
                             <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">Mic:</label>
-                            <input id="micGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+                            <input id="micGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;" title="Adjust microphone input volume (0x = mute, 1x = normal, 2x+ = boost)">
                             <span id="micGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <div style="font-size:11px;color:#ccc;">In:</div>
@@ -227,12 +390,8 @@
                 </div>
             </div>
         </div>
-  </div>
-  <script src="app-config.js"></script>
-  <script src="global-header.js"></script>
-    <script>
-        // ...existing code from original index (logic unchanged, backup copy)...
-    </script>
+    </div>
+
     <!-- Clean user video fetch/reset logic -->
 <script>
 (function(){
@@ -939,9 +1098,94 @@
   let systemDataArray, micDataArray;
   let systemGainNode, micGainNode;
   
+  // Store intended gain values for when audio context becomes available
+  let intendedSystemGain = 1.0;
+  let intendedMicGain = 1.0;
+
+  // Function to apply stored gain values to active gain nodes
+  function applyStoredGainValues() {
+    if (audioContext) {
+      if (systemGainNode) {
+        systemGainNode.gain.setValueAtTime(intendedSystemGain, audioContext.currentTime);
+        console.log(`� Applied stored recording gain: ${intendedSystemGain.toFixed(1)}x`);
+      }
+      if (micGainNode) {
+        micGainNode.gain.setValueAtTime(intendedMicGain, audioContext.currentTime);
+        console.log(`🎤 Applied stored mic gain: ${intendedMicGain.toFixed(1)}x`);
+      }
+    }
+  }
+
+  // Function to set gain value for recording volume
+  function setSystemGain(gainValue) {
+    intendedSystemGain = gainValue;
+    
+    // Update gain indicator position (1x = 10% position, 0x = 0%, 10x = 100%)
+    const indicator = document.getElementById('systemGainIndicator');
+    if (indicator) {
+      const position = Math.min(100, (gainValue / 10) * 100);
+      indicator.style.left = position + '%';
+      indicator.style.display = gainValue !== 1 ? 'block' : 'none';
+    }
+    
+    if (systemGainNode && audioContext) {
+      // Apply gain to recording stream - this affects the final video volume
+      // Clear any scheduled changes and apply boost immediately
+      systemGainNode.gain.cancelScheduledValues(audioContext.currentTime);
+      systemGainNode.gain.setValueAtTime(gainValue, audioContext.currentTime);
+      
+      // Sync recording controls if they exist
+      const recordingSysSlider = document.getElementById('recordingSystemGainSlider');
+      const recordingSysVal = document.getElementById('recordingSystemGainValue');
+      if (recordingSysSlider && recordingSysVal) {
+        recordingSysSlider.value = gainValue;
+        recordingSysVal.textContent = gainValue.toFixed(1) + 'x';
+      }
+      console.log(`� Recording volume set to: ${gainValue.toFixed(1)}x (affects final video audio level)`);
+      
+      // Force meter update to show immediate visual feedback
+      setTimeout(() => {
+        if (systemAnalyzer && systemDataArray) {
+          systemAnalyzer.getByteFrequencyData(systemDataArray);
+          const level = getAudioLevel(systemDataArray);
+          console.log(`📊 Recording audio level: ${level.toFixed(1)}% (gain: ${gainValue.toFixed(1)}x)`);
+        }
+      }, 100);
+    } else {
+      console.log(`� Recording gain stored: ${gainValue.toFixed(1)}x (will apply when recording starts)`);
+    }
+  }
+
+  function setMicGain(gainValue) {
+    intendedMicGain = gainValue;
+    if (micGainNode && audioContext) {
+      micGainNode.gain.setValueAtTime(gainValue, audioContext.currentTime);
+      console.log(`🎤 Microphone gain set to: ${gainValue.toFixed(1)}x`);
+      
+      // Force meter update to show immediate visual feedback
+      setTimeout(() => {
+        if (micAnalyzer && micDataArray) {
+          micAnalyzer.getByteFrequencyData(micDataArray);
+          const level = getAudioLevel(micDataArray);
+          console.log(`📊 Mic audio level after gain change: ${level.toFixed(1)}%`);
+        }
+      }, 100);
+    } else {
+      console.log(`🎤 Mic gain stored for later: ${gainValue.toFixed(1)}x (audio context not ready)`);
+    }
+  }
+
   function startAudioMeters(){
     const mode = (audioSelect && audioSelect.value) || 'none';
     if(mode === 'none') return;
+    
+    // Show recording UI elements
+    const recordingIndicators = document.querySelectorAll('div[style*="font-size:10px;color:#2196F3;"]');
+    recordingIndicators.forEach(indicator => {
+      if(indicator.textContent.includes('(recording)')) {
+        indicator.style.display = 'block';
+      }
+    });
     
     try {
       // Analyzers should already be set up by buildStream with proper gain node connections
@@ -1023,14 +1267,22 @@
     }
     const average = sum / dataArray.length;
     
-    // Use both average and peak for better responsiveness
-    const level = Math.max(average * 0.7, max * 0.3);
+    // Enhanced responsiveness for boosted audio
+    const level = Math.max(average * 0.8, max * 0.4);
     
-    // Convert to percentage with better scaling
-    const percentage = Math.min(100, (level / 255) * 100);
+    // Better scaling that shows gain effects more clearly
+    let percentage = (level / 255) * 100;
     
-    // Add minimum threshold to show some activity
-    return percentage > 2 ? percentage : (Math.random() * 5);
+    // Apply boost visibility for high gain scenarios
+    if (intendedSystemGain > 1) {
+      percentage = Math.min(100, percentage * 1.2); // Make boosted audio more visible
+    }
+    
+    // Clamp to 100% max but show meaningful activity
+    percentage = Math.min(100, percentage);
+    
+    // Show activity if there's any audio
+    return percentage > 1 ? percentage : (Math.random() * 3);
   }
   
   function stopAudioMeters(){
@@ -1046,6 +1298,14 @@
       if(tempMicStream) tempMicStream.getTracks().forEach(track => track.stop());
       window.__previewStreams = null;
     }
+    
+    // Hide recording UI elements
+    const recordingIndicators = document.querySelectorAll('div[style*="font-size:10px;color:#2196F3;"]');
+    recordingIndicators.forEach(indicator => {
+      if(indicator.textContent.includes('(recording)')) {
+        indicator.style.display = 'none';
+      }
+    });
     
     // Clean up audio analysis
     if(audioContext) {
@@ -1153,6 +1413,7 @@
   }
   async function buildStream(){
     const mode = (audioSelect && audioSelect.value) || 'none';
+    console.log(`🎵 BUILDING STREAM WITH MODE: ${mode}`);
     screenStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio: mode!=='mic' && mode!=='none' });
     if(mode==='mic' || mode==='mixed') micStream = await navigator.mediaDevices.getUserMedia({ audio:true });
     
@@ -1163,6 +1424,9 @@
       // Create gain nodes for real-time control
       systemGainNode = audioContext.createGain();
       micGainNode = audioContext.createGain();
+      
+      // Apply stored gain values to newly created gain nodes
+      applyStoredGainValues();
       
       // Create analyzers and connect them AFTER gain nodes
       systemAnalyzer = audioContext.createAnalyser();
@@ -1177,10 +1441,13 @@
       const sysT = screenStream.getAudioTracks()[0]; 
       if(sysT) {
         const sysSource = audioContext.createMediaStreamSource(new MediaStream([sysT]));
-        // Connect: Source → Gain → Analyzer → Destination
+        
+        // Connect for recording with gain control: Source → Gain → Analyzer → Recording Destination
         sysSource.connect(systemGainNode);
         systemGainNode.connect(systemAnalyzer);
         systemGainNode.connect(dest);
+        
+        console.log('🎵 System audio connected with adjustable recording gain');
       }
       
       const micT = micStream.getAudioTracks()[0]; 
@@ -1203,6 +1470,12 @@
       // Create gain node for mic
       micGainNode = audioContext.createGain();
       
+      // Apply stored mic gain value to newly created gain node
+      if (micGainNode && audioContext) {
+        micGainNode.gain.setValueAtTime(intendedMicGain, audioContext.currentTime);
+        console.log(`🎤 Applied stored mic gain (mic-only): ${intendedMicGain.toFixed(1)}x`);
+      }
+      
       // Create analyzer and connect it AFTER gain node
       micAnalyzer = audioContext.createAnalyser();
       micAnalyzer.fftSize = 512;
@@ -1222,27 +1495,43 @@
     }
     
     if(mode==='system' && screenStream.getAudioTracks().length > 0){
-      // For system audio only, don't use Web Audio API - just pass through directly
-      // This prevents audio loss issues with system audio capture
+      // For system audio only, USE Web Audio API to enable gain control
       const sysT = screenStream.getAudioTracks()[0];
       
-      // Set up analyzer for meters without affecting the actual recording stream
       if(sysT) {
         try {
           audioContext = new AudioContext();
+          const dest = audioContext.createMediaStreamDestination();
+          
+          // Create gain node for system audio boost
+          systemGainNode = audioContext.createGain();
+          
+          // Apply stored gain values
+          applyStoredGainValues();
+          
           const sysSource = audioContext.createMediaStreamSource(new MediaStream([sysT]));
           systemAnalyzer = audioContext.createAnalyser();
           systemAnalyzer.fftSize = 512;
           systemAnalyzer.smoothingTimeConstant = 0.8;
           systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
-          sysSource.connect(systemAnalyzer);
-          // Don't connect to destination - just use for analysis
+          
+          // Connect with gain control: Source → Gain → Analyzer → Destination
+          sysSource.connect(systemGainNode);
+          systemGainNode.connect(systemAnalyzer);
+          systemGainNode.connect(dest);
+          
+          console.log('🎵 System-only audio connected with gain boost control');
+          
+          // Return stream with boosted audio instead of original
+          return new MediaStream([...screenStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
         } catch(e) {
-          console.log('Audio analysis setup failed, continuing without meters:', e);
+          console.log('Audio processing setup failed, using original stream:', e);
+          // Fallback to original stream if processing fails
+          return screenStream;
         }
       }
       
-      // Return the original screen stream with system audio intact
+      // Fallback if no audio track
       return screenStream;
     }
     
@@ -1386,13 +1675,8 @@
       recordingSysSlider.addEventListener('input', () => {
         const gainValue = parseFloat(recordingSysSlider.value);
         recordingSysVal.textContent = gainValue.toFixed(1) + 'x';
-        // Apply gain in real-time
-        if(systemGainNode) {
-          systemGainNode.gain.setValueAtTime(gainValue, audioContext.currentTime);
-          console.log('System gain set to:', gainValue);
-        } else {
-          console.log('System gain node not available');
-        }
+        // Use the centralized gain setting function
+        setSystemGain(gainValue);
       });
     }
     
@@ -1401,13 +1685,8 @@
       recordingMicSlider.addEventListener('input', () => {
         const gainValue = parseFloat(recordingMicSlider.value);
         recordingMicVal.textContent = gainValue.toFixed(1) + 'x';
-        // Apply gain in real-time
-        if(micGainNode) {
-          micGainNode.gain.setValueAtTime(gainValue, audioContext.currentTime);
-          console.log('Mic gain set to:', gainValue);
-        } else {
-          console.log('Mic gain node not available');
-        }
+        // Use the centralized gain setting function
+        setMicGain(gainValue);
       });
     }
   }
@@ -1569,23 +1848,62 @@
   // Expose updateAudioControls globally for localStorage restoration
   window.updateAudioControls = updateAudioControls;
   
-  // Initialize slider value displays
+  // Initialize slider value displays and gain control
   const sysSlider = document.getElementById('systemGainSlider');
   const micSlider = document.getElementById('micGainSlider');
   const sysVal = document.getElementById('systemGainValue');
   const micVal = document.getElementById('micGainValue');
   
   if(sysSlider && sysVal) {
-    sysVal.textContent = parseFloat(sysSlider.value).toFixed(1) + 'x';
+    // Initialize stored gain value from slider
+    intendedSystemGain = parseFloat(sysSlider.value);
+    sysVal.textContent = intendedSystemGain.toFixed(1) + 'x';
     sysSlider.addEventListener('input', () => {
-      sysVal.textContent = parseFloat(sysSlider.value).toFixed(1) + 'x';
+      const gainValue = parseFloat(sysSlider.value);
+      sysVal.textContent = gainValue.toFixed(1) + 'x';
+      
+      // Color-code the gain value based on level
+      if (gainValue === 0) {
+        sysVal.style.color = '#ff4444'; // Red for muted
+      } else if (gainValue < 1) {
+        sysVal.style.color = '#ffa726'; // Orange for reduced
+      } else if (gainValue === 1) {
+        sysVal.style.color = '#fff'; // White for normal
+      } else if (gainValue <= 2) {
+        sysVal.style.color = '#66bb6a'; // Green for slight boost
+      } else {
+        sysVal.style.color = '#42a5f5'; // Blue for high boost
+      }
+      
+      // Use the new function to set gain with debug info
+      console.log(`🎚️ SLIDER MOVED: Setting system gain to ${gainValue.toFixed(1)}x`);
+      setSystemGain(gainValue);
     });
   }
   
   if(micSlider && micVal) {
-    micVal.textContent = parseFloat(micSlider.value).toFixed(1) + 'x';
+    // Initialize stored gain value from slider
+    intendedMicGain = parseFloat(micSlider.value);
+    micVal.textContent = intendedMicGain.toFixed(1) + 'x';
     micSlider.addEventListener('input', () => {
-      micVal.textContent = parseFloat(micSlider.value).toFixed(1) + 'x';
+      const gainValue = parseFloat(micSlider.value);
+      micVal.textContent = gainValue.toFixed(1) + 'x';
+      
+      // Color-code the gain value based on level
+      if (gainValue === 0) {
+        micVal.style.color = '#ff4444'; // Red for muted
+      } else if (gainValue < 1) {
+        micVal.style.color = '#ffa726'; // Orange for reduced
+      } else if (gainValue === 1) {
+        micVal.style.color = '#fff'; // White for normal
+      } else if (gainValue <= 2) {
+        micVal.style.color = '#66bb6a'; // Green for slight boost
+      } else {
+        micVal.style.color = '#42a5f5'; // Blue for high boost
+      }
+      
+      // Use the new function to set gain
+      setMicGain(gainValue);
     });
   }
   
@@ -1753,6 +2071,8 @@
     if(!cachedCustomers.length) return false;
     allCustomers = dedupeCustomers([...cachedCustomers, ...allCustomers]);
     allCustomers.sort((a,b) => a.name.localeCompare(b.name));
+    // expose customers globally for validation
+    try { window.__allCustomers = allCustomers.map(c => ({ name: c.name, email: c.email, id: c.id })); } catch(e){}
     applyFilter(searchInput ? searchInput.value : lastSuccessfulQuery);
     debugLog('hydrateFromCache', { cachedCount: cachedCustomers.length, total: allCustomers.length });
     return true;
@@ -1774,6 +2094,36 @@
         return customers;
       } catch(err) {
         debugLog('fetchCustomers:apiError', err?.message || err);
+        return [];
+      }
+    }
+
+    async function loadFromSupabase(){
+      try {
+        if(!window.supabase?.from){
+          throw new Error('Supabase client not ready');
+        }
+
+        // Query customers table directly
+        const { data, error } = await window.supabase
+          .from('customers')
+          .select('*')
+          .not('email', 'is', null)
+          .not('email', 'eq', '');
+
+        if(error) throw error;
+
+        // Map to expected format
+        const customers = (data || []).map(record => ({
+          name: record.name || record.customer_name || record.first_name + ' ' + record.last_name || '',
+          email: record.email || record.customer_email || '',
+          id: record.id
+        })).filter(c => c.email && c.name);
+
+        debugLog('fetchCustomers:supabaseResult', { total: customers.length });
+        return customers;
+      } catch(err) {
+        debugLog('fetchCustomers:supabaseError', err?.message || err);
         return [];
       }
     }
@@ -1805,6 +2155,11 @@
       if(apiCustomers.length) merged.push(...apiCustomers);
 
       if(!merged.length){
+        const supabaseCustomers = await loadFromSupabase();
+        if(supabaseCustomers.length) merged.push(...supabaseCustomers);
+      }
+
+      if(!merged.length){
         const vimeoFallback = await loadFromVimeo();
         if(vimeoFallback.length) merged.push(...vimeoFallback);
       }
@@ -1812,6 +2167,8 @@
       if(merged.length){
         allCustomers = dedupeCustomers([...merged, ...allCustomers]);
         allCustomers.sort((a,b) => a.name.localeCompare(b.name));
+        // expose a normalized array for other pages/scripts to use
+        try { window.__allCustomers = allCustomers.map(c => ({ name: c.name, email: c.email, id: c.id })); } catch(e){}
         writeCacheEntry(CUSTOMER_CACHE_KEY, { customers: allCustomers }, CUSTOMER_CACHE_TTL);
         applyFilter(queryBefore);
         debugLog('fetchCustomers:mergedSuccess', { merged: merged.length, total: allCustomers.length });
@@ -1848,6 +2205,9 @@
     debugLog('ensureCustomersLoaded', { hadCache, total: allCustomers.length });
   }
 
+  // Expose globally for validation
+  window.ensureCustomersLoaded = ensureCustomersLoaded;
+
   function select(idx){
     if(!searchInput || idx<0 || idx>=filtered.length) return;
     const c = filtered[idx];
@@ -1857,6 +2217,12 @@
     if(suggestionsEl){
       suggestionsEl.innerHTML = '';
       suggestionsEl.style.display = 'none';
+    }
+
+    // Ensure the "existing customer" radio button is checked
+    const existingRadio = document.querySelector('input[name="customerType"][value="existing"]');
+    if(existingRadio) {
+      existingRadio.checked = true;
     }
 
     commonFields.style.display = 'block';
@@ -1953,6 +2319,8 @@
       newForm.style.display='block';
       existingForm.style.display='none';
       commonFields.style.display='block';
+      // Load customers for validation when creating new customer
+      ensureCustomersLoaded();
       debugLog('toggle new');
     } else {
       existingForm.style.display='none';
@@ -2023,9 +2391,14 @@
 
   function gatherFormData(){
     let type = (document.querySelector('input[name="customerType"]:checked')||{}).value;
+    console.log('gatherFormData - detected type from radio:', type);
+    
     // If a customer was selected from the dropdown but the radio wasn't explicitly checked,
     // treat it as an existing customer selection.
-    if(!type && window.__selectedCustomer) type = 'existing';
+    if(!type && window.__selectedCustomer) {
+      type = 'existing';
+      console.log('gatherFormData - converted to existing due to selected customer');
+    }
 
     let first='', last='', email='';
     if(type==='existing'){
@@ -2063,25 +2436,379 @@
   }
 
   async function uploadToVimeo(payload){
-    if (typeof window.uploadToVimeo !== 'function') {
-      throw new Error('Upload pipeline not initialized');
+    // Prefer the explicitly-registered implementation (window.__uploadToVimeoImpl).
+    // Poll briefly for it to handle small async registration races.
+    const maxWait = 5000; // ms (increase to 5s to tolerate slow loads)
+    const interval = 100; // ms
+    let waited = 0;
+    while (waited <= maxWait) {
+      if (typeof window.__uploadToVimeoImpl === 'function') {
+        console.debug('uploadToVimeo: found __uploadToVimeoImpl after', waited, 'ms');
+        return window.__uploadToVimeoImpl(payload);
+      }
+      // Backwards-compatible check in case some code set window.uploadToVimeo directly
+      if (typeof window.uploadToVimeo === 'function' && window.uploadToVimeo !== uploadToVimeo) {
+        console.debug('uploadToVimeo: found window.uploadToVimeo alias after', waited, 'ms');
+        return window.uploadToVimeo(payload);
+      }
+      await new Promise(r => setTimeout(r, interval));
+      waited += interval;
     }
-    return window.uploadToVimeo(payload);
+    if (typeof window.__uploadToVimeoImpl === 'function') return window.__uploadToVimeoImpl(payload);
+    if (typeof window.uploadToVimeo === 'function' && window.uploadToVimeo !== uploadToVimeo) return window.uploadToVimeo(payload);
+    console.error('uploadToVimeo: pipeline not initialized. window.__uploadToVimeoImpl=', typeof window.__uploadToVimeoImpl, ' window.uploadToVimeo=', typeof window.uploadToVimeo);
+    throw new Error('Upload pipeline not initialized');
+  }
+
+  // Ensure tus library is available; dynamically load if needed
+  async function ensureTus(){
+    if (window.tus) return;
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/tus-js-client@2.3.1/dist/tus.min.js';
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Failed to load tus library'));
+      document.head.appendChild(s);
+    });
+    if (!window.tus) throw new Error('tus library failed to initialize');
+  }
+
+  // Register implementation explicitly so the upload wrapper can find it reliably
+  window.__uploadToVimeoImpl = async function(overrides = {}){
+    await ensureTus();
+    const blob = (function(){
+      const c = [window.finalBlob, window.videoBlob, window.recordedBlob, window.__recordedBlob, window.lastRecordedBlob, window.__lastRecordingBlob].filter(Boolean);
+      if (c.length) return c[0];
+      if (Array.isArray(window.recordedChunks) && window.recordedChunks.length) return new Blob(window.recordedChunks, { type: 'video/webm' });
+      return null;
+    })();
+    if (!blob) { alert('No recording found to upload.'); return; }
+
+    const readMeta = async function(overrides = {}){
+      const v = id => (document.getElementById(id)?.value || '').trim();
+      const nameJoin = (a,b) => [v(a), v(b)].filter(Boolean).join(' ').trim();
+      const baseMeta = {
+        title: v('videoTitle') || v('title') || v('recordingTitle') || `Recording ${new Date().toLocaleString()}`,
+        description: v('notes') || v('description') || '',
+        customerName: v('customerName') || nameJoin('customer_first','customer_last') || '',
+        customerEmail: v('customerEmail') || '',
+        recordedBy: v('recorderName') || v('userName') || '',
+        recordedByEmail: v('recorderEmail') || v('userEmail') || '',
+        folderId: v('folderId') || '26555277'
+      };
+      return { ...baseMeta, ...overrides };
+    };
+
+    const meta = await readMeta(overrides);
+    let uploadLink, videoUri;
+
+    // 1) Ask server for Vimeo TUS upload link
+    let initResp = await fetch('/api/upload-vimeo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        title: meta.title, 
+        size: blob.size, 
+        description: meta.description, 
+        customerName: meta.customerName, 
+        customerEmail: meta.customerEmail, 
+        recordedBy: meta.recordedBy, 
+        recordedByEmail: meta.recordedByEmail, 
+        folderId: meta.folderId,
+        isExistingCustomer: meta.isExistingCustomer || false
+      })
+    });
+    if (!initResp.ok){
+      if (initResp.status === 409 && meta.isExistingCustomer) {
+        // Expected 409 for existing customer - handle gracefully
+        console.log('✅ Handling 409 for existing customer, proceeding with retry...');
+        try {
+          const errorData = await initResp.json();
+          console.log('📋 409 error data:', errorData);
+          
+          if (errorData.existingCustomer) {
+            // Update meta with existing customer data to ensure consistency
+            meta.customerName = errorData.existingCustomer.name || meta.customerName;
+            meta.customerEmail = errorData.existingCustomer.email || meta.customerEmail;
+          }
+          
+          // Retry the request with additional flags to bypass server validation
+          console.log('🔄 Retrying upload with forceExistingCustomer flag...');
+          const retryResp = await fetch('/api/upload-vimeo', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              title: meta.title, 
+              size: blob.size, 
+              description: meta.description, 
+              customerName: meta.customerName, 
+              customerEmail: meta.customerEmail, 
+              recordedBy: meta.recordedBy, 
+              recordedByEmail: meta.recordedByEmail, 
+              folderId: meta.folderId,
+              isExistingCustomer: true,
+              forceExistingCustomer: true // Additional flag for server
+            })
+          });
+          
+          if (retryResp.ok) {
+            console.log('✅ Retry successful, proceeding with upload...');
+            initResp = retryResp;
+          } else {
+            const retryError = await retryResp.text();
+            console.error('❌ Retry upload failed:', retryError);
+            alert('Failed to initialize upload for existing customer');
+            return;
+          }
+        } catch (retryErr) {
+          console.error('❌ Error handling 409 for existing customer:', retryErr);
+          alert('Failed to initialize upload');
+          return;
+        }
+      } else {
+        const t = await initResp.text(); 
+        console.error('❌ Init upload failed:', t); 
+        alert('Failed to initialize upload'); 
+        return;
+      }
+    }
+
+    if (!uploadLink || !videoUri){ const initJson = await initResp.json(); uploadLink = initJson.uploadLink || initJson.upload_link || initJson.uploadLink; videoUri = initJson.videoUri || initJson.video_uri || initJson.videoUri; }
+
+    // 2) tus upload
+    await new Promise((resolve, reject) => {
+      const uploader = new tus.Upload(blob, {
+        uploadUrl: uploadLink,
+        metadata: { filename: (meta.title || 'recording') + '.webm', filetype: blob.type || 'video/webm' },
+        onError: err => { console.error('TUS error', err); reject(err); },
+        onProgress: (sent, total) => { const pct = total ? Math.floor(sent/total*100) : 0; if (window.updateUploadProgress) window.updateUploadProgress(pct); },
+        onSuccess: () => { resolve(); }
+      });
+      uploader.start();
+    });
+
+    // 3) finalize
+    const fin = await fetch('/api/finalize-vimeo', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ videoUri, title: meta.title, description: meta.description, customerName: meta.customerName, customerEmail: meta.customerEmail, recordedBy: meta.recordedBy, recordedByEmail: meta.recordedByEmail, folderId: meta.folderId }) });
+    if (!fin.ok) console.warn('Finalize returned non-200:', await fin.text());
+    if (window.onUploadComplete) window.onUploadComplete();
+    console.log('✅ Upload complete');
+  };
+
+  // Backwards-compatible alias
+  window.uploadToVimeo = function(payload){ return window.__uploadToVimeoImpl(payload); };
+
+
+ 
+  // Helper: search loaded customer cache (and API fallback) for an email
+  async function findCustomerByEmail(email) {
+    if (!email) return null;
+    const normalized = String(email).trim().toLowerCase();
+    
+    console.log('Looking for customer with email:', normalized);
+    
+    // Try the in-memory list first if available
+    try {
+      if (Array.isArray(window.__allCustomers) && window.__allCustomers.length) {
+        console.log('Checking in-memory customers:', window.__allCustomers.length);
+        const found = window.__allCustomers.find(c => (c.email || '').toLowerCase() === normalized);
+        if (found) {
+          console.log('Found existing customer in memory:', found);
+          return found;
+        }
+      } else {
+        console.log('No in-memory customers available, checking module customers');
+        // Check the customers from the customer search module
+        if (Array.isArray(window.allCustomers) && window.allCustomers.length) {
+          const found = window.allCustomers.find(c => (c.email || '').toLowerCase() === normalized);
+          if (found) {
+            console.log('Found existing customer in module:', found);
+            return found;
+          }
+        }
+      }
+    } catch (e) { 
+      console.warn('Error checking in-memory customers:', e);
+    }
+
+    // Fallback 1: query the server endpoint
+    console.log('Querying server for customers...');
+    try {
+      const resp = await fetch('/api/get-all-customers', { headers: { 'Accept': 'application/json' } });
+      if (resp.ok) {
+        const payload = await resp.json();
+        const customers = Array.isArray(payload.customers) ? payload.customers : (Array.isArray(payload) ? payload : []);
+        console.log('Got customers from server:', customers.length);
+        
+        // Debug: show first few customers to see the data structure
+        console.log('Sample customers:', customers.slice(0, 3));
+        
+        for (const c of customers) {
+          console.log('Checking customer:', c.email, 'against:', normalized);
+          if ((c.email || '').toLowerCase() === normalized) {
+            console.log('Found existing customer on server:', c);
+            return c;
+          }
+        }
+      }
+    } catch (e) { 
+      console.warn('Error querying server customers:', e);
+    }
+
+    // Fallback 2: query Supabase customers table directly
+    console.log('Querying Supabase customers table...');
+    try {
+      if (window.supabase?.from) {
+        const { data, error } = await window.supabase
+          .from('customers')
+          .select('*')
+          .eq('email', email)
+          .limit(1);
+
+        console.log('Supabase query result:', { data, error, searchEmail: email });
+
+        if (!error && data && data.length > 0) {
+          const record = data[0];
+          const customer = {
+            name: record.name || record.customer_name || record.first_name + ' ' + record.last_name || '',
+            email: record.email || record.customer_email || '',
+            id: record.id
+          };
+          console.log('Found existing customer in Supabase customers table:', customer);
+          return customer;
+        }
+      }
+    } catch (e) { 
+      console.warn('Error querying Supabase customers table:', e);
+    }
+    
+    console.log('No existing customer found for email:', normalized);
+    return null;
+  }
+
+  // Helper function to escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Prompt the user with a confirmation modal asking whether to use the existing customer
+  function promptUseExistingCustomer(customer) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:60000;';
+      const box = document.createElement('div');
+      box.style.cssText = 'width:520px;background:#0f1720;color:#e6eef8;padding:18px;border-radius:12px;border:1px solid #23303b;';
+      box.innerHTML = `
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Email already exists</div>
+        <div style="margin-bottom:12px;color:#a8b4c2;">The email <strong>${escapeHtml(customer.email || '')}</strong> is already associated with <strong>${escapeHtml(customer.name || '(unknown)')}</strong>. Would you like to save this recording under that existing customer or use a different email?</div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+          <button id="use-existing-btn" style="background:#10b981;color:#051014;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700;">Save as existing</button>
+          <button id="change-email-btn" style="background:#374151;color:#e6eef8;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;">Use different email</button>
+        </div>
+      `;
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      overlay.querySelector('#use-existing-btn').addEventListener('click', () => { overlay.remove(); resolve(true); });
+      overlay.querySelector('#change-email-btn').addEventListener('click', () => { overlay.remove(); resolve(false); });
+    });
   }
 
   window.confirmUpload = async function(){
+    console.log('🚀 confirmUpload function called');
     const btn = document.querySelector('.confirm-button');
     if(btn) { btn.disabled = true; btn.textContent='⏳ Uploading...'; }
     try {
       const formData = gatherFormData();
-      if(!validate(formData)) { if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; } return; }
+      console.log('📋 Gathered form data:', formData);
+      if(!validate(formData)) { 
+        console.log('❌ Validation failed');
+        if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; } 
+        return; 
+      }
+      console.log('✅ Validation passed, proceeding with upload validation...');
+
+      // If creating a NEW customer, check for duplicate email in existing customers
+      console.log('confirmUpload - formData:', formData);
+      if (formData.type === 'new' && formData.email) {
+        console.log('confirmUpload - validating new customer with email:', formData.email);
+        
+        // Ensure customers are loaded before validation
+        if (typeof window.ensureCustomersLoaded === 'function') {
+          try { 
+            window.ensureCustomersLoaded(); 
+            // Wait a moment for customers to load if needed
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } catch(e) { 
+            console.warn('Failed to load customers for validation:', e);
+          }
+        }
+        
+        const dup = await findCustomerByEmail(formData.email);
+        console.log('confirmUpload - duplicate check result:', dup);
+        if (dup) {
+          // Ask user whether to save as existing customer or use a different email
+          const useExisting = await promptUseExistingCustomer(dup);
+          if (!useExisting) {
+            // User chose to change email — abort upload and restore button
+            if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; }
+            return;
+          }
+
+          // User chose to save as existing customer — convert formData to existing
+          console.log('✅ Converting to existing customer:', dup);
+          formData.type = 'existing';
+          const nameParts = (dup.name || '').trim().split(/\s+/);
+          formData.first = nameParts.shift() || '';
+          formData.last = nameParts.join(' ') || '';
+          formData.email = dup.email || formData.email;
+          
+          // Update UI to show existing customer selection
+          try {
+            // Check the existing customer radio button
+            const existingRadio = document.querySelector('input[name="customerType"][value="existing"]');
+            if (existingRadio) {
+              existingRadio.checked = true;
+            }
+            
+            // Populate existing customer fields in DOM
+            const ef = document.getElementById('existingFirstName');
+            const el = document.getElementById('existingLastName');
+            const ee = document.getElementById('existingEmail');
+            if (ef) ef.value = formData.first;
+            if (el) el.value = formData.last;
+            if (ee) ee.value = formData.email;
+            
+            // Set selected customer for consistency
+            window.__selectedCustomer = {
+              name: dup.name,
+              email: dup.email,
+              id: dup.id
+            };
+            
+            console.log('✅ UI updated for existing customer conversion');
+          } catch (e) { 
+            console.warn('Error updating UI for existing customer:', e);
+          }
+        }
+      }
+      
+      // Validate the final form data before upload
+      console.log('📋 Final form data for upload:', formData);
+      if (!formData.first || !formData.last || !formData.email) {
+        console.error('❌ Missing required customer data after validation');
+        alert('Missing required customer information. Please try again.');
+        if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; }
+        return;
+      }
+      
       const recordedByInfo = getRecordedBy();
       const customerName = (formData.first + ' ' + formData.last).trim();
       const dateStr = currentTimestamp();
       const userDescription = formData.desc.trim();
       const metadataBlock = [`Customer: ${customerName}`, `Customer Email: ${formData.email}`, `Recorded By: ${recordedByInfo.name}`, `Recorded By Email: ${recordedByInfo.email}`, `Recording Date: ${dateStr}`].join('\n');
       const fullDescription = userDescription ? `${userDescription}\n\n${metadataBlock}` : metadataBlock;
-      await uploadToVimeo({
+      try {
+        await uploadToVimeo({
         title: customerName || 'Untitled Recording',
         description: fullDescription,
         customerName,
@@ -2089,8 +2816,15 @@
         recordedBy: recordedByInfo.name,
         recordedByEmail: recordedByInfo.email,
         recordingDate: dateStr,
-        folderId
-      });
+        folderId,
+        isExistingCustomer: formData.type === 'existing'
+        });
+      } catch (err) {
+        console.error('Upload failed:', err);
+        alert('Upload error: ' + (err && err.message ? err.message : String(err)));
+        if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; }
+        return;
+      }
       // Success UI - fully reset recorder to start screen
       alert('✅ Uploaded successfully to Vimeo!');
       
@@ -2170,114 +2904,6 @@
     observer.observe(previewShell, { childList: true });
     return observer;
   }
-})();
-</script>
-<!-- tus for resumable uploads -->
-<script src="https://unpkg.com/tus-js-client@2.3.1/dist/tus.min.js"></script>
-<script>
-(function(){
-  if (window.__tusUploadPatched) return; window.__tusUploadPatched = true;
-
-  async function readMeta(overrides = {}){
-    const v = id => (document.getElementById(id)?.value || '').trim();
-    const nameJoin = (a,b) => [v(a), v(b)].filter(Boolean).join(' ').trim();
-    const baseMeta = {
-      title: v('videoTitle') || v('title') || v('recordingTitle') || `Recording ${new Date().toLocaleString()}`,
-      description: v('notes') || v('description') || '',
-      customerName: v('customerName') || nameJoin('customer_first','customer_last') || '',
-      customerEmail: v('customerEmail') || '',
-      recordedBy: v('recorderName') || v('userName') || '',
-      recordedByEmail: v('recorderEmail') || v('userEmail') || '',
-      folderId: v('folderId') || '26555277'
-    };
-    return { ...baseMeta, ...overrides };
-  }
-
-  function resolveBlob(){
-    const c = [
-      window.finalBlob,
-      window.videoBlob,
-      window.recordedBlob,
-      window.__recordedBlob,
-      window.lastRecordedBlob,
-      window.__lastRecordingBlob
-    ].filter(Boolean);
-    if (c.length) return c[0];
-    if (Array.isArray(window.recordedChunks) && window.recordedChunks.length){
-      return new Blob(window.recordedChunks, { type: 'video/webm' });
-    }
-    return null;
-  }
-
-  // Override to client-side resumable upload
-  window.uploadToVimeo = async function(overrides = {}){
-    const blob = resolveBlob();
-    if (!blob) { alert('No recording found to upload.'); return; }
-    const meta = await readMeta(overrides);
-
-    // 1) Ask server for Vimeo TUS upload link (small JSON only)
-    const initResp = await fetch('/api/upload-vimeo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: meta.title,
-        size: blob.size,
-        description: meta.description,
-        customerName: meta.customerName,
-        customerEmail: meta.customerEmail,
-        recordedBy: meta.recordedBy,
-        recordedByEmail: meta.recordedByEmail,
-        folderId: meta.folderId
-      })
-    });
-    if (!initResp.ok){
-      const t = await initResp.text();
-      console.error('Init upload failed:', t);
-      alert('Failed to initialize upload');
-      return;
-    }
-    const { uploadLink, videoUri } = await initResp.json();
-
-    // 2) Upload directly to Vimeo via tus
-    await new Promise((resolve, reject) => {
-      const uploader = new tus.Upload(blob, {
-        uploadUrl: uploadLink,
-        metadata: {
-          filename: (meta.title || 'recording') + '.webm',
-          filetype: blob.type || 'video/webm'
-        },
-        onError: err => { console.error('TUS error', err); reject(err); },
-        onProgress: (sent, total) => {
-          const pct = total ? Math.floor(sent/total*100) : 0;
-          if (window.updateUploadProgress) window.updateUploadProgress(pct);
-        },
-        onSuccess: () => { resolve(); }
-      });
-      uploader.start();
-    });
-
-    // 3) Finalize metadata + move to folder
-    const fin = await fetch('/api/finalize-vimeo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        videoUri,
-        title: meta.title,
-        description: meta.description,
-        customerName: meta.customerName,
-        customerEmail: meta.customerEmail,
-        recordedBy: meta.recordedBy,
-        recordedByEmail: meta.recordedByEmail,
-        folderId: meta.folderId
-      })
-    });
-    if (!fin.ok){
-      console.warn('Finalize returned non-200:', await fin.text());
-    }
-
-    if (window.onUploadComplete) window.onUploadComplete();
-    console.log('✅ Upload complete');
-  };
 })();
 </script>
 </body>

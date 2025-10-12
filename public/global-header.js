@@ -353,7 +353,14 @@ function loadGlobalHeader() {
 
     // Inject CSS and HTML
     document.head.insertAdjacentHTML('beforeend', headerCSS);
-    document.body.insertAdjacentHTML('afterbegin', headerHTML);
+    
+    // Try to use header container if available, otherwise use body
+    const headerContainer = document.getElementById('header-container');
+    if (headerContainer) {
+        headerContainer.innerHTML = headerHTML;
+    } else {
+        document.body.insertAdjacentHTML('afterbegin', headerHTML);
+    }
     
     // Add sticky header class to body for proper layout
     document.body.classList.add('has-sticky-header');

@@ -1,4 +1,5 @@
 import { VIMEO_DEFAULT_FOLDER_ID } from '@/lib/vimeo';
+import { createClient } from '@supabase/supabase-js';
 
 export const config = { api: { bodyParser: { sizeLimit: '100mb' } } };
 
@@ -168,8 +169,42 @@ export default async function handler(req, res) {
             recordedByEmail,
             folderId = DEFAULT_FOLDER_ID,
             videoData,
-            mimeType
+            mimeType,
+            isExistingCustomer = false,
+            forceExistingCustomer = false
         } = req.body || {};
+
+        // Strong server-side duplicate email guard using Supabase customers table
+        // Skip duplicate check if client explicitly indicates this is for an existing customer
+        if (!isExistingCustomer && !forceExistingCustomer) {
+            try {
+                const supabaseUrl = process.env.SUPABASE_URL;
+                const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+                if (customerEmail && supabaseUrl && supabaseKey) {
+                    const sb = createClient(supabaseUrl, supabaseKey);
+                    const normalized = String(customerEmail).toLowerCase().trim();
+                    // Try to find by id first (some rows may use email as id) then by email
+                    let { data: existing, error: fetchErr } = await sb.from('customers').select('id,name,email').eq('id', normalized).maybeSingle();
+                    if (!existing) {
+                        const q = await sb.from('customers').select('id,name,email').eq('email', normalized).maybeSingle();
+                        existing = q.data;
+                        fetchErr = q.error;
+                    }
+                    if (fetchErr) {
+                        console.warn('Supabase lookup error when checking duplicate email:', fetchErr.message || fetchErr);
+                    }
+                    if (existing) {
+                        // Inform client that the email already exists and provide the existing record
+                        return res.status(409).json({ error: 'Email already exists', existingCustomer: existing });
+                    }
+                }
+            } catch (e) {
+                console.warn('Duplicate guard check failed:', e?.message || e);
+                // Don't block upload if registry check fails; proceed with upload.
+            }
+        } else {
+            console.log('✅ Skipping duplicate email check for existing customer:', customerEmail);
+        }
 
         if (!title) {
             return res.status(400).json({ error: 'Missing required field: title' });

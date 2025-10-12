@@ -953,7 +953,6 @@
                 if (!btn) return;
                 btn.addEventListener('click', (ev) => {
                     ev.stopPropagation();
-                    console.log('🔧 Add comment button clicked for video:', video.uri);
                     // Open the modal for this video; the modal contains the full comment form
                     openVideoModal(video, metadata);
                     // After a short delay, focus the comment textarea inside the modal
@@ -961,12 +960,9 @@
                         const overlay = document.querySelector('.user-video-modal-overlay');
                         const form = overlay?.querySelector('.video-comment-form');
                         if (form) {
-                            console.log('✅ Comment form found and focusing textarea');
                             // modal prepopulation handles session values; ensure focus
                             const textarea = form.querySelector('textarea[name="commentBody"]');
                             if (textarea) textarea.focus();
-                        } else {
-                            console.error('❌ Comment form not found in modal');
                         }
                     }, 200);
                 });
@@ -1057,84 +1053,54 @@
 
         // Parse comments from the description. Comments are appended using the
         // server format: "--- HEADER ---\ncomment body"
+        // Only show comments from recorded by staff and new user comments
         function parseCommentsFromDescription(description) {
-            console.log('🔍 parseCommentsFromDescription called with:', description ? description.substring(0, 200) + '...' : 'null');
             if (!description) return [];
-            
-            // Look for comment blocks that start with "--- {header} ---"
-            const commentPattern = /\n--- .+? ---\n/g;
-            let matches = [];
-            let match;
-            while ((match = commentPattern.exec(description)) !== null) {
-                matches.push({
-                    fullMatch: match[0],
-                    index: match.index
-                });
-            }
-            
-            console.log('🔍 Found comment separators:', matches.length);
-            console.log('🔍 Comment matches:', matches.map(m => m.fullMatch.trim()));
-            
-            if (matches.length === 0) {
-                console.log('📝 Total comments parsed:', 0);
-                return []; // No comments found
-            }
-            
+            const parts = description.split(/\n-{3,} ?/g);
+            // First part is original description (pre-comments) if it doesn't start with header
             const comments = [];
-            matches.forEach((match, i) => {
-                const startIndex = match.index + match.fullMatch.length;
-                const endIndex = i < matches.length - 1 ? matches[i + 1].index : description.length;
-                const commentBody = description.slice(startIndex, endIndex).trim();
-                const header = match.fullMatch.replace(/\n--- | ---\n/g, '').trim();
-                
-                if (commentBody) {
-                    console.log('💬 Found comment:', { header, body: commentBody.substring(0, 50) + '...' });
-                    comments.push({ header, body: commentBody });
+            for (let i = 1; i < parts.length; i++) {
+                const part = parts[i].trim();
+                if (!part) continue;
+                // header line may be first line until a newline
+                const firstNewline = part.indexOf('\n');
+                let header = '';
+                let body = part;
+                if (firstNewline !== -1) {
+                    header = part.slice(0, firstNewline).trim();
+                    body = part.slice(firstNewline + 1).trim();
+                    
+                    // Filter out any remaining metadata that might have been formatted as comments
+                    // Only include actual user comments and staff comments
+                    if (!body.match(/^Customer\s*:/i) && 
+                        !body.match(/^Customer Email\s*:/i) && 
+                        !body.match(/^Recorded By\s*:/i) && 
+                        !body.match(/^Recording Date\s*:/i) &&
+                        body.trim().length > 0) {
+                        comments.push({ header, body });
+                    }
+                } else if (part.trim().length > 0) {
+                    // Handle comments without clear header/body separation
+                    comments.push({ header: 'Comment', body: part });
                 }
-            });
-            
-            console.log('📝 Total comments parsed:', comments.length);
+            }
             return comments;
         }
 
-        async function renderCommentsList(container, videoUri) {
-            console.log('🎨 renderCommentsList called for video:', videoUri);
-            if (!container) {
-                console.error('❌ No container provided to renderCommentsList');
+        function renderCommentsList(container, description) {
+            if (!container) return;
+            const comments = parseCommentsFromDescription(description || '');
+            if (comments.length === 0) {
+                container.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px;">No comments yet.</div>';
                 return;
             }
-
-            container.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px;">Loading comments...</div>';
-
-            try {
-                const response = await fetch(`/api/get-video-comments?videoUri=${encodeURIComponent(videoUri)}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-
-                if (!data.success || !data.comments) {
-                    throw new Error(data.error || 'Failed to load comments');
-                }
-
-                const comments = data.comments;
-                console.log('📋 Parsed comments:', comments);
-
-                if (comments.length === 0) {
-                    console.log('⚠️ No comments found, showing placeholder');
-                    container.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px;">No comments yet.</div>';
-                    return;
-                }
-
-                container.innerHTML = '';
-                comments.forEach(c => {
-                    const el = document.createElement('div');
-                    el.style.cssText = 'padding:8px;border-bottom:1px solid #111;color:#cbd5e1;';
-                    el.innerHTML = `<div style="font-size:12px;color:#93c5fd;margin-bottom:6px;">${escapeHtml(c.header)}</div><div style="white-space:pre-wrap;font-size:13px;">${escapeHtml(c.body)}</div>`;
-                    container.appendChild(el);
-                });
-            } catch (error) {
-                console.error('❌ Error loading comments:', error);
-                container.innerHTML = '<div style="color:#fca5a5;font-size:13px;padding:8px;">Error loading comments.</div>';
-            }
+            container.innerHTML = '';
+            comments.forEach(c => {
+                const el = document.createElement('div');
+                el.style.cssText = 'padding:8px;border-bottom:1px solid #111;color:#cbd5e1;';
+                el.innerHTML = `<div style="font-size:12px;color:#93c5fd;margin-bottom:6px;">${escapeHtml(c.header)}</div><div style="white-space:pre-wrap;font-size:13px;">${escapeHtml(c.body)}</div>`;
+                container.appendChild(el);
+            });
         }
 
         function openVideoModal(video, metadata) {
@@ -1294,7 +1260,6 @@
 
                 form.addEventListener('submit', async (ev) => {
                     ev.preventDefault();
-                    console.log('💬 Comment form submitted');
                     const status = form.querySelector('.comment-form-status');
                     const videoUri = form.dataset.videoUri;
                     const commenterName = form.querySelector('input[name="commenterName"]').value.trim();
@@ -1302,49 +1267,34 @@
                     const commentDate = form.querySelector('input[name="commentDate"]').value;
                     const commentBody = form.querySelector('textarea[name="commentBody"]').value;
 
-                    console.log('📝 Comment data:', { videoUri, commenterName, commenterEmail, commentBody });
-
                     if (!commentBody) {
                         status.textContent = 'Please enter a comment.';
-                        console.warn('⚠️ No comment body provided');
                         return;
                     }
 
                     try {
                         status.textContent = 'Saving...';
-                        console.log('🔄 Making API call to /api/update-video');
-                        
+                        // Include audit info about the actual actor (signed-in user) if available
                         const payload = { videoUri, comment: commentBody, commenterName, commenterEmail, commentDate };
                         const resp = await fetch('/api/update-video', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
-
-                        console.log('📡 API response status:', resp.status, resp.ok);
-                        if (!resp.ok) {
-                            const errData = await resp.json();
-                            throw new Error(errData.details || `HTTP ${resp.status}`);
-                        }
-                        
+                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                         const json = await resp.json();
-                        console.log('✅ API response data:', json);
                         status.textContent = 'Saved';
-                        
-                        // Clear the textarea
-                        form.querySelector('textarea[name="commentBody"]').value = '';
-
-                        // Refresh the comments list
+                        // Append the new comment to the comments list in the modal
                         const commentsContainer = overlay.querySelector('.comments-list');
                         if (commentsContainer) {
-                            console.log('� Refreshing comments list...');
-                            renderCommentsList(commentsContainer, videoUri);
-                        } else {
-                            console.warn('⚠️ Comments container not found');
+                            // The server appended the comment to the description; updated video object returned
+                            const updatedDescription = (json.video && json.video.description) || '';
+                            renderCommentsList(commentsContainer, updatedDescription);
                         }
                         setTimeout(() => status.textContent = '', 3000);
+                        // Optionally update the modal or the page to reflect new comment
                     } catch (err) {
-                        console.error('❌ Failed to save comment:', err);
+                        console.error('Failed to save comment:', err);
                         status.textContent = 'Error saving comment';
                         setTimeout(() => status.textContent = '', 4000);
                     }
@@ -1355,7 +1305,7 @@
             // Initialize comments list when modal opens
             const commentsContainer = overlay.querySelector('.comments-list');
             if (commentsContainer) {
-                renderCommentsList(commentsContainer, video.uri);
+                renderCommentsList(commentsContainer, video.description || '');
             }
         }
 

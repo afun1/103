@@ -46,21 +46,7 @@ export default async function handler(req, res) {
 
     // Build appended comment block. Put commenter metadata in header, but ensure the
     // comment body appears as part of the user content so it will display in the UI.
-    const when = commentDate ? new Date(commentDate).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }) : new Date().toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+    const when = commentDate || new Date().toISOString();
     const headerParts = [];
     if (commenterName) headerParts.push(`${commenterName}`);
     if (commenterEmail) headerParts.push(`<${commenterEmail}>`);
@@ -75,7 +61,7 @@ export default async function handler(req, res) {
     console.log('📝 New description length:', newDescription.length);
     console.log('📝 New description preview:', newDescription.substring(0, 300) + '...');
 
-    // Update video description via PATCH (using server.js format)
+    // Update video description via PATCH
     console.log('🔄 Making PATCH request to Vimeo for video:', videoId);
     const updated = await new Promise((resolve, reject) => {
       const updateData = {
