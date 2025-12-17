@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sparky Screen Recorder</title>
+    <link rel="icon" type="image/png" href="/supersparky.png">
+    <link rel="shortcut icon" type="image/png" href="/supersparky.png">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
+        }
+
+
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .auth-card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 3rem;
+            margin-top: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+            max-width: 500px;
+            margin: 2rem auto;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-header h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .form-group input {
+            padding: 1rem;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            background: #0f172a;
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .password-container {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 1.2rem;
+        }
+
+        .btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .form-links {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .form-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .form-links a:hover {
+            text-decoration: underline;
+        }
+
+        .form-links span {
+            color: #94a3b8;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="./Sparky-AItp.gif" alt="Sparky Logo" style="height: 80px; width: auto; margin-bottom: 1rem;">
+                <h2>Sparky Screen Recorder</h2>
+            </div>
+
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" required placeholder="Enter your email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-container">
+                        <input type="password" id="password" required placeholder="Enter your password">
+                        <button type="button" class="password-toggle" onclick="togglePassword()">👁️</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="login-btn">
+                    Sign In
+                </button>
+
+                <div class="form-links">
+                    <a href="#" onclick="resetPassword()">Forgot your password?</a>
+                    <span>Don't have an account? <a href="/signup">Sign up</a></span>
+                </div>
+            </form>
+
+            <div id="message-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Check if user is already authenticated and redirect to app
+        async function checkExistingSession() {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+                if (!error && session) {
+                    console.log('✅ User already authenticated - redirecting to app');
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+            }
+        }
+
+        // Password visibility toggle
+        function togglePassword(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('password');
+            const toggle = document.querySelector('.password-toggle');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggle.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                toggle.textContent = '👁️';
+            }
+        }
+
+        // Message display functions
+        function showMessage(message, type = 'error') {
+            const container = document.getElementById('message-container');
+            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        }
+
+        function clearMessages() {
+            document.getElementById('message-container').innerHTML = '';
+        }
+
+        function navigateToRecorder(){
+            window.location.href = '/';
+        }
+
+        // Login form handler
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('login-btn');
+            
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="loading"></span>Signing in...';
+            clearMessages();
+
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                showMessage('Login successful! Redirecting...', 'success');
+                
+                // Redirect to main app after successful login
+                setTimeout(() => {
+                    navigateToRecorder();
+                }, 1000);
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage(error.message);
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = 'Sign In';
+            }
+        });
+
+        // Password reset
+        async function resetPassword() {
+            const email = document.getElementById('email').value;
+            
+            if (!email) {
+                showMessage('Please enter your email address first.');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password`
+                });
+
+                if (error) throw error;
+
+                showMessage('Password reset email sent! Please check your inbox.', 'info');
+            } catch (error) {
+                showMessage(error.message);
+            }
+        }
+
+        // Check session state on load without forcing redirect
+        window.addEventListener('load', checkExistingSession);
+    </script>
+</body>
+</html>
