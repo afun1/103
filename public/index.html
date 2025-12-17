@@ -1,0 +1,2936 @@
+<!-- Backup copy of index.html created on request. Label: 101 Working List -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparky Screen Recorder - Professional Edition</title>
+    <!-- NOTE: Fresh deployment with optimized performance -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./global-header.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e2852; color:#333; min-height:100vh; }
+        .container { width:100%; min-height:100vh; display:flex; flex-direction:column; }
+        .header-container { width:100%; height:80px; position:sticky; top:0; z-index:1000; }
+        .main-content { flex:1; display:flex; flex-direction:column; align-items:center; gap:30px; padding:20px; }
+        .preview-section { width:100%; display:flex; justify-content:center; }
+        .preview-screen { width:66%; aspect-ratio:16/9; border:10px solid #333; border-radius:8px; background:#666; display:flex; align-items:center; justify-content:center; color:#666; font-size:18px; position:relative; overflow:hidden; }
+        .controls-section { width:66%; background:#666; border:10px solid #333; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.1); display:flex; gap:40px; }
+        .controls-left { flex:1; }
+        .controls-title { font-size:20px; font-weight:700; margin-bottom:20px; color:#fff; }
+        .record-button-section { width:100%; display:flex; justify-content:center; margin:10px 0; }
+        .record-button { padding:15px 40px; border:2px solid #0f5132; border-radius:12px; font-size:18px; font-weight:700; cursor:pointer; color:#fff; background:linear-gradient(180deg,#198754 0%,#0f5132 100%); box-shadow:0 4px 8px rgba(0,0,0,0.3); transition:all .3s ease; min-width:200px; }
+        @keyframes greenGlow {0%{box-shadow:0 0 20px rgba(34,197,94,1),0 0 40px rgba(34,197,94,.8),0 0 60px rgba(34,197,94,.6),0 4px 8px rgba(34,197,94,.4),inset 0 1px 0 rgba(255,255,255,.3);}100%{box-shadow:0 0 30px rgba(34,197,94,1),0 0 50px rgba(34,197,94,.9),0 0 80px rgba(34,197,94,.7),0 6px 12px rgba(34,197,94,.5),inset 0 1px 0 rgba(255,255,255,.4);}}
+        .record-button:hover { transform:translateY(-2px); box-shadow:0 0 15px rgba(34,197,94,.6),0 0 25px rgba(34,197,94,.3),0 6px 12px rgba(0,0,0,.4); background:linear-gradient(180deg,#20c997 0%,#198754 100%); border-color:rgba(34,197,94,.7); }
+        .record-button.lighting-up { color:#1e40af; background:linear-gradient(180deg,#86efac 0%,#15803d 100%); border-color:rgba(34,197,94,.9); animation:greenGlow 2s ease-in-out infinite alternate; }
+        @keyframes redGlow {0%{box-shadow:0 0 20px rgba(220,38,38,1),0 0 40px rgba(220,38,38,.8),0 0 60px rgba(220,38,38,.6),0 4px 8px rgba(220,38,38,.4),inset 0 1px 0 rgba(255,255,255,.3);}100%{box-shadow:0 0 30px rgba(220,38,38,1),0 0 50px rgba(220,38,38,.9),0 0 80px rgba(220,38,38,.7),0 6px 12px rgba(220,38,38,.5),inset 0 1px 0 rgba(255,255,255,.4);}}
+        .record-button.recording { color:#000; background:linear-gradient(180deg,#fca5a5 0%,#dc2626 100%); border-color:rgba(220,38,38,.9); animation:redGlow 1s ease-in-out infinite alternate; }
+        .metadata-form { width:66%; margin:20px 0; }
+        .form-container { background:#666; border:10px solid #333; border-radius:12px; padding:30px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+        .form-title { font-size:24px; font-weight:700; color:#fff; text-align:center; margin-bottom:30px; }
+        .radio-group { display:flex; gap:30px; justify-content:center; margin-bottom:30px; }
+        .radio-option { display:flex; align-items:center; cursor:pointer; color:#fff; font-size:16px; font-weight:600; }
+        .radio-option input { display:none; }
+        .radio-custom { width:20px; height:20px; border:2px solid #ccc; border-radius:50%; margin-right:10px; position:relative; background:#fff; }
+        .radio-option input:checked + .radio-custom { border-color:#4CAF50; }
+        .radio-option input:checked + .radio-custom::after { content:''; width:10px; height:10px; background:#4CAF50; border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+        .form-label { display:block; color:#fff; font-weight:600; margin:8px 0 8px; font-size:14px; }
+        .form-label.required::after { content:' *'; color:#ff4444; }
+        .form-input, .search-input, .form-textarea { width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; font-size:16px; background:#fff; }
+        .form-textarea { resize:vertical; min-height:100px; }
+  .confirm-button { background:linear-gradient(180deg,#4CAF50 0%,#45a049 100%); color:#fff; border:none; padding:15px 40px; border-radius:8px; font-size:18px; font-weight:700; cursor:pointer; transition:.3s; min-width:200px; }
+        .confirm-button:hover { transform:translateY(-2px); box-shadow:0 6px 12px rgba(76,175,80,.4); }
+        #userVideoGrid h2 { color:#fff; }
+        .video-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:20000; padding:24px; padding-top: 80px; }
+        .video-modal-overlay.open { display:flex; }
+        .video-modal-content { width:100%; max-width:1200px; background:#000; border-radius:10px; overflow:hidden; position:relative; }
+        .video-modal-close { position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.06); color:#fff; border:none; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; }
+        .video-modal-body video, .video-modal-body iframe { width:100%; height:70vh; max-height:80vh; background:#000; display:block; }
+        .video-metadata-section { width:100%; background:#1a1a1a; display:flex; border-top:1px solid #333; }
+        .video-metadata-left { width:33%; background:#2a2a2a; padding:20px; border-right:1px solid #333; }
+        .video-metadata-right { width:67%; padding:20px; background:#1a1a1a; }
+        .metadata-item { color:#e2e8f0; font-size:14px; line-height:1.4; margin-bottom:8px; word-wrap:break-word; word-break:break-word; }
+        .metadata-description { color:#cbd5e1; font-size:14px; line-height:1.5; word-wrap:break-word; word-break:break-word; white-space: pre-wrap; max-height:30vh; overflow-y:auto; }
+        .search-container { position: relative; }
+        .suggestions-dropdown { position: absolute; width: 100%; background: #444; border: 1px solid #888; border-radius: 0 0 6px 6px; z-index: 10; max-height: 250px; overflow-y: auto; }
+        .suggestion-item { padding: 12px 15px; cursor: pointer; color: #fff; border-bottom: 1px solid #555; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #555; }
+        .suggestion-item small { color: #bbb; }
+        #videoGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 20px; }
+        @media (max-width:1200px){ #videoGrid { grid-template-columns: repeat(3,1fr);} }
+        @media (max-width:900px){ #videoGrid { grid-template-columns: repeat(2,1fr);} }
+        @media (max-width:600px){ #videoGrid { grid-template-columns: repeat(1,1fr);} }
+        @media (max-width:888px){ .controls-section { width:85%; padding:18px;} .controls-left > div:first-child > div { flex-direction:column !important; gap:12px !important; align-items:center !important;} .controls-left > div:first-child > div > label { margin-left:0 !important; text-align:center;} }
+        @media (max-width:768px){ .controls-section { width:90%; padding:15px;} .controls-left > div:first-child > div { flex-direction:column !important; gap:15px !important; align-items:center !important;} .controls-left > div:first-child > div > label { margin-left:0 !important; text-align:center;} .audio-meters > div { flex-direction:column !important; gap:15px !important;} .preview-screen { width:90%; } .metadata-form { width:90%; } }
+        @media (max-width:480px){ .controls-section { width:95%; padding:10px;} .controls-left > div:first-child > div { gap:10px !important;} .audio-meters > div > div { flex-direction:column !important; gap:8px !important; align-items:center !important;} .audio-meters > div > div > div:first-child { gap:5px !important;} .audio-meter-compact { width:60px !important;} .preview-screen { width:95%; } .metadata-form { width:95%; } .main-content { gap:20px; padding:10px;} }
+        @media (max-width:416px){ #audioProcessingControls { flex-direction:column; align-items:stretch !important; gap:15px !important;} #systemGainControl,#micGainControl { justify-content:center; border-left:none !important; padding-left:0 !important; flex-wrap:wrap;} }
+    </style>
+  <style>
+    /* Floating draggable recording controls */
+    .floating-controls {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      width: auto;
+      background: rgba(18,18,20,0.9);
+      color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      z-index: 99999;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: default;
+      font-family: inherit;
+      overflow: visible;
+      display: none; /* hidden by default, shown only while recording */
+    }
+    .floating-controls .fc-handle {
+      padding: 8px 10px;
+      background: linear-gradient(180deg,#111,#222);
+      border-radius: 10px 10px 0 0;
+      font-weight:700;
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      cursor:grab;
+    }
+    .floating-controls .fc-handle:active { cursor:grabbing; }
+  .floating-controls .fc-body { padding:8px; display:flex; gap:8px; justify-content:center; align-items:center; }
+  /* Small circular icon-only buttons (user requested very small; using 20px diameter) */
+  .fc-btn { width:20px; height:20px; padding:0; border-radius:50%; border: none; font-weight:700; cursor:pointer; font-size:12px; box-shadow:0 3px 8px rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }
+    .fc-btn:active { transform:translateY(1px); }
+    .fc-pause { background: linear-gradient(180deg,#ffb86b 0%,#fb923c 100%); color:#1b1b1b; }
+    .fc-stop { background: linear-gradient(180deg,#ff7a7a 0%,#dc2626 100%); color:#fff; }
+    .fc-small { padding:6px 8px; font-size:12px; border-radius:6px; }
+    .fc-status { font-size:12px; color:#ddd; opacity:0.9; }
+  </style>
+</head>
+<body>
+  <!-- Authentication Check -->
+  <script>
+    // Check if user is authenticated, redirect to login if not
+    (async function checkAuth() {
+      try {
+        // Initialize Supabase
+        const supabaseUrl = 'https://bwvxctexiseobyqcublc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3dnhjdGV4aXNlb2J5cWN1YmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzc1NzMsImV4cCI6MjA3MDg1MzU3M30.7QGmKxE24-BfbEJpxFrxORAJuN_ZLzt9-d6904Gx0ug';
+        try{
+          const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error || !session) {
+            console.log('❌ Not authenticated, redirecting to login');
+            window.location.href = '/login';
+            return;
+          }
+          console.log('✅ User authenticated, proceeding to recorder');
+        } catch (innerErr) {
+          console.warn('Auth check failed', innerErr);
+          // If auth check fails, proceed but don't block the UI; redirect as a fallback
+          try { window.location.href = '/login'; } catch(e){}
+          return;
+        }
+      } catch (e) {
+        console.warn('Auth initialization error', e);
+      }
+    })();
+  </script>
+
+
+  <!-- Floating recording controls (moved outside auth script) -->
+            <div id="floatingControls" class="floating-controls" role="region" aria-label="Recording controls" tabindex="0">
+              <div class="fc-handle" id="fcHandle">
+                <span class="fc-status" id="fcStatus">Idle</span>
+                <button id="fcMinimize" class="fc-small" aria-label="Minimize controls">▾</button>
+              </div>
+              <div class="fc-body" id="fcBody" style="display:flex;">
+                <button id="fcPause" class="fc-btn fc-pause" aria-pressed="false" aria-label="Pause recording">⏸</button>
+                <button id="fcStop" class="fc-btn fc-stop" aria-label="Stop recording">⏹</button>
+              </div>
+            </div>
+
+  <script>
+    (function(){
+      const floating = document.getElementById('floatingControls');
+      const handle = document.getElementById('fcHandle');
+      const body = document.getElementById('fcBody');
+      const pauseBtn = document.getElementById('fcPause');
+      const stopBtn = document.getElementById('fcStop');
+      const statusEl = document.getElementById('fcStatus');
+      const minimize = document.getElementById('fcMinimize');
+
+      // Draggable
+      let isDragging = false;
+      let dragOffset = { x:0, y:0 };
+
+      function onPointerDown(e){
+        isDragging = true;
+        const rect = floating.getBoundingClientRect();
+        dragOffset.x = (e.clientX || e.touches && e.touches[0].clientX) - rect.left;
+        dragOffset.y = (e.clientY || e.touches && e.touches[0].clientY) - rect.top;
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+        document.addEventListener('touchmove', onPointerMove, { passive:false });
+        document.addEventListener('touchend', onPointerUp);
+      }
+
+      function onPointerMove(e){
+        if(!isDragging) return;
+        e.preventDefault && e.preventDefault();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const left = Math.max(6, clientX - dragOffset.x);
+        const top = Math.max(6, clientY - dragOffset.y);
+        floating.style.left = left + 'px';
+        floating.style.top = top + 'px';
+        floating.style.right = 'auto';
+      }
+
+      function onPointerUp(){
+        isDragging = false;
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        document.removeEventListener('touchmove', onPointerMove);
+        document.removeEventListener('touchend', onPointerUp);
+      }
+
+      handle.addEventListener('pointerdown', onPointerDown);
+
+      // Toggle minimize
+      minimize.addEventListener('click', ()=>{
+        if(body.style.display === 'none'){
+          body.style.display = 'flex';
+          minimize.textContent = '▾';
+        } else {
+          body.style.display = 'none';
+          minimize.textContent = '▴';
+        }
+      });
+
+      // Pause/Resume logic
+      let isPaused = false;
+
+      function updateStatus(){
+        if(typeof recording !== 'undefined' && recording){
+          // show floating controls when actively recording
+          floating.style.display = '';
+          if(isPaused){ statusEl.textContent = 'Paused'; }
+          else { statusEl.textContent = 'Recording'; }
+        } else {
+          // hide while idle
+          floating.style.display = 'none';
+          statusEl.textContent = 'Idle';
+        }
+      }
+
+      pauseBtn.addEventListener('click', ()=>{
+        // If there is a global pauseRecording function, use it
+        try {
+          if(typeof window.pauseRecording === 'function'){
+            window.pauseRecording();
+            isPaused = !isPaused; // assume toggle
+          } else if(typeof mediaRecorder !== 'undefined' && mediaRecorder){
+            if(mediaRecorder.state === 'recording'){
+              // Pause
+              if(typeof mediaRecorder.pause === 'function') mediaRecorder.pause();
+              isPaused = true;
+            } else if(mediaRecorder.state === 'paused'){
+              if(typeof mediaRecorder.resume === 'function') mediaRecorder.resume();
+              isPaused = false;
+            }
+          } else if(typeof window.handleRecordButtonClick === 'function'){
+            // No recorder yet - attempt start/stop
+            window.handleRecordButtonClick();
+          }
+        } catch(err){ console.warn('Pause action failed', err); }
+        pauseBtn.setAttribute('aria-pressed', String(isPaused));
+        // keep icon-only label; update aria-label for screen readers
+        pauseBtn.setAttribute('aria-label', isPaused ? 'Resume recording' : 'Pause recording');
+        updateStatus();
+      });
+
+      // Stop button
+      stopBtn.addEventListener('click', ()=>{
+        try {
+          if(typeof window.stopRecording === 'function'){
+            window.stopRecording();
+          } else if(typeof stop === 'function'){
+            stop();
+          } else if(typeof mediaRecorder !== 'undefined' && mediaRecorder){
+            if(typeof mediaRecorder.stop === 'function') mediaRecorder.stop();
+          }
+        } catch(err){ console.warn('Stop action failed', err); }
+        isPaused = false;
+        pauseBtn.setAttribute('aria-pressed', 'false');
+        pauseBtn.setAttribute('aria-label', 'Pause recording');
+        updateStatus();
+      });
+
+      // Keyboard shortcuts for accessibility: P = pause/resume, S = stop
+      floating.addEventListener('keydown', (ev)=>{
+        if(ev.key === 'p' || ev.key === 'P') { pauseBtn.click(); ev.preventDefault(); }
+        if(ev.key === 's' || ev.key === 'S') { stopBtn.click(); ev.preventDefault(); }
+      });
+
+      // Keep controls visible when recording state changes
+      // Hook into updateUI if present
+      const origUpdateUI = window.updateUI;
+      window.updateUI = function(){ try{ if(typeof origUpdateUI === 'function') origUpdateUI(); }catch(e){} updateStatus(); };
+
+      // Expose global convenience wrappers
+      window.pauseRecording = window.pauseRecording || function(){ pauseBtn.click(); };
+      window.resumeRecording = window.resumeRecording || function(){ pauseBtn.click(); };
+      window.stopRecordingControl = window.stopRecordingControl || function(){ stopBtn.click(); };
+
+      // Initial update
+      updateStatus();
+    })();
+  </script>
+
+  <div class="container">
+        <div class="header-container" id="header-container"></div>
+        <div class="main-content">
+            <div class="preview-section"><div class="preview-screen"><img src="Sparky-AItp.gif" alt="Sparky AI" style="max-width:200px;max-height:200px;object-fit:contain;"></div></div>
+            <div class="record-button-section" id="recordButtonSection"><button class="record-button" id="recordButton" onclick="handleRecordButtonClick()">🔴 Start Recording</button></div>
+            <div class="metadata-form" id="metadataForm" style="display:none;">
+                <div class="form-container">
+                    <h2 class="form-title">Recording Complete - Add Details</h2>
+                    <div class="radio-group">
+                        <label class="radio-option"><input type="radio" name="customerType" value="existing" onchange="toggleCustomerForm('existing')"><span class="radio-custom"></span>Existing Customer</label>
+                        <label class="radio-option"><input type="radio" name="customerType" value="new" onchange="toggleCustomerForm('new')"><span class="radio-custom"></span>New Customer</label>
+                    </div>
+                    <div id="existingCustomerForm" class="customer-form" style="display:none;">
+                        <div style="display:flex;justify-content:center;">
+                            <div class="search-container" style="width:50%;">
+                                <label class="form-label">Search Customer</label>
+                                <input type="text" id="customerSearch" placeholder="Type name or email..." class="search-input">
+                                <div id="customerSuggestions" class="suggestions-dropdown"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="newCustomerForm" class="customer-form" style="display:none;">
+                        <div class="form-row" style="display:flex; gap:20px; justify-content:center;">
+                            <div style="flex:0 1 50%;"><label class="form-label required">First Name</label><input type="text" id="firstName" required class="form-input"></div>
+                            <div style="flex:0 1 50%;"><label class="form-label required">Last Name</label><input type="text" id="lastName" required class="form-input"></div>
+                        </div>
+                        <label class="form-label required">Email</label>
+                        <input type="email" id="email" required class="form-input">
+                    </div>
+                    <div id="commonFields" style="display:none;">
+                        <label class="form-label">Description (Optional)</label>
+                        <textarea id="description" class="form-textarea" placeholder="Add any additional notes..." maxlength="5000"></textarea>
+                    </div>
+                    <div style="text-align:center;margin-top:30px;">
+                        <button class="confirm-button" onclick="confirmUpload()">📤 Confirm Upload</button>
+                    </div>
+                </div>
+            </div>
+            <div class="controls-section" id="controlsSection">
+                <div class="controls-left">
+                    <div style="display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px;">
+                        <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">Audio Source:</label>
+                        <select id="audioSource" class="setting-select" style="padding:2px 6px;font-size:12px;height:24px;">
+                            <option value="none">No Audio</option>
+                            <option value="system" selected>System Audio</option>
+                            <option value="mic">Microphone</option>
+                            <option value="mixed">System + Mic</option>
+                        </select>
+                        <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">Video Settings:</label>
+                        <select class="setting-select" style="padding:2px 6px;font-size:12px;height:24px;" id="quality">
+                            <option value="480p" selected>480p SD</option>
+                            <option value="720p">720p HD</option>
+                            <option value="1080p">1080p Full HD</option>
+                            <option value="4k">4K Ultra HD</option>
+                        </select>
+                        <select class="setting-select" style="padding:2px 6px;font-size:12px;height:24px;" id="framerate">
+                            <option value="30">30 FPS</option>
+                            <option value="60" selected>60 FPS</option>
+                        </select>
+                    </div>
+                    <div id="audioProcessingControls" style="display:none; justify-content:center; align-items:center; gap: 12px; flex-wrap: wrap; border-top: 1px solid #888; padding-top: 15px;">
+                        <div id="systemGainControl" style="display:none; align-items:center; gap: 8px; border-left: 2px solid #aaa; padding-left: 8px;">
+                            <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;" title="Controls system audio recording volume">System:</label>
+                            <input id="systemGainSlider" type="range" min="0" max="10" step="0.1" value="1" style="width:80px;cursor:pointer;" title="System audio recording boost (0x=silent, 1x=normal, 5x=5x louder, 10x=maximum boost)">
+                            <span id="systemGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+                            <div style="display:flex;align-items:center;gap:6px; border-left: 2px solid #4CAF50; padding-left: 8px;">
+                                <div style="font-size:11px;color:#ccc;">Level:</div>
+                                <div style="width:100px;height:10px;background:#1b1b1b;border:1px solid #444;border-radius:5px;overflow:hidden;position:relative;">
+                                    <div id="outputMeterFill" style="height:100%;width:0%;background:#4caf50;transition:width .1s linear;"></div>
+                                    <div id="systemGainIndicator" style="position:absolute;top:-1px;left:0;width:2px;height:12px;background:#ffa726;display:none;" title="Current gain level marker"></div>
+                                </div>
+                                <div style="font-size:10px;color:#2196F3;">(recording)</div>
+                            </div>
+                        </div>
+                        <div id="micGainControl" style="display:none; align-items:center; gap: 8px; border-left: 2px solid #aaa; padding-left: 8px;">
+                            <label class="control-label" style="margin-bottom:0;font-size:14px;color:#fff;">Mic:</label>
+                            <input id="micGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;" title="Adjust microphone input volume (0x = mute, 1x = normal, 2x+ = boost)">
+                            <span id="micGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <div style="font-size:11px;color:#ccc;">In:</div>
+                                <div style="width:60px;height:10px;background:#1b1b1b;border:1px solid #444;border-radius:5px;overflow:hidden;position:relative;">
+                                    <div id="micMeterFill" style="height:100%;width:0%;background:#4caf50;transition:width .1s linear;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="userVideoGrid" style="width:100%;max-width:1200px;margin:30px auto 0;padding:0 20px;">
+                <div style="background:#333;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:24px;border:2px solid #555;">
+                    <h2 style="margin:0 0 20px;color:#fff;font-size:24px;font-weight:600;display:flex;align-items:center;gap:10px;justify-content:center;">
+                        <span>📹</span>My Recordings
+                        <span id="videoCountBadge" style="background:#4CAF50;color:#fff;padding:4px 12px;border-radius:16px;font-size:14px;font-weight:500;">0</span>
+                    </h2>
+                    <div id="videoGrid">
+                        <div style="grid-column:1 / -1;display:flex;justify-content:center;align-items:center;height:100px;color:#ccc;font-size:16px;">Loading your recordings...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clean user video fetch/reset logic -->
+<script>
+(function(){
+  if(window.__cleanVideosInit) return; window.__cleanVideosInit = true;
+
+  const METADATA_LINE_REGEX = /^(Customer(?: Email)?|Recorded By(?: Email)?|Recording Date):\s*(.*)$/i;
+  const METADATA_KEY_MAP = {
+    'customer': 'customerName',
+    'customer email': 'customerEmail',
+    'recorded by': 'recordedBy',
+    'recorded by email': 'recordedByEmail',
+    'recording date': 'recordingDate'
+  };
+
+  function convertVimeoLinkToPlayer(link){
+    if(!link) return '';
+    if(link.includes('player.vimeo.com')) return link;
+
+    const hashed = link.match(/vimeo\.com\/(\d+)\/([a-z0-9]+)/i);
+    if(hashed){
+      return `https://player.vimeo.com/video/${hashed[1]}?h=${hashed[2]}`;
+    }
+
+    const numeric = link.match(/vimeo\.com\/(\d+)/i);
+    if(numeric){
+      return `https://player.vimeo.com/video/${numeric[1]}`;
+    }
+
+    return '';
+  }
+
+  function getPlayerEmbedUrl(video){
+    if(!video) return '';
+    const direct = video.playerEmbedUrl || video.player_embed_url;
+    if(direct) return direct;
+    return convertVimeoLinkToPlayer(video.vimeoLink || video.link || '');
+  }
+
+  function stripMetadataText(desc){
+    let text = (desc || '').replace(/\r\n/g, '\n');
+    if(!text.trim()) return '';
+
+    const markerIdx = text.search(/---\s*RECORDING DETAILS\s*---/i);
+    if(markerIdx !== -1){
+      text = text.slice(0, markerIdx);
+    }
+
+    const filtered = text
+      .split('\n')
+      .filter(line => !METADATA_LINE_REGEX.test(line.trim()));
+
+    return filtered.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  }
+
+  function collectMetadata(desc){
+    const seen = new Set();
+    const lines = [];
+    const map = {};
+    (desc || '').replace(/\r\n/g,'\n').split('\n').forEach(line => {
+      const match = line.trim().match(METADATA_LINE_REGEX);
+      if(!match) return;
+      const label = match[1];
+      const lower = label.toLowerCase();
+      if(seen.has(lower)) return;
+      seen.add(lower);
+      const value = (match[2] || '').trim();
+      lines.push(`${label}: ${value}`.trim());
+      const key = METADATA_KEY_MAP[lower];
+      if(key && !(key in map)) map[key] = value;
+    });
+    return { lines, map };
+  }
+
+  function splitDescription(desc){
+    const clean = stripMetadataText(desc);
+    const { lines, map } = collectMetadata(desc);
+    return {
+      userPart: clean,
+      detailsPart: lines.join('\n'),
+      metaMap: map
+    };
+  }
+
+  function normalizeVideo(v, profile){
+    const nv = { ...v };
+    const rawDesc = v.rawDescription ?? v.description ?? '';
+    const { userPart, metaMap } = splitDescription(rawDesc);
+    const combinedMeta = { ...metaMap, ...(v.metadata || {}) };
+    const profileName = profile?.displayName || '';
+    const profileEmail = profile?.email || '';
+
+    nv.vimeoLink = nv.vimeoLink || v.vimeoLink || v.link || '';
+    nv.customerName = nv.customerName || nv.name || combinedMeta.customerName || '';
+    nv.customerEmail = nv.customerEmail || combinedMeta.customerEmail || '';
+
+    const recordedByName = (nv.recordedBy && nv.recordedBy.displayName) || combinedMeta.recordedBy || profileName;
+    const recordedByEmail = (nv.recordedBy && nv.recordedBy.email) || combinedMeta.recordedByEmail || profileEmail;
+    nv.recordedBy = { displayName: recordedByName || '', email: recordedByEmail || '' };
+
+    nv.recordingDate = nv.recordingDate || combinedMeta.recordingDate || v.recordingDate || '';
+    nv.__cleanDescription = userPart || (v.description || '');
+    nv.description = nv.description || nv.__cleanDescription;
+    nv.playerEmbedUrl = nv.playerEmbedUrl || getPlayerEmbedUrl(nv);
+    return nv;
+  }
+  function normalizeList(list){
+    const prof = window.headerUserProfile || {};
+    return (list||[]).map(v=>normalizeVideo(v, prof));
+  }
+
+  function getVideoShareLink(video){
+    if(!video || typeof video !== 'object') return '';
+    return (
+      video.vimeoLink ||
+      video.link ||
+      video.playerEmbedUrl ||
+      video.player_embed_url ||
+      ''
+    );
+  }
+
+  function escapeAttribute(value){
+    return (value ?? '')
+      .toString()
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function copyTextToClipboard(text){
+    if(!text) return false;
+    if(navigator?.clipboard?.writeText){
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch(err){
+        console.warn('navigator.clipboard failed', err);
+      }
+    }
+
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return successful;
+    } catch(err){
+      console.warn('Fallback copy failed', err);
+      return false;
+    }
+  }
+
+  function showCopyFeedback(button, message){
+    if(!button) return;
+    const originalLabel = button.dataset.originalLabel || button.textContent;
+    button.dataset.originalLabel = originalLabel;
+    button.textContent = message || 'Copied!';
+    button.disabled = true;
+    button.classList.add('copied');
+    setTimeout(()=>{
+      button.textContent = button.dataset.originalLabel;
+      button.disabled = false;
+      button.classList.remove('copied');
+    }, 1600);
+  }
+
+  async function handleCopyVideoLink(button){
+    if(!button) return;
+    let link = button.dataset.videoLink || '';
+    const indexAttr = button.dataset.videoIndex;
+    if(!link && typeof indexAttr !== 'undefined'){
+      const idx = parseInt(indexAttr, 10);
+      if(!Number.isNaN(idx) && Array.isArray(window.__videoItemsCache)){
+        const video = window.__videoItemsCache[idx];
+        link = getVideoShareLink(video);
+      }
+    }
+
+    if(!link){
+      showCopyFeedback(button, 'No link');
+      return;
+    }
+
+    const success = await copyTextToClipboard(link);
+    if(success){
+      showCopyFeedback(button, '✅ Copied!');
+    } else {
+      showCopyFeedback(button, 'Copy failed');
+      alert(`Copy failed. Here is the link:\n\n${link}`);
+    }
+  }
+
+  const STORAGE_SUPPORTED = (() => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return false;
+      const testKey = '__sparky_cache_probe__';
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      return true;
+    } catch (err) {
+      console.warn('Local storage unavailable, caching disabled', err);
+      return false;
+    }
+  })();
+
+  function readCacheEntry(key) {
+    if (!STORAGE_SUPPORTED) return null;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const { payload, expireAt } = parsed;
+      if (typeof expireAt === 'number' && expireAt && Date.now() > expireAt) {
+        window.localStorage.removeItem(key);
+        return null;
+      }
+      return payload || null;
+    } catch (err) {
+      console.warn('Cache read failed', err);
+      return null;
+    }
+  }
+
+  function writeCacheEntry(key, payload, ttlMs) {
+    if (!STORAGE_SUPPORTED) return;
+    try {
+      const record = {
+        payload,
+        savedAt: Date.now(),
+        expireAt: typeof ttlMs === 'number' && ttlMs > 0 ? Date.now() + ttlMs : null
+      };
+      window.localStorage.setItem(key, JSON.stringify(record));
+    } catch (err) {
+      console.warn('Cache write failed', err);
+    }
+  }
+
+  const VIDEO_CACHE_KEY_PREFIX = 'sparkyVideosCache:';
+  const VIDEO_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  const CUSTOMER_CACHE_KEY = 'sparkyCustomersCache';
+  const CUSTOMER_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+  function toArray(value){
+    if(Array.isArray(value)) return value;
+    if(typeof value === 'string'){
+      return value
+        .split(',')
+        .map(part => part.trim())
+        .filter(Boolean);
+    }
+    return [];
+  }
+
+  function normalizeBaseUrl(value){
+    if(typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if(!trimmed || trimmed === '/') return '';
+    return trimmed.replace(/\/+$/, '');
+  }
+
+  function gatherApiBaseCandidates(){
+    const ordered = [];
+    const seen = new Set();
+    const push = (candidate) => {
+      if(candidate === undefined || candidate === null) return;
+      const normalized = candidate === '' ? '' : normalizeBaseUrl(candidate);
+      if(normalized === undefined || normalized === null) return;
+      if(!seen.has(normalized)){
+        seen.add(normalized);
+        ordered.push(normalized);
+      }
+    };
+
+    push('');
+
+    if(typeof window !== 'undefined' && window.location?.origin) {
+      push(window.location.origin);
+    }
+
+    try {
+      if(typeof window !== 'undefined' && window.localStorage){
+        push(window.localStorage.getItem('sparkyApiBaseUrl'));
+        toArray(window.localStorage.getItem('sparkyApiBaseList')).forEach(push);
+      }
+    } catch(storageError) {
+      console.warn('Unable to read stored API base overrides', storageError);
+    }
+
+    const config = (typeof window !== 'undefined' && window.SPARKY_CONFIG) || {};
+    push(config.apiBaseUrl);
+    toArray(config.apiBaseUrls).forEach(push);
+    toArray(config.apiBases).forEach(push);
+    toArray(config.additionalApiBases).forEach(push);
+
+    push('https://103.vercel.app');
+
+    if(typeof document !== 'undefined'){
+      const meta = document.querySelector?.('meta[name="sparky-api-base"]');
+      push(meta?.content);
+      const bodyDataset = document.body?.dataset?.sparkyApiBase || document.documentElement?.dataset?.sparkyApiBase;
+      push(bodyDataset);
+    }
+
+    return ordered;
+  }
+
+  function buildApiEndpoints(email){
+    const encoded = encodeURIComponent(email || '');
+    const endpoints = [];
+    const seen = new Set();
+    const bases = gatherApiBaseCandidates();
+
+    bases.forEach(base => {
+  const prefix = base ? base.replace(/\/+$/, '') : '';
+  const dynamicPath = `${prefix}/api/all-user-videos/${encoded}`.replace(/^\/+/, '/');
+      if(!seen.has(dynamicPath)){
+        seen.add(dynamicPath);
+        endpoints.push(dynamicPath);
+      }
+  const queryPath = `${prefix}/api/all-user-videos?userEmail=${encoded}`.replace(/^\/+/, '/');
+      if(!seen.has(queryPath)){
+        seen.add(queryPath);
+        endpoints.push(queryPath);
+      }
+    });
+
+    return endpoints;
+  }
+
+  async function fetchVideosFromApis(email){
+    const endpoints = buildApiEndpoints(email);
+    const errors = [];
+
+    for(const endpoint of endpoints){
+      try {
+        const response = await fetch(endpoint, { headers: { 'Accept': 'application/json' }});
+        const clone = response.clone();
+        let cachedSnippet = null;
+        async function readSnippet(){
+          if(cachedSnippet !== null) return cachedSnippet;
+          try {
+            const text = await clone.text();
+            cachedSnippet = text ? ` :: ${text.slice(0,160).replace(/\s+/g,' ').trim()}` : '';
+          } catch {
+            cachedSnippet = '';
+          }
+          return cachedSnippet;
+        }
+        if(!response.ok){
+          const snippet = await readSnippet();
+          errors.push(`${endpoint} [${response.status}${snippet}]`);
+          continue;
+        }
+        const contentType = response.headers?.get?.('content-type') || '';
+        if(!/application\/json/i.test(contentType)){
+          const snippet = await readSnippet();
+          errors.push(`${endpoint} [${response.status || '200'} non-json${snippet}]`);
+          continue;
+        }
+        let payload;
+        try {
+          payload = await response.json();
+        } catch(parseError){
+          const snippet = await readSnippet();
+          errors.push(`${endpoint} [json-parse-error${snippet}]`);
+          continue;
+        }
+        return { videos: normalizeList(payload), endpoint };
+      } catch(err){
+        const message = err?.message || 'network error';
+        errors.push(`${endpoint} [${message}]`);
+      }
+    }
+
+    const failure = new Error('All API endpoints failed');
+    failure.sparkyEndpointErrors = errors;
+    throw failure;
+  }
+
+  function mapSupabaseRecord(record){
+    if(!record || typeof record !== 'object') return null;
+    const email = (record.recorded_by_email || record.recordedByEmail || '').toLowerCase();
+    return {
+      id: String(record.id ?? record.vimeo_id ?? record.video_id ?? ''),
+      name: record.title || record.customer_name || record.customerName || 'Untitled Recording',
+      customerName: record.customer_name || record.customerName || '',
+      customerEmail: record.customer_email || record.customerEmail || '',
+      description: record.description || record.notes || '',
+      rawDescription: record.description || record.notes || '',
+      vimeoLink: record.vimeo_link || record.vimeoLink || record.link || '',
+      thumbnail: record.thumbnail_url || record.thumbnail || null,
+      recordedBy: {
+        displayName: record.recorded_by_name || record.recordedBy || '',
+        email
+      },
+      recordingDate: record.recording_date || record.recordingDate || record.created_at || record.createdAt || null,
+      created_time: record.created_at || record.createdAt || record.recording_date || record.recordingDate || null,
+      metadata: record.metadata || {}
+    };
+  }
+
+  async function fetchVideosFromSupabase(email){
+    if(!window.supabase?.from){
+      throw new Error('Supabase client not ready');
+    }
+
+    const normalizedEmail = (email || '').toLowerCase();
+    let query = window.supabase
+      .from('recordings')
+      .select('id, title, customer_name, customer_email, description, vimeo_link, thumbnail_url, recorded_by_name, recorded_by_email, recording_date, created_at, metadata')
+      .order('recording_date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if(normalizedEmail){
+      query = query.eq('recorded_by_email', normalizedEmail);
+    }
+
+    const { data, error } = await query;
+    if(error){
+      const message = (error?.message || '').toLowerCase();
+      if(message.includes('schema cache') || message.includes('does not exist') || message.includes('not found')){
+        return { videos: [], source: 'supabase-missing-table' };
+      }
+      throw error;
+    }
+
+    const mapped = (data || [])
+      .map(mapSupabaseRecord)
+      .filter(Boolean);
+
+    return { videos: normalizeList(mapped), source: 'supabase' };
+  }
+
+  async function loadUserVideos(email){
+    const grid = document.getElementById('videoGrid');
+    const badge = document.getElementById('videoCountBadge');
+    if(!grid) return;
+
+    const requestedEmail = (email || '').trim();
+    if(!requestedEmail){
+      badge && (badge.textContent = '0');
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ccc;padding:40px;">No user email available. Please sign in again.</div>';
+      return;
+    }
+
+    const cacheKey = `${VIDEO_CACHE_KEY_PREFIX}${requestedEmail.toLowerCase()}`;
+    const cachedPayload = readCacheEntry(cacheKey);
+    const cachedVideos = Array.isArray(cachedPayload?.videos) ? cachedPayload.videos : null;
+    const hasCachedVideos = !!(cachedVideos && cachedVideos.length);
+
+    if(hasCachedVideos){
+      grid.dataset.recordingsSource = cachedPayload.source || 'cache';
+      grid.dataset.recordingsEndpoint = cachedPayload.endpoint || 'cache';
+      renderMyRecordings(cachedVideos);
+    } else {
+      grid.dataset.recordingsSource = '';
+      grid.dataset.recordingsEndpoint = '';
+      grid.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;height:110px;color:#bbb;">Loading your recordings...</div>';
+    }
+
+    let apiError;
+    try {
+      const { videos, endpoint } = await fetchVideosFromApis(requestedEmail);
+      grid.dataset.recordingsSource = 'api';
+      grid.dataset.recordingsEndpoint = endpoint || '';
+      renderMyRecordings(videos);
+      writeCacheEntry(cacheKey, { videos, endpoint: endpoint || '', source: 'api' }, VIDEO_CACHE_TTL);
+      return;
+    } catch(err){
+      apiError = err;
+      if(err?.sparkyEndpointErrors?.length){
+        console.warn('Recordings API endpoints failed', err.sparkyEndpointErrors);
+      } else {
+        console.warn('Recordings API fetch failed', err);
+      }
+    }
+
+    try {
+      const { videos, source } = await fetchVideosFromSupabase(requestedEmail);
+      grid.dataset.recordingsSource = source || 'supabase';
+      grid.dataset.recordingsEndpoint = 'supabase';
+      renderMyRecordings(videos);
+      writeCacheEntry(cacheKey, { videos, endpoint: 'supabase', source: source || 'supabase' }, VIDEO_CACHE_TTL);
+      return;
+    } catch(supabaseError){
+      console.error('Supabase fallback failed', supabaseError);
+      if(hasCachedVideos){
+        grid.dataset.recordingsSource = cachedPayload.source || 'cache';
+        grid.dataset.recordingsEndpoint = cachedPayload.endpoint || 'cache';
+        console.warn('Using cached recordings due to load failure');
+        return;
+      }
+      badge && (badge.textContent = '0');
+      const endpointErrors = Array.isArray(apiError?.sparkyEndpointErrors) ? apiError.sparkyEndpointErrors : [];
+      const deploymentDisabled = endpointErrors.some(msg => /DEPLOYMENT_DISABLED/i.test(msg) || /403/.test(msg));
+      let supabaseHint = null;
+      if(supabaseError?.message){
+        if(/schema cache|does not exist|not found/i.test(supabaseError.message)){
+          supabaseHint = 'Supabase fallback table "recordings" is missing. Create it or adjust the fallback table name.';
+        } else {
+          supabaseHint = `Supabase error: ${supabaseError.message}`;
+        }
+      }
+      const hints = [
+        'Unable to load recordings at the moment.',
+        deploymentDisabled ? 'The Vercel deployment responded with DEPLOYMENT_DISABLED (403). Re-enable the project in the Vercel dashboard or redeploy the API.' : null,
+        endpointErrors.length ? `API attempts: ${endpointErrors.join(' | ')}` : null,
+        supabaseHint,
+        'Verify that your recordings API deployment is reachable or update `window.SPARKY_CONFIG.apiBaseUrl` inside `app-config.js`.'
+      ].filter(Boolean).join('<br><br>');
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#f66;padding:40px;line-height:1.6;">${hints}</div>`;
+    }
+  }
+
+  function renderMyRecordings(videos){
+    const grid = document.getElementById('videoGrid');
+    const badge = document.getElementById('videoCountBadge');
+    if(!grid) return;
+    badge && (badge.textContent = videos.length);
+    if(!videos.length){
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ccc;padding:40px;">No recordings found.</div>';
+      return;
+    }
+    window.__videoItemsCache = videos;
+    grid.innerHTML = videos.map((v,i)=>{
+      const safeDesc = (v.__cleanDescription||'').replace(/</g,'&lt;');
+      const shareLink = getVideoShareLink(v);
+      const linkAttr = shareLink ? ` data-video-link="${escapeAttribute(shareLink)}"` : '';
+      return `
+      <div class="user-video-card" data-video-index="${i}" style="background:#222c44;border:1px solid #2f3b55;border-radius:12px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;">
+        <div style="position:relative;aspect-ratio:16/9;background:#111;">${v.thumbnail ? `<img src="${v.thumbnail}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : '<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#555;font-size:34px;\'>🎬</div>'}</div>
+        <div style="padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+          <div style="color:#fff;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.customerName || ''}</div>
+          <div style="color:#b5b5b5;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.customerEmail || ''}</div>
+          <div style="color:#8dd28d;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.recordedBy.displayName || ''}</div>
+            <div style="color:#6fbf6f;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.recordedBy.email || ''}</div>
+          <div style="color:#999;font-size:10px;">${v.recordingDate ? new Date(v.recordingDate).toLocaleString() : ''}</div>
+          ${safeDesc ? `<div style=\"margin-top:4px;color:#cfd6e2;font-size:11px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;\">${safeDesc}</div>` : ''}
+          ${shareLink ? `<button type="button" class="get-link-button" data-video-index="${i}"${linkAttr} style="margin-top:6px;align-self:flex-start;padding:4px 10px;border-radius:6px;border:1px solid #4caf50;background:#1f3d2b;color:#9df39d;font-size:11px;font-weight:600;cursor:pointer;">🔗 Get Link</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function openVideoModal(video, index){
+    document.querySelectorAll('.user-video-modal-overlay').forEach(o=>o.remove());
+    const overlay = document.createElement('div');
+    overlay.className='user-video-modal-overlay';
+    overlay.style.cssText='position:fixed;left:0;right:0;top:50px;bottom:0;background:rgba(0,0,0,.6);z-index:50000;display:flex;align-items:flex-start;justify-content:center;padding:24px 20px;overflow:auto;';
+    const safeDesc = (video.__cleanDescription||'').replace(/</g,'&lt;') || 'No description provided.';
+    const baseEmbed = getPlayerEmbedUrl(video);
+    const embedUrl = baseEmbed ? (baseEmbed.includes('?') ? `${baseEmbed}&autoplay=1` : `${baseEmbed}?autoplay=1`) : '';
+    const shareLink = getVideoShareLink(video);
+    const linkAttrs = shareLink ? `${typeof index === 'number' && index > -1 ? ` data-video-index="${index}"` : ''} data-video-link="${escapeAttribute(shareLink)}"` : '';
+    overlay.innerHTML = `
+      <div style="width:100%;max-width:1100px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.45);">
+        <div style="position:absolute;top:10px;right:10px;display:flex;gap:8px;">
+          ${shareLink ? `<button type="button" class="get-link-button"${linkAttrs} style="padding:8px 14px;border-radius:6px;border:1px solid #4caf50;background:#1f3d2b;color:#9df39d;font-size:12px;font-weight:600;cursor:pointer;">🔗 Get Link</button>` : ''}
+          <button type="button" class="video-modal-close" style="width:44px;height:44px;border:none;border-radius:50%;background:#dc2626;color:#fff;font-size:22px;font-weight:600;cursor:pointer;">×</button>
+        </div>
+        <div style="aspect-ratio:16/9;background:#111;">${embedUrl ? `<iframe src="${embedUrl}" style="width:100%;height:100%;border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>`:'<div style=\'display:flex;height:100%;align-items:center;justify-content:center;color:#666;\'>No Link</div>'}</div>
+        <div style="display:flex;flex-wrap:wrap;border-top:1px solid #1f1f1f;">
+          <div style="flex:1 1 260px;padding:18px 22px;border-right:1px solid #1f1f1f;min-width:240px;display:flex;flex-direction:column;gap:6px;">
+            <div style="color:#fff;font-size:14px;">${video.customerName||''}</div>
+            <div style="color:#d1d5db;font-size:12px;word-break:break-all;">${video.customerEmail||''}</div>
+            <div style="color:#8dd28d;font-size:12px;">${video.recordedBy?.displayName||''}</div>
+            <div style="color:#6fbf6f;font-size:11px;word-break:break-all;">${video.recordedBy?.email||''}</div>
+            <div style="color:#999;font-size:11px;">${video.recordingDate ? new Date(video.recordingDate).toLocaleString() : ''}</div>
+          </div>
+          <div style="flex:3 1 400px;padding:18px 22px;max-height:260px;overflow:auto;color:#ccc;font-size:13px;line-height:1.4;white-space:pre-wrap;word-break:break-word;">${safeDesc}</div>
+        </div>
+      </div>`;
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+    const closeBtn = overlay.querySelector('.video-modal-close');
+    closeBtn?.addEventListener('click', ()=> overlay.remove());
+    document.body.appendChild(overlay);
+  }
+
+  document.addEventListener('click', e=>{
+    const copyBtn = e.target.closest('.get-link-button');
+    if(copyBtn){
+      e.preventDefault();
+      e.stopPropagation();
+      handleCopyVideoLink(copyBtn);
+      return;
+    }
+
+    const card = e.target.closest('.user-video-card');
+    if(card && card.dataset.videoIndex){
+      const idx = parseInt(card.dataset.videoIndex,10);
+      const video = (window.__videoItemsCache||[])[idx];
+      if(video) openVideoModal(video, idx);
+    }
+  });
+
+  document.addEventListener('profileLoaded', e=>{
+    const email = e.detail?.email; if(email) loadUserVideos(email);
+  });
+})();
+</script>
+<!-- End clean user video fetch/reset logic -->
+<!-- Recording + Preview (with last frame freeze) -->
+<script>
+(function(){
+  if(window.__wk101RecorderFixed) return; window.__wk101RecorderFixed = true;
+  const btn = document.getElementById('recordButton');
+  const previewShell = document.querySelector('.preview-screen');
+  const audioSelect = document.getElementById('audioSource');
+  const metaForm = document.getElementById('metadataForm');
+  const qualitySelect = document.getElementById('quality');
+  const framerateSelect = document.getElementById('framerate');
+
+  const SETTINGS_STORAGE_KEY = 'sparky-recorder-settings';
+  let recorderSettings = loadRecorderSettings();
+
+  function hasOption(select, value){
+    if(!select || value === undefined || value === null) return false;
+    return Array.from(select.options || []).some(opt => opt.value === value);
+  }
+
+  function loadRecorderSettings(){
+    if(typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage ? window.localStorage.getItem(SETTINGS_STORAGE_KEY) : null;
+      if(!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch(err){
+      console.warn('Recorder settings load failed', err);
+      return {};
+    }
+  }
+
+  function saveRecorderSettings(update){
+    if(typeof window === 'undefined') return;
+    const next = { ...recorderSettings };
+    Object.entries(update || {}).forEach(([key, value]) => {
+      if(value === undefined) return;
+      next[key] = value;
+    });
+    recorderSettings = next;
+    try {
+      if(window.localStorage) {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(recorderSettings));
+      }
+    } catch(err){
+      console.warn('Recorder settings persist failed', err);
+    }
+  }
+
+  function applyRecorderSettings(){
+    const { audioSource, quality, framerate } = recorderSettings;
+    if(audioSelect && hasOption(audioSelect, audioSource)) {
+      audioSelect.value = audioSource;
+    }
+    if(qualitySelect && hasOption(qualitySelect, quality)) {
+      qualitySelect.value = quality;
+    }
+    if(framerateSelect && hasOption(framerateSelect, framerate)) {
+      framerateSelect.value = framerate;
+    }
+  }
+
+  let recording = false, mediaRecorder, chunks = [];
+  let screenStream, micStream, mixedStream;
+  let videoEl, lastFrameData;
+
+  function ensureVideo(){
+    if(!videoEl){
+      videoEl = document.createElement('video');
+      videoEl.autoplay = true; videoEl.muted = true; videoEl.playsInline = true;
+      videoEl.style.cssText='width:100%;height:100%;object-fit:contain;';
+    }
+    if(previewShell && !previewShell.contains(videoEl)){
+      previewShell.innerHTML='';
+      previewShell.appendChild(videoEl);
+    }
+    return videoEl;
+  }
+  function captureLastFrame(){
+    try {
+      if(!videoEl || !videoEl.videoWidth) return false;
+      const c=document.createElement('canvas');
+      c.width=videoEl.videoWidth; c.height=videoEl.videoHeight;
+      c.getContext('2d').drawImage(videoEl,0,0,c.width,c.height);
+      lastFrameData = c.toDataURL('image/png');
+      return true;
+    } catch(e){ console.warn('Frame grab failed', e); return false; }
+  }
+  function showLastFrame(){
+    if(lastFrameData && previewShell){
+      previewShell.innerHTML = `<img src="${lastFrameData}" alt="Last Frame" style="width:100%;height:100%;object-fit:contain;">`;
+    }
+  }
+  
+  // Real audio level detection with gain control
+  let meterInterval;
+  let audioContext, systemAnalyzer, micAnalyzer;
+  let systemDataArray, micDataArray;
+  let systemGainNode, micGainNode;
+  
+  // Store intended gain values for when audio context becomes available
+  let intendedSystemGain = 1.0;
+  let intendedMicGain = 1.0;
+
+  // Function to apply stored gain values to active gain nodes
+  function applyStoredGainValues() {
+    if (audioContext) {
+      if (systemGainNode) {
+        systemGainNode.gain.setValueAtTime(intendedSystemGain, audioContext.currentTime);
+        console.log(`� Applied stored recording gain: ${intendedSystemGain.toFixed(1)}x`);
+      }
+      if (micGainNode) {
+        micGainNode.gain.setValueAtTime(intendedMicGain, audioContext.currentTime);
+        console.log(`🎤 Applied stored mic gain: ${intendedMicGain.toFixed(1)}x`);
+      }
+    }
+  }
+
+  // Function to set gain value for recording volume
+  function setSystemGain(gainValue) {
+    intendedSystemGain = gainValue;
+    
+    // Update gain indicator position (1x = 10% position, 0x = 0%, 10x = 100%)
+    const indicator = document.getElementById('systemGainIndicator');
+    if (indicator) {
+      const position = Math.min(100, (gainValue / 10) * 100);
+      indicator.style.left = position + '%';
+      indicator.style.display = gainValue !== 1 ? 'block' : 'none';
+    }
+    
+    if (systemGainNode && audioContext) {
+      // Apply gain to recording stream - this affects the final video volume
+      // Clear any scheduled changes and apply boost immediately
+      systemGainNode.gain.cancelScheduledValues(audioContext.currentTime);
+      systemGainNode.gain.setValueAtTime(gainValue, audioContext.currentTime);
+      
+      // Sync recording controls if they exist
+      const recordingSysSlider = document.getElementById('recordingSystemGainSlider');
+      const recordingSysVal = document.getElementById('recordingSystemGainValue');
+      if (recordingSysSlider && recordingSysVal) {
+        recordingSysSlider.value = gainValue;
+        recordingSysVal.textContent = gainValue.toFixed(1) + 'x';
+      }
+      console.log(`� Recording volume set to: ${gainValue.toFixed(1)}x (affects final video audio level)`);
+      
+      // Force meter update to show immediate visual feedback
+      setTimeout(() => {
+        if (systemAnalyzer && systemDataArray) {
+          systemAnalyzer.getByteFrequencyData(systemDataArray);
+          const level = getAudioLevel(systemDataArray);
+          console.log(`📊 Recording audio level: ${level.toFixed(1)}% (gain: ${gainValue.toFixed(1)}x)`);
+        }
+      }, 100);
+    } else {
+      console.log(`� Recording gain stored: ${gainValue.toFixed(1)}x (will apply when recording starts)`);
+    }
+  }
+
+  function setMicGain(gainValue) {
+    intendedMicGain = gainValue;
+    if (micGainNode && audioContext) {
+      micGainNode.gain.setValueAtTime(gainValue, audioContext.currentTime);
+      console.log(`🎤 Microphone gain set to: ${gainValue.toFixed(1)}x`);
+      
+      // Force meter update to show immediate visual feedback
+      setTimeout(() => {
+        if (micAnalyzer && micDataArray) {
+          micAnalyzer.getByteFrequencyData(micDataArray);
+          const level = getAudioLevel(micDataArray);
+          console.log(`📊 Mic audio level after gain change: ${level.toFixed(1)}%`);
+        }
+      }, 100);
+    } else {
+      console.log(`🎤 Mic gain stored for later: ${gainValue.toFixed(1)}x (audio context not ready)`);
+    }
+  }
+
+  function startAudioMeters(){
+    const mode = (audioSelect && audioSelect.value) || 'none';
+    if(mode === 'none') return;
+    
+    // Show recording UI elements
+    const recordingIndicators = document.querySelectorAll('div[style*="font-size:10px;color:#2196F3;"]');
+    recordingIndicators.forEach(indicator => {
+      if(indicator.textContent.includes('(recording)')) {
+        indicator.style.display = 'block';
+      }
+    });
+    
+    try {
+      // Analyzers should already be set up by buildStream with proper gain node connections
+      if(systemAnalyzer && systemDataArray) {
+        console.log('System audio analyzer ready');
+      }
+      
+      if(micAnalyzer && micDataArray) {
+        console.log('Mic audio analyzer ready');
+      }
+      
+      // Update meters in real-time
+      meterInterval = setInterval(() => {
+        updateMeterLevels();
+      }, 50); // Update every 50ms for smooth animation
+      
+    } catch(e) {
+      console.log('Audio analysis not available, using visual feedback only');
+      // Fallback to visual feedback without real audio levels
+      const outMeter = document.getElementById('outputMeterFill');
+      const micMeter = document.getElementById('micMeterFill');
+      
+      meterInterval = setInterval(() => {
+        if(mode === 'system' || mode === 'mixed'){
+          if(outMeter) outMeter.style.width = (10 + Math.random() * 30) + '%';
+        }
+        if(mode === 'mic' || mode === 'mixed'){
+          if(micMeter) micMeter.style.width = (5 + Math.random() * 25) + '%';
+        }
+      }, 100);
+    }
+  }
+  
+  function updateMeterLevels() {
+    const outMeter = document.getElementById('outputMeterFill');
+    const micMeter = document.getElementById('micMeterFill');
+    const recordingOutMeter = document.getElementById('recordingOutputMeter');
+    const recordingMicMeter = document.getElementById('recordingMicMeter');
+    
+    // Update system audio meter
+    if(systemAnalyzer && systemDataArray) {
+      systemAnalyzer.getByteFrequencyData(systemDataArray);
+      const systemLevel = getAudioLevel(systemDataArray);
+      
+      // Update preview meter (when not recording)
+      if(outMeter) {
+        outMeter.style.width = systemLevel + '%';
+      }
+      
+      // Update recording meter (when recording)
+      if(recordingOutMeter) {
+        recordingOutMeter.style.width = systemLevel + '%';
+      }
+    }
+    
+    // Update mic audio meter
+    if(micAnalyzer && micDataArray) {
+      micAnalyzer.getByteFrequencyData(micDataArray);
+      const micLevel = getAudioLevel(micDataArray);
+      
+      // Update preview meter (when not recording)
+      if(micMeter) {
+        micMeter.style.width = micLevel + '%';
+      }
+      
+      // Update recording meter (when recording)
+      if(recordingMicMeter) {
+        recordingMicMeter.style.width = micLevel + '%';
+      }
+    }
+  }
+  
+  function getAudioLevel(dataArray) {
+    let sum = 0;
+    let max = 0;
+    for(let i = 0; i < dataArray.length; i++) {
+      sum += dataArray[i];
+      if(dataArray[i] > max) max = dataArray[i];
+    }
+    const average = sum / dataArray.length;
+    
+    // Enhanced responsiveness for boosted audio
+    const level = Math.max(average * 0.8, max * 0.4);
+    
+    // Better scaling that shows gain effects more clearly
+    let percentage = (level / 255) * 100;
+    
+    // Apply boost visibility for high gain scenarios
+    if (intendedSystemGain > 1) {
+      percentage = Math.min(100, percentage * 1.2); // Make boosted audio more visible
+    }
+    
+    // Clamp to 100% max but show meaningful activity
+    percentage = Math.min(100, percentage);
+    
+    // Show activity if there's any audio
+    return percentage > 1 ? percentage : (Math.random() * 3);
+  }
+  
+  function stopAudioMeters(){
+    if(meterInterval) {
+      clearInterval(meterInterval);
+      meterInterval = null;
+    }
+    
+    // Clean up preview streams
+    if(window.__previewStreams) {
+      const { tempScreenStream, tempMicStream } = window.__previewStreams;
+      if(tempScreenStream) tempScreenStream.getTracks().forEach(track => track.stop());
+      if(tempMicStream) tempMicStream.getTracks().forEach(track => track.stop());
+      window.__previewStreams = null;
+    }
+    
+    // Hide recording UI elements
+    const recordingIndicators = document.querySelectorAll('div[style*="font-size:10px;color:#2196F3;"]');
+    recordingIndicators.forEach(indicator => {
+      if(indicator.textContent.includes('(recording)')) {
+        indicator.style.display = 'none';
+      }
+    });
+    
+    // Clean up audio analysis
+    if(audioContext) {
+      audioContext.close();
+      audioContext = null;
+    }
+    systemAnalyzer = null;
+    micAnalyzer = null;
+    systemDataArray = null;
+    micDataArray = null;
+    systemGainNode = null;
+    micGainNode = null;
+    
+    // Reset meters
+    const outMeter = document.getElementById('outputMeterFill');
+    const micMeter = document.getElementById('micMeterFill');
+    if(outMeter) outMeter.style.width = '0%';
+    if(micMeter) micMeter.style.width = '0%';
+  }
+  
+  // Preview meters before recording starts
+  async function startPreviewMeters(){
+    const mode = (audioSelect && audioSelect.value) || 'none';
+    if(mode === 'none') return;
+    
+    try {
+      // Get temporary streams for preview
+      let tempScreenStream, tempMicStream;
+      
+      if(mode === 'system' || mode === 'mixed') {
+        try {
+          tempScreenStream = await navigator.mediaDevices.getDisplayMedia({ 
+            video: false, 
+            audio: true 
+          });
+        } catch(e) {
+          console.log('System audio preview failed:', e);
+        }
+      }
+      
+      if(mode === 'mic' || mode === 'mixed') {
+        try {
+          tempMicStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: true 
+          });
+        } catch(e) {
+          console.log('Mic audio preview failed:', e);
+        }
+      }
+      
+      // Setup audio analysis for preview
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      if(tempScreenStream && tempScreenStream.getAudioTracks().length > 0) {
+        try {
+          const systemSource = audioContext.createMediaStreamSource(tempScreenStream);
+          systemAnalyzer = audioContext.createAnalyser();
+          systemAnalyzer.fftSize = 512;
+          systemAnalyzer.smoothingTimeConstant = 0.8;
+          systemSource.connect(systemAnalyzer);
+          systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
+          console.log('System audio preview setup successful');
+        } catch(e) {
+          console.log('System audio preview analyzer failed:', e);
+        }
+      }
+      
+      if(tempMicStream && tempMicStream.getAudioTracks().length > 0) {
+        try {
+          const micSource = audioContext.createMediaStreamSource(tempMicStream);
+          micAnalyzer = audioContext.createAnalyser();
+          micAnalyzer.fftSize = 512;
+          micAnalyzer.smoothingTimeConstant = 0.8;
+          micSource.connect(micAnalyzer);
+          micDataArray = new Uint8Array(micAnalyzer.frequencyBinCount);
+          console.log('Mic audio preview setup successful');
+        } catch(e) {
+          console.log('Mic audio preview analyzer failed:', e);
+        }
+      }
+      
+      // Start meter updates
+      meterInterval = setInterval(() => {
+        updateMeterLevels();
+      }, 50);
+      
+      // Store temp streams for cleanup
+      window.__previewStreams = { tempScreenStream, tempMicStream };
+      
+    } catch(e) {
+      console.log('Preview meters failed, using fallback:', e);
+      // Fallback to animated meters
+      const outMeter = document.getElementById('outputMeterFill');
+      const micMeter = document.getElementById('micMeterFill');
+      
+      meterInterval = setInterval(() => {
+        if(mode === 'system' || mode === 'mixed'){
+          if(outMeter) outMeter.style.width = (5 + Math.random() * 20) + '%';
+        }
+        if(mode === 'mic' || mode === 'mixed'){
+          if(micMeter) micMeter.style.width = (3 + Math.random() * 15) + '%';
+        }
+      }, 150);
+    }
+  }
+  async function buildStream(){
+    const mode = (audioSelect && audioSelect.value) || 'none';
+    console.log(`🎵 BUILDING STREAM WITH MODE: ${mode}`);
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio: mode!=='mic' && mode!=='none' });
+    if(mode==='mic' || mode==='mixed') micStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    
+    if(mode==='mixed' && micStream){
+      audioContext = new AudioContext();
+      const dest = audioContext.createMediaStreamDestination();
+      
+      // Create gain nodes for real-time control
+      systemGainNode = audioContext.createGain();
+      micGainNode = audioContext.createGain();
+      
+      // Apply stored gain values to newly created gain nodes
+      applyStoredGainValues();
+      
+      // Create analyzers and connect them AFTER gain nodes
+      systemAnalyzer = audioContext.createAnalyser();
+      micAnalyzer = audioContext.createAnalyser();
+      systemAnalyzer.fftSize = 512;
+      micAnalyzer.fftSize = 512;
+      systemAnalyzer.smoothingTimeConstant = 0.8;
+      micAnalyzer.smoothingTimeConstant = 0.8;
+      systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
+      micDataArray = new Uint8Array(micAnalyzer.frequencyBinCount);
+      
+      const sysT = screenStream.getAudioTracks()[0]; 
+      if(sysT) {
+        const sysSource = audioContext.createMediaStreamSource(new MediaStream([sysT]));
+        
+        // Connect for recording with gain control: Source → Gain → Analyzer → Recording Destination
+        sysSource.connect(systemGainNode);
+        systemGainNode.connect(systemAnalyzer);
+        systemGainNode.connect(dest);
+        
+        console.log('🎵 System audio connected with adjustable recording gain');
+      }
+      
+      const micT = micStream.getAudioTracks()[0]; 
+      if(micT) {
+        const micSource = audioContext.createMediaStreamSource(new MediaStream([micT]));
+        // Connect: Source → Gain → Analyzer → Destination
+        micSource.connect(micGainNode);
+        micGainNode.connect(micAnalyzer);
+        micGainNode.connect(dest);
+      }
+      
+      mixedStream = new MediaStream([...screenStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+      return mixedStream;
+    }
+    
+    if(mode==='mic' && micStream){
+      audioContext = new AudioContext();
+      const dest = audioContext.createMediaStreamDestination();
+      
+      // Create gain node for mic
+      micGainNode = audioContext.createGain();
+      
+      // Apply stored mic gain value to newly created gain node
+      if (micGainNode && audioContext) {
+        micGainNode.gain.setValueAtTime(intendedMicGain, audioContext.currentTime);
+        console.log(`🎤 Applied stored mic gain (mic-only): ${intendedMicGain.toFixed(1)}x`);
+      }
+      
+      // Create analyzer and connect it AFTER gain node
+      micAnalyzer = audioContext.createAnalyser();
+      micAnalyzer.fftSize = 512;
+      micAnalyzer.smoothingTimeConstant = 0.8;
+      micDataArray = new Uint8Array(micAnalyzer.frequencyBinCount);
+      
+      const micT = micStream.getAudioTracks()[0];
+      if(micT) {
+        const micSource = audioContext.createMediaStreamSource(new MediaStream([micT]));
+        // Connect: Source → Gain → Analyzer → Destination
+        micSource.connect(micGainNode);
+        micGainNode.connect(micAnalyzer);
+        micGainNode.connect(dest);
+      }
+      
+      return new MediaStream([...screenStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    }
+    
+    if(mode==='system' && screenStream.getAudioTracks().length > 0){
+      // For system audio only, USE Web Audio API to enable gain control
+      const sysT = screenStream.getAudioTracks()[0];
+      
+      if(sysT) {
+        try {
+          audioContext = new AudioContext();
+          const dest = audioContext.createMediaStreamDestination();
+          
+          // Create gain node for system audio boost
+          systemGainNode = audioContext.createGain();
+          
+          // Apply stored gain values
+          applyStoredGainValues();
+          
+          const sysSource = audioContext.createMediaStreamSource(new MediaStream([sysT]));
+          systemAnalyzer = audioContext.createAnalyser();
+          systemAnalyzer.fftSize = 512;
+          systemAnalyzer.smoothingTimeConstant = 0.8;
+          systemDataArray = new Uint8Array(systemAnalyzer.frequencyBinCount);
+          
+          // Connect with gain control: Source → Gain → Analyzer → Destination
+          sysSource.connect(systemGainNode);
+          systemGainNode.connect(systemAnalyzer);
+          systemGainNode.connect(dest);
+          
+          console.log('🎵 System-only audio connected with gain boost control');
+          
+          // Return stream with boosted audio instead of original
+          return new MediaStream([...screenStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+        } catch(e) {
+          console.log('Audio processing setup failed, using original stream:', e);
+          // Fallback to original stream if processing fails
+          return screenStream;
+        }
+      }
+      
+      // Fallback if no audio track
+      return screenStream;
+    }
+    
+    return screenStream;
+  }
+  function updateButton(){
+    if(!btn) return;
+    if(recording){ btn.textContent='⏹ Stop Recording'; btn.classList.add('recording'); }
+    else { btn.textContent='🔴 Start Recording'; btn.classList.remove('recording'); }
+  }
+  
+  function updateUI(){
+    const controlsSection = document.getElementById('controlsSection');
+    const audioUI = document.getElementById('audioProcessingControls');
+    const audioSelect = document.getElementById('audioSource');
+    const recordingAudioMeters = document.getElementById('recordingAudioMeters');
+    
+    if(recording){
+      // Hide controls during recording
+      if(controlsSection) controlsSection.style.display = 'none';
+      
+      // Show recording audio meters between preview and stop button
+      const mode = (audioSelect && audioSelect.value) || 'none';
+      if(mode !== 'none') {
+        showRecordingAudioMeters(mode);
+      }
+    } else {
+      // Show controls when not recording
+      if(controlsSection) controlsSection.style.display = 'flex';
+      
+      // Hide recording audio meters
+      if(recordingAudioMeters) {
+        recordingAudioMeters.remove();
+      }
+      
+      // Show/hide audio controls based on audio source selection
+      updateAudioControls();
+      
+      // Reset audio UI positioning when not recording
+      if(audioUI) {
+        audioUI.style.position = '';
+        audioUI.style.top = '';
+        audioUI.style.left = '';
+        audioUI.style.transform = '';
+        audioUI.style.background = '';
+        audioUI.style.padding = '';
+        audioUI.style.borderRadius = '';
+        audioUI.style.border = '';
+        audioUI.style.zIndex = '';
+        audioUI.style.boxShadow = '';
+      }
+    }
+  }
+  
+  function showRecordingAudioMeters(mode) {
+    // Remove any existing recording meters
+    const existing = document.getElementById('recordingAudioMeters');
+    if(existing) existing.remove();
+    
+    // Create recording audio meters container - same width as preview screen
+    const metersContainer = document.createElement('div');
+    metersContainer.id = 'recordingAudioMeters';
+    metersContainer.style.cssText = 'width:66%; background:#666; border:10px solid #333; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin:0 auto;';
+    
+    let metersHTML = '';
+    
+    if(mode === 'system') {
+      metersHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="color:#fff; font-size:14px; font-weight:600;">System:</label>
+            <input id="recordingSystemGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+            <span id="recordingSystemGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; border-left:2px solid #4CAF50; padding-left:8px;">
+            <span style="color:#ccc; font-size:11px;">Out:</span>
+            <div style="width:200px; height:12px; background:#1b1b1b; border:1px solid #444; border-radius:6px; overflow:hidden; position:relative;">
+              <div id="recordingOutputMeter" style="height:100%; width:0%; background:#4caf50; transition:width .1s linear;"></div>
+            </div>
+          </div>
+        </div>`;
+    } else if(mode === 'mic') {
+      metersHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="color:#fff; font-size:14px; font-weight:600;">Mic:</label>
+            <input id="recordingMicGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+            <span id="recordingMicGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="color:#ccc; font-size:11px;">In:</span>
+            <div style="width:150px; height:12px; background:#1b1b1b; border:1px solid #444; border-radius:6px; overflow:hidden; position:relative;">
+              <div id="recordingMicMeter" style="height:100%; width:0%; background:#4caf50; transition:width .1s linear;"></div>
+            </div>
+          </div>
+        </div>`;
+    } else if(mode === 'mixed') {
+      metersHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; border-top:1px solid #888; padding-top:15px;">
+          <div style="display:flex; align-items:center; gap:8px; border-left:2px solid #aaa; padding-left:8px;">
+            <label style="color:#fff; font-size:14px; font-weight:600;">System:</label>
+            <input id="recordingSystemGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+            <span id="recordingSystemGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+            <div style="display:flex; align-items:center; gap:6px; border-left:2px solid #4CAF50; padding-left:8px;">
+              <span style="color:#ccc; font-size:11px;">Out:</span>
+              <div style="width:100px; height:10px; background:#1b1b1b; border:1px solid #444; border-radius:5px; overflow:hidden; position:relative;">
+                <div id="recordingOutputMeter" style="height:100%; width:0%; background:#4caf50; transition:width .1s linear;"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; border-left:2px solid #aaa; padding-left:8px;">
+            <label style="color:#fff; font-size:14px; font-weight:600;">Mic:</label>
+            <input id="recordingMicGainSlider" type="range" min="0" max="5" step="0.1" value="1" style="width:80px;cursor:pointer;">
+            <span id="recordingMicGainValue" style="color:#fff;font-size:12px;min-width:34px;text-align:left;">1.0x</span>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span style="color:#ccc; font-size:11px;">In:</span>
+              <div style="width:60px; height:10px; background:#1b1b1b; border:1px solid #444; border-radius:5px; overflow:hidden; position:relative;">
+                <div id="recordingMicMeter" style="height:100%; width:0%; background:#4caf50; transition:width .1s linear;"></div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+    
+    metersContainer.innerHTML = metersHTML;
+    
+    // Insert between preview and record button
+    const recordButtonSection = document.getElementById('recordButtonSection');
+    if(recordButtonSection) {
+      recordButtonSection.parentNode.insertBefore(metersContainer, recordButtonSection);
+    }
+    
+    // Add event handlers for recording gain sliders
+    const recordingSysSlider = document.getElementById('recordingSystemGainSlider');
+    const recordingSysVal = document.getElementById('recordingSystemGainValue');
+    const recordingMicSlider = document.getElementById('recordingMicGainSlider');
+    const recordingMicVal = document.getElementById('recordingMicGainValue');
+    
+    if(recordingSysSlider && recordingSysVal) {
+      recordingSysVal.textContent = parseFloat(recordingSysSlider.value).toFixed(1) + 'x';
+      recordingSysSlider.addEventListener('input', () => {
+        const gainValue = parseFloat(recordingSysSlider.value);
+        recordingSysVal.textContent = gainValue.toFixed(1) + 'x';
+        // Use the centralized gain setting function
+        setSystemGain(gainValue);
+      });
+    }
+    
+    if(recordingMicSlider && recordingMicVal) {
+      recordingMicVal.textContent = parseFloat(recordingMicSlider.value).toFixed(1) + 'x';
+      recordingMicSlider.addEventListener('input', () => {
+        const gainValue = parseFloat(recordingMicSlider.value);
+        recordingMicVal.textContent = gainValue.toFixed(1) + 'x';
+        // Use the centralized gain setting function
+        setMicGain(gainValue);
+      });
+    }
+  }
+  
+  function updateAudioControls(){
+    const audioSelect = document.getElementById('audioSource');
+    const audioUI = document.getElementById('audioProcessingControls');
+    const sysGainWrap = document.getElementById('systemGainControl');
+    const micGainWrap = document.getElementById('micGainControl');
+    
+    if(!audioSelect || !audioUI) return;
+    
+    const mode = audioSelect.value;
+    
+    // Stop any existing preview meters
+    stopAudioMeters();
+    
+    if(mode === 'none') {
+      audioUI.style.display = 'none';
+      if(sysGainWrap) sysGainWrap.style.display = 'none';
+      if(micGainWrap) micGainWrap.style.display = 'none';
+    } else {
+      // Always show audio controls when audio source is selected
+      audioUI.style.display = 'flex';
+      
+      // Show appropriate controls based on mode
+      if(mode === 'system') {
+        if(sysGainWrap) sysGainWrap.style.display = 'flex';
+        if(micGainWrap) micGainWrap.style.display = 'none';
+      } else if(mode === 'mic') {
+        if(sysGainWrap) sysGainWrap.style.display = 'none';
+        if(micGainWrap) micGainWrap.style.display = 'flex';
+      } else if(mode === 'mixed') {
+        if(sysGainWrap) sysGainWrap.style.display = 'flex';
+        if(micGainWrap) micGainWrap.style.display = 'flex';
+      }
+      
+      // Start preview meters when not recording
+      if(!recording) {
+        startPreviewMeters();
+      }
+    }
+  }
+  async function start(){
+    const stream = await buildStream();
+    
+    // Immediately show video preview
+    const video = ensureVideo();
+    video.srcObject = stream;
+    
+    // Force immediate playback
+    try {
+      await video.play();
+    } catch(e) {
+      // Autoplay might be blocked, but that's ok
+      console.log('Autoplay blocked, video will play when user interacts');
+    }
+    
+    let mime='video/webm';
+    if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mime='video/webm;codecs=vp9';
+    else if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mime='video/webm;codecs=vp8';
+    chunks=[];
+    mediaRecorder = new MediaRecorder(stream,{ mimeType:mime });
+    mediaRecorder.ondataavailable = e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    mediaRecorder.onstop = ()=>{
+      // If capture failed earlier, attempt one more (videoEl might still hold frame)
+      if(!lastFrameData) captureLastFrame();
+      showLastFrame();
+      const blob = new Blob(chunks,{ type:mime.split(';')[0] });
+      window.__lastRecordingBlob = blob;
+      
+      // Hide everything except metadata form
+      const controlsSection = document.getElementById('controlsSection');
+      const recordButtonSection = document.getElementById('recordButtonSection');
+      const userVideoGrid = document.getElementById('userVideoGrid');
+      
+      if(controlsSection) controlsSection.style.display = 'none';
+      if(recordButtonSection) recordButtonSection.style.display = 'none';
+      if(userVideoGrid) userVideoGrid.style.display = 'none';
+      
+      if(metaForm) metaForm.style.display='block';
+    };
+    mediaRecorder.start();
+    recording = true; 
+    updateButton();
+    updateUI();
+    startAudioMeters();
+  }
+  function stop(){
+    // Capture BEFORE stopping tracks to guarantee frame
+    if(!lastFrameData){
+      const ok = captureLastFrame();
+      if(!ok){
+        // attempt small delay if metadata not ready yet
+        if(videoEl && !videoEl.videoWidth){
+          try { const h = setTimeout(()=>{ captureLastFrame(); showLastFrame(); }, 120); } catch(e){}
+        }
+      }
+    }
+    recording=false; 
+    updateButton();
+    updateUI();
+    stopAudioMeters();
+    try { mediaRecorder && mediaRecorder.state!=='inactive' && mediaRecorder.stop(); } catch(e){}
+    [screenStream,micStream,mixedStream].forEach(s=> s && s.getTracks().forEach(t=>t.stop()));
+  }
+  window.handleRecordButtonClick = async function(){
+    if(recording){ stop(); return; }
+    lastFrameData = null; // reset
+    try { await start(); } catch(e){ console.error(e); recording=false; updateButton(); updateUI(); alert('Cannot start recording'); }
+  };
+  
+  // Function to restore UI after upload
+  window.restoreRecorderUI = function(){
+    const controlsSection = document.getElementById('controlsSection');
+    const recordButtonSection = document.getElementById('recordButtonSection');
+    const userVideoGrid = document.getElementById('userVideoGrid');
+    const metaForm = document.getElementById('metadataForm');
+    
+    if(controlsSection) controlsSection.style.display = 'flex';
+    if(recordButtonSection) recordButtonSection.style.display = 'flex';
+    if(userVideoGrid) userVideoGrid.style.display = 'block';
+    if(metaForm) metaForm.style.display = 'none';
+    
+    // Reset any form selections
+    const radios = document.querySelectorAll('input[name="customerType"]');
+    radios.forEach(r => r.checked = false);
+    
+    const forms = document.querySelectorAll('.customer-form');
+    forms.forEach(f => f.style.display = 'none');
+    
+    const commonFields = document.getElementById('commonFields');
+    if(commonFields) commonFields.style.display = 'none';
+  };
+  
+
+  function handleAudioSourceChange(){
+    saveRecorderSettings({ audioSource: audioSelect ? audioSelect.value : undefined });
+    updateAudioControls();
+  }
+
+  // Add audio source change handler
+  if(audioSelect) {
+    audioSelect.addEventListener('change', handleAudioSourceChange);
+  }
+
+  if(qualitySelect) {
+    qualitySelect.addEventListener('change', () => {
+      saveRecorderSettings({ quality: qualitySelect.value });
+    });
+  }
+
+  if(framerateSelect) {
+    framerateSelect.addEventListener('change', () => {
+      saveRecorderSettings({ framerate: framerateSelect.value });
+    });
+  }
+  
+  // Expose updateAudioControls globally for localStorage restoration
+  window.updateAudioControls = updateAudioControls;
+  
+  // Initialize slider value displays and gain control
+  const sysSlider = document.getElementById('systemGainSlider');
+  const micSlider = document.getElementById('micGainSlider');
+  const sysVal = document.getElementById('systemGainValue');
+  const micVal = document.getElementById('micGainValue');
+  
+  if(sysSlider && sysVal) {
+    // Initialize stored gain value from slider
+    intendedSystemGain = parseFloat(sysSlider.value);
+    sysVal.textContent = intendedSystemGain.toFixed(1) + 'x';
+    sysSlider.addEventListener('input', () => {
+      const gainValue = parseFloat(sysSlider.value);
+      sysVal.textContent = gainValue.toFixed(1) + 'x';
+      
+      // Color-code the gain value based on level
+      if (gainValue === 0) {
+        sysVal.style.color = '#ff4444'; // Red for muted
+      } else if (gainValue < 1) {
+        sysVal.style.color = '#ffa726'; // Orange for reduced
+      } else if (gainValue === 1) {
+        sysVal.style.color = '#fff'; // White for normal
+      } else if (gainValue <= 2) {
+        sysVal.style.color = '#66bb6a'; // Green for slight boost
+      } else {
+        sysVal.style.color = '#42a5f5'; // Blue for high boost
+      }
+      
+      // Use the new function to set gain with debug info
+      console.log(`🎚️ SLIDER MOVED: Setting system gain to ${gainValue.toFixed(1)}x`);
+      setSystemGain(gainValue);
+    });
+  }
+  
+  if(micSlider && micVal) {
+    // Initialize stored gain value from slider
+    intendedMicGain = parseFloat(micSlider.value);
+    micVal.textContent = intendedMicGain.toFixed(1) + 'x';
+    micSlider.addEventListener('input', () => {
+      const gainValue = parseFloat(micSlider.value);
+      micVal.textContent = gainValue.toFixed(1) + 'x';
+      
+      // Color-code the gain value based on level
+      if (gainValue === 0) {
+        micVal.style.color = '#ff4444'; // Red for muted
+      } else if (gainValue < 1) {
+        micVal.style.color = '#ffa726'; // Orange for reduced
+      } else if (gainValue === 1) {
+        micVal.style.color = '#fff'; // White for normal
+      } else if (gainValue <= 2) {
+        micVal.style.color = '#66bb6a'; // Green for slight boost
+      } else {
+        micVal.style.color = '#42a5f5'; // Blue for high boost
+      }
+      
+      // Use the new function to set gain
+      setMicGain(gainValue);
+    });
+  }
+  
+  applyRecorderSettings();
+  updateButton();
+  updateUI();
+  handleAudioSourceChange();
+  saveRecorderSettings({
+    audioSource: audioSelect ? audioSelect.value : undefined,
+    quality: qualitySelect ? qualitySelect.value : undefined,
+    framerate: framerateSelect ? framerateSelect.value : undefined
+  });
+})();
+</script>
+<!-- End Recording + Preview -->
+<script>
+(function(){
+  if(window.__customerSearchMainInit) return; window.__customerSearchMainInit = true;
+
+  const existingForm = document.getElementById('existingCustomerForm');
+  const newForm = document.getElementById('newCustomerForm');
+  const commonFields = document.getElementById('commonFields');
+  const searchInput = document.getElementById('customerSearch');
+  const suggestionsEl = document.getElementById('customerSuggestions');
+  const debugLog = (...args) => {
+    try {
+      if(window?.console?.debug){
+        console.debug('[Customers]', ...args);
+      } else if(window?.console){
+        console.log('[Customers]', ...args);
+      }
+    } catch(_){}
+  };
+
+  let allCustomers = [];
+  let filtered = [];
+  let activeIndex = -1;
+  let debounce;
+  let loadPromise = null;
+  let lastSuccessfulQuery = '';
+
+  const CUSTOMER_CACHE_KEY = 'sparkyCustomersCache';
+  const CUSTOMER_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+  const STORAGE_SUPPORTED = (() => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return false;
+      const testKey = '__sparky_customer_cache_probe__';
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      return true;
+    } catch (_err) {
+      return false;
+    }
+  })();
+
+  function readCacheEntry(key) {
+    if (!STORAGE_SUPPORTED) return null;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const { payload, expireAt } = parsed;
+      if (typeof expireAt === 'number' && expireAt && Date.now() > expireAt) {
+        window.localStorage.removeItem(key);
+        return null;
+      }
+      return payload || null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function writeCacheEntry(key, payload, ttlMs) {
+    if (!STORAGE_SUPPORTED) return;
+    try {
+      const record = {
+        payload,
+        savedAt: Date.now(),
+        expireAt: typeof ttlMs === 'number' && ttlMs > 0 ? Date.now() + ttlMs : null
+      };
+      window.localStorage.setItem(key, JSON.stringify(record));
+    } catch (_err) {
+      // ignore storage failures
+    }
+  }
+
+  function escapeHtml(t){ if(typeof t!=='string') return t; return t.replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[s])); }
+
+  function renderMessage(message){
+    if(!suggestionsEl) return;
+    suggestionsEl.innerHTML = `<div class="suggestion-item">${escapeHtml(message)}</div>`;
+    suggestionsEl.style.display = 'block';
+    debugLog('renderMessage', message);
+  }
+
+  function renderList(){
+    if (window.__selectedCustomer) return; // Don't show dropdown after customer selection
+    if(!suggestionsEl) return;
+    if(!filtered.length){
+      renderMessage('No customers found');
+      return;
+    }
+    suggestionsEl.innerHTML = filtered.map((c,i)=>`<div class="suggestion-item" data-idx="${i}" style="${i===activeIndex?'background:#555;':''}"><strong>${escapeHtml(c.name||'(No Name)')}</strong><br><small>${escapeHtml(c.email||'')}</small></div>`).join('');
+    suggestionsEl.style.display='block';
+  }
+
+  function filterCustomers(query){
+    const term = (query||'').trim().toLowerCase();
+    if(!term) return allCustomers.slice(0,150);
+    return allCustomers.filter(c => (c.name||'').toLowerCase().includes(term) || (c.email||'').toLowerCase().includes(term)).slice(0,150);
+  }
+
+  function applyFilter(q){
+    if(typeof q === 'string'){
+      lastSuccessfulQuery = q;
+    }
+    const targetQuery = typeof q === 'string' ? q : lastSuccessfulQuery;
+    filtered = filterCustomers(targetQuery);
+    activeIndex = filtered.length ? 0 : -1;
+    renderList();
+    debugLog('applyFilter', { query: targetQuery, results: filtered.length, total: allCustomers.length });
+  }
+
+  function pickFirstString(candidateList){
+    for(const value of candidateList){
+      if(typeof value === 'string' && value.trim()){ return value.trim(); }
+    }
+    return '';
+  }
+
+  function normaliseCustomers(list){
+    if(!Array.isArray(list)) return [];
+    return list
+      .map(c => {
+        const name = pickFirstString([
+          c?.name,
+          c?.customerName,
+          c?.customer_name,
+          c?.displayName,
+          c?.customer?.name,
+          c?.metadata?.customer,
+          c?.metadata?.customerName
+        ]) || 'Unnamed Customer';
+        const email = pickFirstString([
+          c?.email,
+          c?.customerEmail,
+          c?.customer_email,
+          c?.emailAddress,
+          c?.email_address,
+          c?.metadata?.customerEmail,
+          c?.metadata?.customer_email,
+          c?.metadata?.email,
+          c?.customer?.email
+        ]);
+        return { name, email };
+      })
+      .filter(c => c.email);
+  }
+
+  function hydrateFromCache(){
+    const cachedPayload = readCacheEntry(CUSTOMER_CACHE_KEY);
+    const cachedCustomers = normaliseCustomers(cachedPayload?.customers);
+    if(!cachedCustomers.length) return false;
+    allCustomers = dedupeCustomers([...cachedCustomers, ...allCustomers]);
+    allCustomers.sort((a,b) => a.name.localeCompare(b.name));
+    // expose customers globally for validation
+    try { window.__allCustomers = allCustomers.map(c => ({ name: c.name, email: c.email, id: c.id })); } catch(e){}
+    applyFilter(searchInput ? searchInput.value : lastSuccessfulQuery);
+    debugLog('hydrateFromCache', { cachedCount: cachedCustomers.length, total: allCustomers.length });
+    return true;
+  }
+
+  async function fetchCustomers(){
+    if(loadPromise) return loadPromise;
+
+    const queryBefore = searchInput ? searchInput.value : lastSuccessfulQuery;
+    debugLog('fetchCustomers:start', { queryBefore, haveCustomers: allCustomers.length });
+
+    async function loadFromApi(){
+      try {
+        const resp = await fetch('/api/get-all-customers', { headers: { 'Accept': 'application/json' }});
+        if(!resp.ok) throw new Error(`status ${resp.status}`);
+        const payload = await resp.json();
+        const customers = normaliseCustomers(payload.customers || payload);
+        debugLog('fetchCustomers:apiResult', { rawCount: Array.isArray(payload.customers || payload) ? (payload.customers || payload).length : 'n/a', normalized: customers.length });
+        return customers;
+      } catch(err) {
+        debugLog('fetchCustomers:apiError', err?.message || err);
+        return [];
+      }
+    }
+
+    async function loadFromSupabase(){
+      try {
+        if(!window.supabase?.from){
+          throw new Error('Supabase client not ready');
+        }
+
+        // Query customers table directly
+        const { data, error } = await window.supabase
+          .from('customers')
+          .select('*')
+          .not('email', 'is', null)
+          .not('email', 'eq', '');
+
+        if(error) throw error;
+
+        // Map to expected format
+        const customers = (data || []).map(record => ({
+          name: record.name || record.customer_name || record.first_name + ' ' + record.last_name || '',
+          email: record.email || record.customer_email || '',
+          id: record.id
+        })).filter(c => c.email && c.name);
+
+        debugLog('fetchCustomers:supabaseResult', { total: customers.length });
+        return customers;
+      } catch(err) {
+        debugLog('fetchCustomers:supabaseError', err?.message || err);
+        return [];
+      }
+    }
+
+    async function loadFromVimeo(){
+      try {
+        const resp = await fetch('/api/vimeo-folder/26555277', { headers: { 'Accept': 'application/json' }});
+        if(!resp.ok) throw new Error(`status ${resp.status}`);
+        const payload = await resp.json();
+        const fromVimeo = normaliseCustomers(
+          (Array.isArray(payload) ? payload : []).map(v => ({
+            name: v.customerName || v.name || '',
+            email: v.customerEmail || ''
+          }))
+        );
+        debugLog('fetchCustomers:vimeoResult', { rawCount: Array.isArray(payload) ? payload.length : 'n/a', normalized: fromVimeo.length });
+        return fromVimeo;
+      } catch(err) {
+        debugLog('fetchCustomers:vimeoError', err?.message || err);
+        return [];
+      }
+    }
+
+    loadPromise = (async () => {
+      if(!allCustomers.length) renderMessage('Loading customers...');
+
+      const merged = [];
+      const apiCustomers = await loadFromApi();
+      if(apiCustomers.length) merged.push(...apiCustomers);
+
+      if(!merged.length){
+        const supabaseCustomers = await loadFromSupabase();
+        if(supabaseCustomers.length) merged.push(...supabaseCustomers);
+      }
+
+      if(!merged.length){
+        const vimeoFallback = await loadFromVimeo();
+        if(vimeoFallback.length) merged.push(...vimeoFallback);
+      }
+
+      if(merged.length){
+        allCustomers = dedupeCustomers([...merged, ...allCustomers]);
+        allCustomers.sort((a,b) => a.name.localeCompare(b.name));
+        // expose a normalized array for other pages/scripts to use
+        try { window.__allCustomers = allCustomers.map(c => ({ name: c.name, email: c.email, id: c.id })); } catch(e){}
+        writeCacheEntry(CUSTOMER_CACHE_KEY, { customers: allCustomers }, CUSTOMER_CACHE_TTL);
+        applyFilter(queryBefore);
+        debugLog('fetchCustomers:mergedSuccess', { merged: merged.length, total: allCustomers.length });
+        return;
+      }
+
+      if(allCustomers.length){
+        applyFilter(queryBefore);
+        debugLog('fetchCustomers:usingExisting', { total: allCustomers.length });
+        return;
+      }
+
+      renderMessage('Unable to load customers');
+      debugLog('fetchCustomers:allSourcesFailed');
+    })()
+    .finally(() => { loadPromise = null; });
+
+    return loadPromise;
+  }
+
+  function dedupeCustomers(list){
+    const map = new Map();
+    list.forEach(c => {
+      const key = c.email.toLowerCase();
+      if(!map.has(key)) map.set(key, c);
+    });
+    return Array.from(map.values());
+  }
+
+  function ensureCustomersLoaded(){
+    const hadCache = hydrateFromCache();
+    if(!hadCache) renderMessage('Loading customers...');
+    fetchCustomers();
+    debugLog('ensureCustomersLoaded', { hadCache, total: allCustomers.length });
+  }
+
+  // Expose globally for validation
+  window.ensureCustomersLoaded = ensureCustomersLoaded;
+
+  function select(idx){
+    if(!searchInput || idx<0 || idx>=filtered.length) return;
+    const c = filtered[idx];
+    searchInput.value = `${c.name}${c.email ? ` (${c.email})` : ''}`;
+    activeIndex = idx;
+
+    if(suggestionsEl){
+      suggestionsEl.innerHTML = '';
+      suggestionsEl.style.display = 'none';
+    }
+
+    // Ensure the "existing customer" radio button is checked
+    const existingRadio = document.querySelector('input[name="customerType"][value="existing"]');
+    if(existingRadio) {
+      existingRadio.checked = true;
+    }
+
+    commonFields.style.display = 'block';
+    window.__selectedCustomer = c;
+
+    const extraFields = document.getElementById('existingExtraFields');
+    if(extraFields) extraFields.style.display='block';
+
+    const nameParts = (c.name||'').trim().split(/\s+/);
+    const first = nameParts.shift()||'';
+    const last = nameParts.join(' ')||'';
+    const ef = document.getElementById('existingFirstName');
+    const el = document.getElementById('existingLastName');
+    const ee = document.getElementById('existingEmail');
+    if(ef) ef.value = first;
+    if(el) el.value = last;
+    if(ee) ee.value = c.email||'';
+  }
+
+  function keyHandler(e){
+    if(!filtered.length) return;
+    switch(e.key){
+      case 'ArrowDown':
+        e.preventDefault();
+        activeIndex = (activeIndex + 1) % filtered.length;
+        renderList();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        activeIndex = (activeIndex - 1 + filtered.length) % filtered.length;
+        renderList();
+        break;
+      case 'Enter':
+        if(activeIndex > -1){
+          e.preventDefault();
+          select(activeIndex);
+        }
+        break;
+      case 'Escape':
+        if(suggestionsEl){
+          suggestionsEl.innerHTML = '';
+          suggestionsEl.style.display = 'none';
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  if(searchInput){
+    searchInput.addEventListener('focus', () => {
+      ensureCustomersLoaded();
+      applyFilter(searchInput.value);
+    });
+    searchInput.addEventListener('input', () => {
+      if (window.__selectedCustomer) return; // Prevent reopening dropdown after selection
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        applyFilter(searchInput.value);
+      }, 140);
+    });
+    searchInput.addEventListener('keydown', keyHandler);
+  }
+
+  if(suggestionsEl){
+    suggestionsEl.addEventListener('mousedown', e => {
+      const item = e.target.closest('.suggestion-item');
+      if(!item) return;
+      const idx = parseInt(item.dataset.idx, 10);
+      select(idx);
+    });
+  }
+
+  const originalToggle = window.toggleCustomerForm;
+  window.toggleCustomerForm = function(type){
+    if(type === 'existing'){
+      existingForm.style.display='block';
+      newForm.style.display='none';
+      commonFields.style.display='block';
+      ensureCustomersLoaded();
+      applyFilter(searchInput ? searchInput.value : lastSuccessfulQuery);
+      if(searchInput){
+        setTimeout(() => {
+          try {
+            searchInput.focus();
+            searchInput.select();
+          } catch(err){ debugLog('focus fail', err?.message || err); }
+        }, 30);
+      }
+      const extraFields = document.getElementById('existingExtraFields');
+      if(extraFields) extraFields.style.display='none';
+      debugLog('toggle existing', { total: allCustomers.length });
+    } else if(type === 'new'){
+      newForm.style.display='block';
+      existingForm.style.display='none';
+      commonFields.style.display='block';
+      // Load customers for validation when creating new customer
+      ensureCustomersLoaded();
+      debugLog('toggle new');
+    } else {
+      existingForm.style.display='none';
+      newForm.style.display='none';
+      commonFields.style.display='none';
+      const extraFields = document.getElementById('existingExtraFields');
+      if(extraFields) extraFields.style.display='none';
+      debugLog('toggle off/reset');
+    }
+
+    if(typeof originalToggle === 'function'){
+      try { originalToggle(type); } catch(_){}
+    }
+  };
+})();
+</script>
+<!-- Enhancements: customer detail fields, last-frame persistence, confirm upload -->
+<script>
+(function(){
+  if(window.__uploadEnhancementsInit) return; window.__uploadEnhancementsInit = true;
+  const folderId = '26555277';
+  const metaForm = document.getElementById('metadataForm');
+  const existingForm = document.getElementById('existingCustomerForm');
+  const newForm = document.getElementById('newCustomerForm');
+  const commonFields = document.getElementById('commonFields');
+  const recordBtn = document.getElementById('recordButton');
+  let lastFrameDataRef = null; // mirror of last frame from recorder scripts
+
+  // Inject extra fields for existing customer (first, last, email)
+  if(existingForm && !document.getElementById('existingExtraFields')){
+    const wrap = document.createElement('div');
+    wrap.id='existingExtraFields';
+    wrap.style.cssText='display:none;margin-top:18px;';
+    wrap.innerHTML = `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+        <div style="flex:1 1 160px;min-width:160px;">
+          <label class="form-label required">First Name</label>
+          <input type="text" id="existingFirstName" class="form-input" required>
+        </div>
+        <div style="flex:1 1 160px;min-width:160px;">
+          <label class="form-label required">Last Name</label>
+          <input type="text" id="existingLastName" class="form-input" required>
+        </div>
+        <div style="flex:1 1 240px;min-width:200px;">
+          <label class="form-label required">Customer Email</label>
+          <input type="email" id="existingEmail" class="form-input" required>
+        </div>
+      </div>`;
+    existingForm.appendChild(wrap);
+  }
+
+  // Customer selection is now handled directly in the search script's select() function
+
+  // Persist last frame reference by observing preview container changes
+  const previewShell = document.querySelector('.preview-screen');
+  const observer = new MutationObserver(()=>{
+    const img = previewShell && previewShell.querySelector('img');
+    if(img && img.src.startsWith('data:image/png')){ lastFrameDataRef = img.src; }
+  });
+  if(previewShell){ observer.observe(previewShell,{ childList:true, subtree:false }); }
+
+  function getRecordedBy(){
+    const prof = window.headerUserProfile || window.getCurrentUser?.() || {};
+    return { name: prof.displayName || 'User', email: prof.email || '' };
+  }
+
+  function currentTimestamp(){ return new Date().toLocaleString(); }
+
+  function gatherFormData(){
+    let type = (document.querySelector('input[name="customerType"]:checked')||{}).value;
+    console.log('gatherFormData - detected type from radio:', type);
+    
+    // If a customer was selected from the dropdown but the radio wasn't explicitly checked,
+    // treat it as an existing customer selection.
+    if(!type && window.__selectedCustomer) {
+      type = 'existing';
+      console.log('gatherFormData - converted to existing due to selected customer');
+    }
+
+    let first='', last='', email='';
+    if(type==='existing'){
+      first = document.getElementById('existingFirstName')?.value.trim() || '';
+      last = document.getElementById('existingLastName')?.value.trim() || '';
+      email = document.getElementById('existingEmail')?.value.trim() || '';
+
+      // If the injected existing fields weren't present or populated (race condition),
+      // fall back to the selected customer object.
+      if((!first || !last || !email) && window.__selectedCustomer){
+        const c = window.__selectedCustomer || {};
+        const nameParts = (c.name || '').trim().split(/\s+/);
+        const f = nameParts.shift() || '';
+        const l = nameParts.join(' ') || '';
+        first = first || f;
+        last = last || l;
+        email = email || (c.email || '');
+      }
+    } else if(type==='new'){
+      first = document.getElementById('firstName')?.value.trim() || '';
+      last = document.getElementById('lastName')?.value.trim() || '';
+      email = document.getElementById('email')?.value.trim() || '';
+    }
+    const desc = document.getElementById('description')?.value || '';
+    return { type, first, last, email, desc };
+  }
+
+  function validate(data){
+    if(!data.type){ alert('Select customer type.'); return false; }
+    if(!data.first){ alert('First name required'); return false; }
+    if(!data.last){ alert('Last name required'); return false; }
+    if(!data.email){ alert('Email required'); return false; }
+    if(!window.__lastRecordingBlob){ alert('No recorded video found.'); return false; }
+    return true;
+  }
+
+  async function uploadToVimeo(payload){
+    // Prefer the explicitly-registered implementation (window.__uploadToVimeoImpl).
+    // Poll briefly for it to handle small async registration races.
+    const maxWait = 5000; // ms (increase to 5s to tolerate slow loads)
+    const interval = 100; // ms
+    let waited = 0;
+    while (waited <= maxWait) {
+      if (typeof window.__uploadToVimeoImpl === 'function') {
+        console.debug('uploadToVimeo: found __uploadToVimeoImpl after', waited, 'ms');
+        return window.__uploadToVimeoImpl(payload);
+      }
+      // Backwards-compatible check in case some code set window.uploadToVimeo directly
+      if (typeof window.uploadToVimeo === 'function' && window.uploadToVimeo !== uploadToVimeo) {
+        console.debug('uploadToVimeo: found window.uploadToVimeo alias after', waited, 'ms');
+        return window.uploadToVimeo(payload);
+      }
+      await new Promise(r => setTimeout(r, interval));
+      waited += interval;
+    }
+    if (typeof window.__uploadToVimeoImpl === 'function') return window.__uploadToVimeoImpl(payload);
+    if (typeof window.uploadToVimeo === 'function' && window.uploadToVimeo !== uploadToVimeo) return window.uploadToVimeo(payload);
+    console.error('uploadToVimeo: pipeline not initialized. window.__uploadToVimeoImpl=', typeof window.__uploadToVimeoImpl, ' window.uploadToVimeo=', typeof window.uploadToVimeo);
+    throw new Error('Upload pipeline not initialized');
+  }
+
+  // Ensure tus library is available; dynamically load if needed
+  async function ensureTus(){
+    if (window.tus) return;
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/tus-js-client@2.3.1/dist/tus.min.js';
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Failed to load tus library'));
+      document.head.appendChild(s);
+    });
+    if (!window.tus) throw new Error('tus library failed to initialize');
+  }
+
+  // Register implementation explicitly so the upload wrapper can find it reliably
+  window.__uploadToVimeoImpl = async function(overrides = {}){
+    await ensureTus();
+    const blob = (function(){
+      const c = [window.finalBlob, window.videoBlob, window.recordedBlob, window.__recordedBlob, window.lastRecordedBlob, window.__lastRecordingBlob].filter(Boolean);
+      if (c.length) return c[0];
+      if (Array.isArray(window.recordedChunks) && window.recordedChunks.length) return new Blob(window.recordedChunks, { type: 'video/webm' });
+      return null;
+    })();
+    if (!blob) { alert('No recording found to upload.'); return; }
+
+    const readMeta = async function(overrides = {}){
+      const v = id => (document.getElementById(id)?.value || '').trim();
+      const nameJoin = (a,b) => [v(a), v(b)].filter(Boolean).join(' ').trim();
+      const baseMeta = {
+        title: v('videoTitle') || v('title') || v('recordingTitle') || `Recording ${new Date().toLocaleString()}`,
+        description: v('notes') || v('description') || '',
+        customerName: v('customerName') || nameJoin('customer_first','customer_last') || '',
+        customerEmail: v('customerEmail') || '',
+        recordedBy: v('recorderName') || v('userName') || '',
+        recordedByEmail: v('recorderEmail') || v('userEmail') || '',
+        folderId: v('folderId') || '26555277'
+      };
+      return { ...baseMeta, ...overrides };
+    };
+
+    const meta = await readMeta(overrides);
+    let uploadLink, videoUri;
+
+    // 1) Ask server for Vimeo TUS upload link
+    let initResp = await fetch('/api/upload-vimeo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        title: meta.title, 
+        size: blob.size, 
+        description: meta.description, 
+        customerName: meta.customerName, 
+        customerEmail: meta.customerEmail, 
+        recordedBy: meta.recordedBy, 
+        recordedByEmail: meta.recordedByEmail, 
+        folderId: meta.folderId,
+        isExistingCustomer: meta.isExistingCustomer || false
+      })
+    });
+    if (!initResp.ok){
+      if (initResp.status === 409 && meta.isExistingCustomer) {
+        // Expected 409 for existing customer - handle gracefully
+        console.log('✅ Handling 409 for existing customer, proceeding with retry...');
+        try {
+          const errorData = await initResp.json();
+          console.log('📋 409 error data:', errorData);
+          
+          if (errorData.existingCustomer) {
+            // Update meta with existing customer data to ensure consistency
+            meta.customerName = errorData.existingCustomer.name || meta.customerName;
+            meta.customerEmail = errorData.existingCustomer.email || meta.customerEmail;
+          }
+          
+          // Retry the request with additional flags to bypass server validation
+          console.log('🔄 Retrying upload with forceExistingCustomer flag...');
+          const retryResp = await fetch('/api/upload-vimeo', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              title: meta.title, 
+              size: blob.size, 
+              description: meta.description, 
+              customerName: meta.customerName, 
+              customerEmail: meta.customerEmail, 
+              recordedBy: meta.recordedBy, 
+              recordedByEmail: meta.recordedByEmail, 
+              folderId: meta.folderId,
+              isExistingCustomer: true,
+              forceExistingCustomer: true // Additional flag for server
+            })
+          });
+          
+          if (retryResp.ok) {
+            console.log('✅ Retry successful, proceeding with upload...');
+            initResp = retryResp;
+          } else {
+            const retryError = await retryResp.text();
+            console.error('❌ Retry upload failed:', retryError);
+            alert('Failed to initialize upload for existing customer');
+            return;
+          }
+        } catch (retryErr) {
+          console.error('❌ Error handling 409 for existing customer:', retryErr);
+          alert('Failed to initialize upload');
+          return;
+        }
+      } else {
+        const t = await initResp.text(); 
+        console.error('❌ Init upload failed:', t); 
+        alert('Failed to initialize upload'); 
+        return;
+      }
+    }
+
+    if (!uploadLink || !videoUri){ const initJson = await initResp.json(); uploadLink = initJson.uploadLink || initJson.upload_link || initJson.uploadLink; videoUri = initJson.videoUri || initJson.video_uri || initJson.videoUri; }
+
+    // 2) tus upload
+    await new Promise((resolve, reject) => {
+      const uploader = new tus.Upload(blob, {
+        uploadUrl: uploadLink,
+        metadata: { filename: (meta.title || 'recording') + '.webm', filetype: blob.type || 'video/webm' },
+        onError: err => { console.error('TUS error', err); reject(err); },
+        onProgress: (sent, total) => { const pct = total ? Math.floor(sent/total*100) : 0; if (window.updateUploadProgress) window.updateUploadProgress(pct); },
+        onSuccess: () => { resolve(); }
+      });
+      uploader.start();
+    });
+
+    // 3) finalize
+    const fin = await fetch('/api/finalize-vimeo', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ videoUri, title: meta.title, description: meta.description, customerName: meta.customerName, customerEmail: meta.customerEmail, recordedBy: meta.recordedBy, recordedByEmail: meta.recordedByEmail, folderId: meta.folderId }) });
+    if (!fin.ok) console.warn('Finalize returned non-200:', await fin.text());
+    if (window.onUploadComplete) window.onUploadComplete();
+    console.log('✅ Upload complete');
+  };
+
+  // Backwards-compatible alias
+  window.uploadToVimeo = function(payload){ return window.__uploadToVimeoImpl(payload); };
+
+
+ 
+  // Helper: search loaded customer cache (and API fallback) for an email
+  async function findCustomerByEmail(email) {
+    if (!email) return null;
+    const normalized = String(email).trim().toLowerCase();
+    
+    console.log('Looking for customer with email:', normalized);
+    
+    // Try the in-memory list first if available
+    try {
+      if (Array.isArray(window.__allCustomers) && window.__allCustomers.length) {
+        console.log('Checking in-memory customers:', window.__allCustomers.length);
+        const found = window.__allCustomers.find(c => (c.email || '').toLowerCase() === normalized);
+        if (found) {
+          console.log('Found existing customer in memory:', found);
+          return found;
+        }
+      } else {
+        console.log('No in-memory customers available, checking module customers');
+        // Check the customers from the customer search module
+        if (Array.isArray(window.allCustomers) && window.allCustomers.length) {
+          const found = window.allCustomers.find(c => (c.email || '').toLowerCase() === normalized);
+          if (found) {
+            console.log('Found existing customer in module:', found);
+            return found;
+          }
+        }
+      }
+    } catch (e) { 
+      console.warn('Error checking in-memory customers:', e);
+    }
+
+    // Fallback 1: query the server endpoint
+    console.log('Querying server for customers...');
+    try {
+      const resp = await fetch('/api/get-all-customers', { headers: { 'Accept': 'application/json' } });
+      if (resp.ok) {
+        const payload = await resp.json();
+        const customers = Array.isArray(payload.customers) ? payload.customers : (Array.isArray(payload) ? payload : []);
+        console.log('Got customers from server:', customers.length);
+        
+        // Debug: show first few customers to see the data structure
+        console.log('Sample customers:', customers.slice(0, 3));
+        
+        for (const c of customers) {
+          console.log('Checking customer:', c.email, 'against:', normalized);
+          if ((c.email || '').toLowerCase() === normalized) {
+            console.log('Found existing customer on server:', c);
+            return c;
+          }
+        }
+      }
+    } catch (e) { 
+      console.warn('Error querying server customers:', e);
+    }
+
+    // Fallback 2: query Supabase customers table directly
+    console.log('Querying Supabase customers table...');
+    try {
+      if (window.supabase?.from) {
+        const { data, error } = await window.supabase
+          .from('customers')
+          .select('*')
+          .eq('email', email)
+          .limit(1);
+
+        console.log('Supabase query result:', { data, error, searchEmail: email });
+
+        if (!error && data && data.length > 0) {
+          const record = data[0];
+          const customer = {
+            name: record.name || record.customer_name || record.first_name + ' ' + record.last_name || '',
+            email: record.email || record.customer_email || '',
+            id: record.id
+          };
+          console.log('Found existing customer in Supabase customers table:', customer);
+          return customer;
+        }
+      }
+    } catch (e) { 
+      console.warn('Error querying Supabase customers table:', e);
+    }
+    
+    console.log('No existing customer found for email:', normalized);
+    return null;
+  }
+
+  // Helper function to escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Prompt the user with a confirmation modal asking whether to use the existing customer
+  function promptUseExistingCustomer(customer) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:60000;';
+      const box = document.createElement('div');
+      box.style.cssText = 'width:520px;background:#0f1720;color:#e6eef8;padding:18px;border-radius:12px;border:1px solid #23303b;';
+      box.innerHTML = `
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Email already exists</div>
+        <div style="margin-bottom:12px;color:#a8b4c2;">The email <strong>${escapeHtml(customer.email || '')}</strong> is already associated with <strong>${escapeHtml(customer.name || '(unknown)')}</strong>. Would you like to save this recording under that existing customer or use a different email?</div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+          <button id="use-existing-btn" style="background:#10b981;color:#051014;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700;">Save as existing</button>
+          <button id="change-email-btn" style="background:#374151;color:#e6eef8;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;">Use different email</button>
+        </div>
+      `;
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      overlay.querySelector('#use-existing-btn').addEventListener('click', () => { overlay.remove(); resolve(true); });
+      overlay.querySelector('#change-email-btn').addEventListener('click', () => { overlay.remove(); resolve(false); });
+    });
+  }
+
+  window.confirmUpload = async function(){
+    console.log('🚀 confirmUpload function called');
+    const btn = document.querySelector('.confirm-button');
+    if(btn) { btn.disabled = true; btn.textContent='⏳ Uploading...'; }
+    try {
+      const formData = gatherFormData();
+      console.log('📋 Gathered form data:', formData);
+      if(!validate(formData)) { 
+        console.log('❌ Validation failed');
+        if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; } 
+        return; 
+      }
+      console.log('✅ Validation passed, proceeding with upload validation...');
+
+      // If creating a NEW customer, check for duplicate email in existing customers
+      console.log('confirmUpload - formData:', formData);
+      if (formData.type === 'new' && formData.email) {
+        console.log('confirmUpload - validating new customer with email:', formData.email);
+        
+        // Ensure customers are loaded before validation
+        if (typeof window.ensureCustomersLoaded === 'function') {
+          try { 
+            window.ensureCustomersLoaded(); 
+            // Wait a moment for customers to load if needed
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } catch(e) { 
+            console.warn('Failed to load customers for validation:', e);
+          }
+        }
+        
+        const dup = await findCustomerByEmail(formData.email);
+        console.log('confirmUpload - duplicate check result:', dup);
+        if (dup) {
+          // Ask user whether to save as existing customer or use a different email
+          const useExisting = await promptUseExistingCustomer(dup);
+          if (!useExisting) {
+            // User chose to change email — abort upload and restore button
+            if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; }
+            return;
+          }
+
+          // User chose to save as existing customer — convert formData to existing
+          console.log('✅ Converting to existing customer:', dup);
+          formData.type = 'existing';
+          const nameParts = (dup.name || '').trim().split(/\s+/);
+          formData.first = nameParts.shift() || '';
+          formData.last = nameParts.join(' ') || '';
+          formData.email = dup.email || formData.email;
+          
+          // Update UI to show existing customer selection
+          try {
+            // Check the existing customer radio button
+            const existingRadio = document.querySelector('input[name="customerType"][value="existing"]');
+            if (existingRadio) {
+              existingRadio.checked = true;
+            }
+            
+            // Populate existing customer fields in DOM
+            const ef = document.getElementById('existingFirstName');
+            const el = document.getElementById('existingLastName');
+            const ee = document.getElementById('existingEmail');
+            if (ef) ef.value = formData.first;
+            if (el) el.value = formData.last;
+            if (ee) ee.value = formData.email;
+            
+            // Set selected customer for consistency
+            window.__selectedCustomer = {
+              name: dup.name,
+              email: dup.email,
+              id: dup.id
+            };
+            
+            console.log('✅ UI updated for existing customer conversion');
+          } catch (e) { 
+            console.warn('Error updating UI for existing customer:', e);
+          }
+        }
+      }
+      
+      // Validate the final form data before upload
+      console.log('📋 Final form data for upload:', formData);
+      if (!formData.first || !formData.last || !formData.email) {
+        console.error('❌ Missing required customer data after validation');
+        alert('Missing required customer information. Please try again.');
+        if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; }
+        return;
+      }
+      
+      const recordedByInfo = getRecordedBy();
+      const customerName = (formData.first + ' ' + formData.last).trim();
+      const dateStr = currentTimestamp();
+      const userDescription = formData.desc.trim();
+      const metadataBlock = [`Customer: ${customerName}`, `Customer Email: ${formData.email}`, `Recorded By: ${recordedByInfo.name}`, `Recorded By Email: ${recordedByInfo.email}`, `Recording Date: ${dateStr}`].join('\n');
+      const fullDescription = userDescription ? `${userDescription}\n\n${metadataBlock}` : metadataBlock;
+      try {
+        await uploadToVimeo({
+        title: customerName || 'Untitled Recording',
+        description: fullDescription,
+        customerName,
+        customerEmail: formData.email,
+        recordedBy: recordedByInfo.name,
+        recordedByEmail: recordedByInfo.email,
+        recordingDate: dateStr,
+        folderId,
+        isExistingCustomer: formData.type === 'existing'
+        });
+      } catch (err) {
+        console.error('Upload failed:', err);
+        alert('Upload error: ' + (err && err.message ? err.message : String(err)));
+        if(btn){ btn.disabled=false; btn.textContent='📤 Confirm Upload'; }
+        return;
+      }
+      // Success UI - fully reset recorder to start screen
+      alert('✅ Uploaded successfully to Vimeo!');
+      
+      // Complete reset to start screen
+      setTimeout(() => {
+        if(window.restoreRecorderUI) window.restoreRecorderUI();
+        
+        // Reset video preview to Sparky logo
+        const previewShell = document.querySelector('.preview-screen');
+        if(previewShell) {
+          previewShell.innerHTML = '<img src="Sparky-AItp.gif" alt="Sparky AI" style="max-width:200px;max-height:200px;object-fit:contain;">';
+        }
+        
+        // Reset record button
+        if(recordBtn){ 
+          recordBtn.textContent='🔴 Start Recording'; 
+          recordBtn.classList.remove('recording'); 
+        }
+        
+        // Clear any stored video data
+        window.__lastRecordingBlob = null;
+        
+        // Reset form fields
+        const firstNameField = document.getElementById('firstName');
+        const lastNameField = document.getElementById('lastName');
+        const emailField = document.getElementById('email');
+        const existingFirstName = document.getElementById('existingFirstName');
+        const existingLastName = document.getElementById('existingLastName');
+        const existingEmail = document.getElementById('existingEmail');
+        const descriptionField = document.getElementById('description');
+        const customerSearch = document.getElementById('customerSearch');
+        
+        if(firstNameField) firstNameField.value = '';
+        if(lastNameField) lastNameField.value = '';
+        if(emailField) emailField.value = '';
+        if(existingFirstName) existingFirstName.value = '';
+        if(existingLastName) existingLastName.value = '';
+        if(existingEmail) existingEmail.value = '';
+        if(descriptionField) descriptionField.value = '';
+        if(customerSearch) customerSearch.value = '';
+        
+        // Clear customer selection
+        window.__selectedCustomer = null;
+        
+        // Refresh user videos if profile known
+        const email = (window.headerUserProfile||{}).email; 
+        if(email){ 
+          document.dispatchEvent(new CustomEvent('profileLoaded',{detail:{email}})); 
+        }
+        
+        console.log('📹 Recorder fully reset to start screen');
+      }, 500); // Small delay to show success message first
+    } catch(e){
+      console.error(e);
+      alert('Upload error: '+ e.message);
+    } finally {
+      const btn2 = document.querySelector('.confirm-button');
+      if(btn2){ btn2.disabled=false; btn2.textContent='📤 Confirm Upload'; }
+    }
+  };
+
+  // Use MutationObserver instead of innerHTML override to prevent blocking
+  function protectLastFrame(){
+    if(!previewShell || !lastFrameDataRef) return;
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if(mutation.type === 'childList' && previewShell.children.length === 0){
+          // Only restore if preview is empty and we have a frame
+          const img = document.createElement('img');
+          img.src = lastFrameDataRef;
+          img.alt = 'Last Frame';
+          img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+          previewShell.appendChild(img);
+        }
+      });
+    });
+    observer.observe(previewShell, { childList: true });
+    return observer;
+  }
+})();
+
+// ========================================
+// Warn user before leaving with unsaved recording
+// ========================================
+(function() {
+  // Check if there's an unsaved recording
+  function hasUnsavedRecording() {
+    // Recording exists if __lastRecordingBlob is set and not null
+    return window.__lastRecordingBlob && window.__lastRecordingBlob instanceof Blob;
+  }
+
+  // Prevent page unload if there's an unsaved recording
+  window.addEventListener('beforeunload', function(event) {
+    if (hasUnsavedRecording()) {
+      const message = 'Your recording has not been saved. If you leave the page, your work will be lost. Are you sure you want to leave?';
+      
+      // Modern browsers ignore the custom message and show their own
+      // But we still need to set returnValue for the dialog to appear
+      event.preventDefault();
+      event.returnValue = message;
+      return message;
+    }
+  });
+
+  console.log('✅ Unsaved recording warning activated');
+})();
+</script>
+</body>
+</html>
